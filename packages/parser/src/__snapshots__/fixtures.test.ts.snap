@@ -1425,6 +1425,293 @@ exports[`fixtures > many-to-many.dbml 1`] = `
 }
 `;
 
+exports[`fixtures > pure_star.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date",
+          "pk": false,
+          "type": "date",
+        },
+      ],
+      "name": "date_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "sku",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "product_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "store_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "customer_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "code",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "promotion_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "channel_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "code",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "currency_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "employee_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "store_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "customer_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "promotion_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "channel_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "currency_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "employee_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quantity",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "unit_price",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "total",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "sales_fact",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "date_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "date_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "product_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "store_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "store_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "customer_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "customer_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "promotion_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "promotion_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "channel_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "channel_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "currency_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "currency_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "employee_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "employee_dim",
+      },
+    },
+  ],
+}
+`;
+
 exports[`fixtures > sales_star.dbml 1`] = `
 {
   "entities": [

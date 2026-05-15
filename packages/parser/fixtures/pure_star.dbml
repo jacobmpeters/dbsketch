@@ -1,0 +1,59 @@
+// Pure star schema: one fact table referenced by 8 dimensions, no
+// inter-dimension relationships. The classic "wide-aspect-ratio" challenge
+// for layered layout — naive layering puts 8 dims in col 0 and the fact
+// alone in col 1, yielding a tall and thin diagram.
+
+Table date_dim {
+  id int [pk]
+  date date
+}
+
+Table product_dim {
+  id int [pk]
+  sku varchar
+}
+
+Table store_dim {
+  id int [pk]
+  name varchar
+}
+
+Table customer_dim {
+  id int [pk]
+  email varchar
+}
+
+Table promotion_dim {
+  id int [pk]
+  code varchar
+}
+
+Table channel_dim {
+  id int [pk]
+  name varchar
+}
+
+Table currency_dim {
+  id int [pk]
+  code varchar
+}
+
+Table employee_dim {
+  id int [pk]
+  name varchar
+}
+
+Table sales_fact {
+  id int [pk]
+  date_id int [ref: > date_dim.id]
+  product_id int [ref: > product_dim.id]
+  store_id int [ref: > store_dim.id]
+  customer_id int [ref: > customer_dim.id]
+  promotion_id int [ref: > promotion_dim.id]
+  channel_id int [ref: > channel_dim.id]
+  currency_id int [ref: > currency_dim.id]
+  employee_id int [ref: > employee_dim.id]
+  quantity int
+  unit_price int
+  total int
+}

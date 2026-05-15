@@ -5,15 +5,21 @@ import type { IR } from '@ascii-erd/parser';
 // parent col < child col for every one-to-many ref. Self-FKs and cycles
 // are tolerated — they don't constrain placement.
 //
-// Width target W = max(3, ceil(N / longestPath)). The 3 floor keeps
-// hub-and-spoke patterns intact (3 children of one parent stay in one col)
-// while the formula expands W as the schema gets wider relative to its
-// depth.
+// Width target W is the *smaller* of two natural choices:
+//   - ceil(N / longestPath): entities-per-col averaged over the depth.
+//     Tends to under-fill wide-and-shallow schemas.
+//   - ceil(sqrt(N)): aspect-ratio-balanced "square" target. Keeps star
+//     schemas (one fact + many dims) from collapsing into a thin tall
+//     diagram.
+// Floor of 3 preserves hub-and-spoke groupings — three children of one
+// parent stay in one col rather than getting split.
 export function rank(ir: IR): Map<string, number> {
   const parents = buildParents(ir);
   const longestPath = computeLongestPath(ir, parents);
   const N = ir.entities.length;
-  const W = Math.max(3, Math.ceil(N / Math.max(1, longestPath)));
+  const byDepth = Math.ceil(N / Math.max(1, longestPath));
+  const bySqrt = Math.ceil(Math.sqrt(N));
+  const W = Math.max(3, Math.min(byDepth, bySqrt));
   return balancedLayering(ir, parents, W);
 }
 
