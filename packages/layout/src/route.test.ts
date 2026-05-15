@@ -67,6 +67,24 @@ describe('planRoutes', () => {
     }
   });
 
+  it('falls back to detour-above when detour-below row-channel is missing', () => {
+    // Two roots → 2 row strips. Multi-hop edge from root at row 1 to a
+    // child at col 2 row 1: minRow=1 is the last row strip, so detour-below
+    // doesn't exist, but detour-above (row-channel 0) does.
+    const ir = parse(`
+      Table top { id int }
+      Table bottom { id int }
+      Table mid { id int top_id int [ref: > top.id] }
+      Table leaf { id int bottom_id int [ref: > bottom.id] mid_id int [ref: > mid.id] }
+    `);
+    const result = plan(ir);
+    // Both edges from top/bottom to leaf should route. The bottom→leaf edge
+    // is the multi-hop one; with the fallback in place it shouldn't skip.
+    expect(result.skippedRefs).toEqual([]);
+    const multiHop = result.planned.find((p) => p.kind === 'multi');
+    expect(multiHop).toBeDefined();
+  });
+
   it('skips multi-hop refs when no row-channel exists for detour', () => {
     // Single row strip means there's nowhere to detour through.
     const ir = parse(`

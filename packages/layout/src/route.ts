@@ -115,11 +115,20 @@ function tryPlan(
     };
   }
 
-  // Multi-hop. Detour through the row-channel just below the higher of
-  // parent/child (i.e., at index min(parentRow, childRow)). That row-channel
-  // exists only if there's a row strip below it.
-  const detourRowChannel = Math.min(parentP.rowStrip, childP.rowStrip);
-  if (detourRowChannel >= numRowStrips - 1) return null;
+  // Multi-hop. Try the row-channel just below the higher of parent/child
+  // first; if that row-channel doesn't exist (both at the last row strip),
+  // fall back to the row-channel just above the lower of the two. Skip
+  // only when neither direction has a row-channel available.
+  const minRow = Math.min(parentP.rowStrip, childP.rowStrip);
+  const maxRow = Math.max(parentP.rowStrip, childP.rowStrip);
+  let detourRowChannel: number;
+  if (minRow < numRowStrips - 1) {
+    detourRowChannel = minRow;
+  } else if (maxRow > 0) {
+    detourRowChannel = maxRow - 1;
+  } else {
+    return null;
+  }
 
   return {
     kind: 'multi',
