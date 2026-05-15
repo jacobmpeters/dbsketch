@@ -58,6 +58,10 @@ function applyColPins(ranks: Map<string, number>, hints: LayoutHints, ir: IR): v
 function validateColPins(ranks: Map<string, number>, ir: IR): void {
   for (const ref of ir.refs) {
     if (ref.cardinality !== 'one-to-many') continue;
+    // Self-FKs are already skipped by the router (they'd need col-distance > 0)
+    // and they trivially fail the parent-col < child-col check, so exclude
+    // them here to avoid spurious conflict errors.
+    if (ref.parent.entity === ref.child.entity) continue;
     const parentCol = ranks.get(ref.parent.entity);
     const childCol = ranks.get(ref.child.entity);
     if (parentCol === undefined || childCol === undefined) continue;

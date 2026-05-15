@@ -84,6 +84,19 @@ describe('layout', () => {
     expect(() => layout(ir)).toThrow(/both target/);
   });
 
+  it('does not trigger col-conflict for self-FKs', () => {
+    // Self-referencing FK (e.g., department.parent_dept_id → department.id)
+    // shouldn't trip the parent-col < child-col validator, since it can't
+    // satisfy the constraint anyway and the router skips self-FKs.
+    const ir = parse(`
+      Table department {
+        id int [pk]
+        parent_id int [ref: > department.id]
+      }
+    `);
+    expect(() => layout(ir)).not.toThrow();
+  });
+
   it('rejects pin to unknown entity', () => {
     const ir = parse(`
       Table a { id int }
