@@ -36,13 +36,13 @@ describe('size', () => {
     expect(size(ir, place(ir, rank(ir))).colStripWidths[0]).toBe(30);
   });
 
-  it('starts channels at zero width (no routing yet)', () => {
+  it('uses the minimum visual-separation channel width when there is no routing', () => {
     const ir = parse(`
       Table users { id int [pk] }
       Table posts { id int [pk] user_id int [ref: > users.id] }
     `);
     const sizing = size(ir, place(ir, rank(ir)));
-    expect(sizing.channelColWidths).toEqual([0]);
+    expect(sizing.channelColWidths).toEqual([2]);
     expect(sizing.channelRowHeights).toEqual([]);
   });
 });

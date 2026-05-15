@@ -94,10 +94,10 @@ exports[`layout snapshots > branching-children 1`] = `
   ],
   "sizing": {
     "channelColWidths": [
-      0,
+      2,
     ],
     "channelRowHeights": [
-      0,
+      1,
     ],
     "colStripWidths": [
       10,
@@ -221,8 +221,8 @@ exports[`layout snapshots > diamond 1`] = `
   ],
   "sizing": {
     "channelColWidths": [
-      0,
-      0,
+      2,
+      2,
     ],
     "channelRowHeights": [],
     "colStripWidths": [
@@ -336,10 +336,10 @@ exports[`layout snapshots > junction-table 1`] = `
   ],
   "sizing": {
     "channelColWidths": [
-      0,
+      2,
     ],
     "channelRowHeights": [
-      0,
+      1,
     ],
     "colStripWidths": [
       16,
@@ -447,8 +447,8 @@ exports[`layout snapshots > linear-chain 1`] = `
   ],
   "sizing": {
     "channelColWidths": [
-      0,
-      0,
+      2,
+      2,
     ],
     "channelRowHeights": [],
     "colStripWidths": [

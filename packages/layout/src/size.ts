@@ -1,6 +1,11 @@
 import type { Entity, IR } from '@ascii-erd/parser';
 import type { Placement, StripSizing } from './types.js';
 
+// Visual-separation floor for channels, applied before any routing demand.
+// Without this, adjacent boxes would touch and the diagram becomes unreadable.
+const MIN_COL_CHANNEL = 2;
+const MIN_ROW_CHANNEL = 1;
+
 export function size(ir: IR, placements: Placement[]): StripSizing {
   const entitiesByName = new Map(ir.entities.map((e) => [e.name, e]));
 
@@ -17,9 +22,10 @@ export function size(ir: IR, placements: Placement[]): StripSizing {
     rowStripHeights[p.rowStrip] = Math.max(rowStripHeights[p.rowStrip]!, entityHeight(entity));
   }
 
-  // Channels grow with routing demand; first slice has no routing, so all zero.
-  const channelColWidths = new Array<number>(Math.max(0, numColStrips - 1)).fill(0);
-  const channelRowHeights = new Array<number>(Math.max(0, numRowStrips - 1)).fill(0);
+  // Channels grow with routing demand on top of the minimum. First slice has
+  // no routing, so they sit at the floor.
+  const channelColWidths = new Array<number>(Math.max(0, numColStrips - 1)).fill(MIN_COL_CHANNEL);
+  const channelRowHeights = new Array<number>(Math.max(0, numRowStrips - 1)).fill(MIN_ROW_CHANNEL);
 
   return { colStripWidths, channelColWidths, rowStripHeights, channelRowHeights };
 }
