@@ -1,0 +1,19 @@
+{
+  "name": "@ascii-erd/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ascii-erd": "./dist/bin.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsx src/bin.ts"
+  },
+  "dependencies": {
+    "@ascii-erd/core": "workspace:*"
+  }
+}
