@@ -16,6 +16,11 @@ export class Canvas {
     this.cells[y * this.width + x] = ch;
   }
 
+  get(x: number, y: number): string | undefined {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) return undefined;
+    return this.cells[y * this.width + x];
+  }
+
   setRow(x: number, y: number, str: string): void {
     for (let i = 0; i < str.length; i++) {
       this.set(x + i, y, str[i]!);

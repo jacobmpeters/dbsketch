@@ -20,12 +20,31 @@ function drawSegment(canvas: Canvas, seg: EdgeSegment, glyphs: Glyphs): void {
   if (seg.kind === 'horizontal') {
     const xMin = Math.min(seg.x1, seg.x2);
     const xMax = Math.max(seg.x1, seg.x2);
-    for (let x = xMin; x <= xMax; x++) canvas.set(x, seg.y1, glyphs.horizontal);
+    for (let x = xMin; x <= xMax; x++) {
+      canvas.set(x, seg.y1, mergeSegment(canvas.get(x, seg.y1), glyphs.horizontal, glyphs));
+    }
   } else {
     const yMin = Math.min(seg.y1, seg.y2);
     const yMax = Math.max(seg.y1, seg.y2);
-    for (let y = yMin; y <= yMax; y++) canvas.set(seg.x1, y, glyphs.vertical);
+    for (let y = yMin; y <= yMax; y++) {
+      canvas.set(seg.x1, y, mergeSegment(canvas.get(seg.x1, y), glyphs.vertical, glyphs));
+    }
   }
+}
+
+// When a segment cell already holds a perpendicular line, upgrade to a cross
+// glyph. Existing corners, port markers, and crosses are kept — they were
+// placed deliberately and carry more information than a re-drawn segment would.
+function mergeSegment(existing: string | undefined, incoming: string, glyphs: Glyphs): string {
+  if (existing === undefined || existing === ' ') return incoming;
+  if (existing === incoming) return existing;
+  if (
+    (existing === glyphs.horizontal && incoming === glyphs.vertical) ||
+    (existing === glyphs.vertical && incoming === glyphs.horizontal)
+  ) {
+    return glyphs.cross;
+  }
+  return existing;
 }
 
 function drawCorners(canvas: Canvas, segments: EdgeSegment[], glyphs: Glyphs): void {

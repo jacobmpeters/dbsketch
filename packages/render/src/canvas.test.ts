@@ -33,4 +33,18 @@ describe('Canvas', () => {
     c.set(4, 0, 'b');
     expect(c.toString()).toBe('a   b');
   });
+
+  it('reads back set cells via get', () => {
+    const c = new Canvas(2, 1);
+    c.set(0, 0, 'x');
+    expect(c.get(0, 0)).toBe('x');
+    expect(c.get(1, 0)).toBe(' ');
+  });
+
+  it('returns undefined for out-of-bounds get', () => {
+    const c = new Canvas(2, 1);
+    expect(c.get(-1, 0)).toBeUndefined();
+    expect(c.get(2, 0)).toBeUndefined();
+    expect(c.get(0, 1)).toBeUndefined();
+  });
 });
