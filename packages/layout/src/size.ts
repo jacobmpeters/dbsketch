@@ -6,7 +6,11 @@ import type { Placement, StripSizing } from './types.js';
 const MIN_COL_CHANNEL = 2;
 const MIN_ROW_CHANNEL = 1;
 
-export function size(ir: IR, placements: Placement[]): StripSizing {
+export function size(
+  ir: IR,
+  placements: Placement[],
+  channelTrackCounts: Map<number, number> = new Map(),
+): StripSizing {
   const entitiesByName = new Map(ir.entities.map((e) => [e.name, e]));
 
   const numColStrips = placements.reduce((m, p) => Math.max(m, p.colStrip + 1), 0);
@@ -22,9 +26,11 @@ export function size(ir: IR, placements: Placement[]): StripSizing {
     rowStripHeights[p.rowStrip] = Math.max(rowStripHeights[p.rowStrip]!, entityHeight(entity));
   }
 
-  // Channels grow with routing demand on top of the minimum. First slice has
-  // no routing, so they sit at the floor.
-  const channelColWidths = new Array<number>(Math.max(0, numColStrips - 1)).fill(MIN_COL_CHANNEL);
+  // Each routing track is one cell wide. Channel = max(visual floor, tracks).
+  const channelColWidths = Array.from({ length: Math.max(0, numColStrips - 1) }, (_, i) =>
+    Math.max(MIN_COL_CHANNEL, channelTrackCounts.get(i) ?? 0),
+  );
+  // Row channels stay at the floor — v1 doesn't route through them.
   const channelRowHeights = new Array<number>(Math.max(0, numRowStrips - 1)).fill(MIN_ROW_CHANNEL);
 
   return { colStripWidths, channelColWidths, rowStripHeights, channelRowHeights };
