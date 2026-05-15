@@ -29,6 +29,15 @@ const SCENARIOS: Record<string, string> = {
     Table b { id int [pk] a_id int [ref: > a.id] }
     Table c { id int [pk] a_id int [ref: > a.id] b_id int [ref: > b.id] }
   `,
+  // Barycenter should pull top → row matching x, bot → row matching y, leaving
+  // both FK edges straight rather than bending across rows.
+  'barycenter-reorder': `
+    Table top { id int }
+    Table mid { id int }
+    Table bot { id int }
+    Table x { id int top_id int [ref: > top.id] }
+    Table y { id int bot_id int [ref: > bot.id] }
+  `,
 };
 
 describe('layout snapshots', () => {

@@ -1,5 +1,243 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`layout snapshots > barycenter-reorder 1`] = `
+{
+  "edges": [
+    {
+      "childPort": {
+        "side": "left",
+        "x": 12,
+        "y": 4,
+      },
+      "parentPort": {
+        "side": "right",
+        "x": 9,
+        "y": 3,
+      },
+      "ref": {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "top_id",
+          "entity": "x",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "top",
+        },
+      },
+      "segments": [
+        {
+          "kind": "horizontal",
+          "x1": 10,
+          "x2": 10,
+          "y1": 3,
+          "y2": 3,
+        },
+        {
+          "kind": "vertical",
+          "x1": 10,
+          "x2": 10,
+          "y1": 3,
+          "y2": 4,
+        },
+        {
+          "kind": "horizontal",
+          "x1": 10,
+          "x2": 11,
+          "y1": 4,
+          "y2": 4,
+        },
+      ],
+    },
+    {
+      "childPort": {
+        "side": "left",
+        "x": 12,
+        "y": 11,
+      },
+      "parentPort": {
+        "side": "right",
+        "x": 9,
+        "y": 10,
+      },
+      "ref": {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "bot_id",
+          "entity": "y",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "bot",
+        },
+      },
+      "segments": [
+        {
+          "kind": "horizontal",
+          "x1": 10,
+          "x2": 10,
+          "y1": 10,
+          "y2": 10,
+        },
+        {
+          "kind": "vertical",
+          "x1": 10,
+          "x2": 10,
+          "y1": 10,
+          "y2": 11,
+        },
+        {
+          "kind": "horizontal",
+          "x1": 10,
+          "x2": 11,
+          "y1": 11,
+          "y2": 11,
+        },
+      ],
+    },
+  ],
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "top",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "mid",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "bot",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": false,
+            "type": "int",
+          },
+          {
+            "name": "top_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "x",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": false,
+            "type": "int",
+          },
+          {
+            "name": "bot_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "y",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "top_id",
+          "entity": "x",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "top",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "bot_id",
+          "entity": "y",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "bot",
+        },
+      },
+    ],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "top",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 0,
+      "entity": "bot",
+      "rowStrip": 1,
+    },
+    {
+      "colStrip": 0,
+      "entity": "mid",
+      "rowStrip": 2,
+    },
+    {
+      "colStrip": 1,
+      "entity": "x",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 1,
+      "entity": "y",
+      "rowStrip": 1,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [
+      2,
+    ],
+    "channelRowHeights": [
+      1,
+      1,
+    ],
+    "colStripWidths": [
+      10,
+      14,
+    ],
+    "rowStripHeights": [
+      6,
+      6,
+      5,
+    ],
+  },
+  "skippedRefs": [],
+}
+`;
+
 exports[`layout snapshots > branching-children 1`] = `
 {
   "edges": [
