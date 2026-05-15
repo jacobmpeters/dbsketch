@@ -1,0 +1,23 @@
+// Exercises every cardinality operator the parser supports.
+
+Table users {
+  id int [pk]
+}
+
+Table profiles {
+  user_id int [ref: - users.id]
+}
+
+Table posts {
+  id int [pk]
+  user_id int [ref: > users.id]
+}
+
+Table tags {
+  id int [pk]
+}
+
+Table post_tags {
+  post_id int [ref: <> posts.id]
+  tag_id int [ref: <> tags.id]
+}

@@ -1,0 +1,355 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fixtures > basic.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "created_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "users",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [],
+}
+`;
+
+exports[`fixtures > blog.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "created_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "users",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "title",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "body",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "posts",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "post_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "body",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "comments",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "posts",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "post_id",
+        "entity": "comments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "posts",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "comments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+  ],
+}
+`;
+
+exports[`fixtures > cardinalities.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+      ],
+      "name": "users",
+    },
+    {
+      "columns": [
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "profiles",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "posts",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+      ],
+      "name": "tags",
+    },
+    {
+      "columns": [
+        {
+          "name": "post_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "tag_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "post_tags",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-one",
+      "child": {
+        "column": "id",
+        "entity": "users",
+      },
+      "parent": {
+        "column": "user_id",
+        "entity": "profiles",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "posts",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "many-to-many",
+      "child": {
+        "column": "id",
+        "entity": "posts",
+      },
+      "parent": {
+        "column": "post_id",
+        "entity": "post_tags",
+      },
+    },
+    {
+      "cardinality": "many-to-many",
+      "child": {
+        "column": "id",
+        "entity": "tags",
+      },
+      "parent": {
+        "column": "tag_id",
+        "entity": "post_tags",
+      },
+    },
+  ],
+}
+`;
+
+exports[`fixtures > many-to-many.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "users",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "groups",
+    },
+    {
+      "columns": [
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "group_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "role",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "memberships",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "memberships",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "group_id",
+        "entity": "memberships",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "groups",
+      },
+    },
+  ],
+}
+`;

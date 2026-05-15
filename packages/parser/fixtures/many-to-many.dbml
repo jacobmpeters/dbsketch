@@ -1,0 +1,17 @@
+// Classic junction-table shape: memberships sit between users and groups.
+
+Table users {
+  id int [pk]
+  name varchar
+}
+
+Table groups {
+  id int [pk]
+  name varchar
+}
+
+Table memberships {
+  user_id int [ref: > users.id]
+  group_id int [ref: > groups.id]
+  role varchar
+}
