@@ -13,6 +13,7 @@ export type TokenKind =
   | 'lt'
   | 'dash'
   | 'lt-gt'
+  | 'at_sign'
   | 'eof';
 
 export interface Token {
@@ -42,6 +43,7 @@ const SINGLE_CHAR: Record<string, TokenKind> = {
   '.': 'dot',
   '>': 'gt',
   '-': 'dash',
+  '@': 'at_sign',
 };
 
 export function tokenize(source: string): Token[] {

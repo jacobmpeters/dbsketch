@@ -98,6 +98,52 @@ describe('parse', () => {
     expect(ir.entities[0]?.columns).toHaveLength(2);
   });
 
+  it('parses an @layout block with a row pin', () => {
+    const ir = parse(`
+      Table users { id int }
+      @layout {
+        pin users at row 2
+      }
+    `);
+    expect(ir.hints.pins).toEqual([{ entity: 'users', col: null, row: 2 }]);
+  });
+
+  it('parses pins for col, row, and combined col + row', () => {
+    const ir = parse(`
+      Table users { id int }
+      Table posts { id int }
+      Table comments { id int }
+      @layout {
+        pin users at col 1
+        pin posts at row 3
+        pin comments at col 2, row 1
+      }
+    `);
+    expect(ir.hints.pins).toEqual([
+      { entity: 'users', col: 1, row: null },
+      { entity: 'posts', col: null, row: 3 },
+      { entity: 'comments', col: 2, row: 1 },
+    ]);
+  });
+
+  it('rejects @layout pins with no col or row', () => {
+    expect(() =>
+      parse(`
+        Table users { id int }
+        @layout { pin users at }
+      `),
+    ).toThrow(ParseError);
+  });
+
+  it('rejects unknown hint keywords', () => {
+    expect(() =>
+      parse(`
+        Table users { id int }
+        @layout { cluster auth { users } }
+      `),
+    ).toThrow(/Unknown hint/);
+  });
+
   it('throws ParseError on syntax errors with line info', () => {
     try {
       parse('Table users {\n  id int [oops');

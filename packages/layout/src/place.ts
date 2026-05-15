@@ -10,29 +10,34 @@ const BARYCENTER_PASSES = 4;
 // connected entities cluster together. This translates directly to fewer edge
 // crossings, shorter routing tracks, and more straight (no-bend) edges.
 //
-// Passes alternate direction (left→right, then right→left) so position
-// changes in one rank propagate to its neighbors in subsequent passes.
-// Entities with no FK neighbors fall back to alphabetical ordering for
-// determinism.
-export function place(ir: IR, ranks: Map<string, number>): Placement[] {
+// `pinnedRows` overrides positions for specific entities. Pinned entities go
+// to their pinned row; non-pinned entities sort by barycenter (which sees
+// the pinned positions) and get assigned to remaining rows in order.
+export function place(
+  ir: IR,
+  ranks: Map<string, number>,
+  pinnedRows: Map<string, number> = new Map(),
+): Placement[] {
   const byRank = groupByRank(ir, ranks);
   const positions = initialPositions(byRank);
   const adjacency = buildAdjacency(ir);
+
+  // Apply pinned rows up front so barycenter sees them as fixed.
+  for (const [name, row] of pinnedRows) {
+    positions.set(name, row);
+  }
 
   const ranksList = [...byRank.keys()].sort((a, b) => a - b);
   for (let pass = 0; pass < BARYCENTER_PASSES; pass++) {
     const order = pass % 2 === 0 ? ranksList : [...ranksList].reverse();
     for (const r of order) {
-      reorderRank(r, byRank, positions, adjacency);
+      reorderRank(r, byRank, positions, adjacency, pinnedRows);
     }
   }
 
   // Float each rank's entities to cluster around their average barycenter.
-  // Without this, single-entity ranks always land at row 0 even when their
-  // connections live in much higher rows — putting fact tables, salaries,
-  // etc. far from their neighbors and pushing all the empty space to the
-  // bottom of the diagram. Floating distributes empty space more evenly.
-  floatPositions(byRank, positions, adjacency);
+  // Pinned entities skip floating — their position is already fixed.
+  floatPositions(byRank, positions, adjacency, pinnedRows);
 
   return ir.entities
     .map((e) => ({
@@ -91,20 +96,39 @@ function reorderRank(
   byRank: Map<number, string[]>,
   positions: Map<string, number>,
   adjacency: Map<string, Set<string>>,
+  pinnedRows: Map<string, number>,
 ): void {
   const inRank = byRank.get(rank);
   if (!inRank || inRank.length <= 1) return;
 
-  const barys = computeBarycenters(inRank, positions, adjacency);
+  // Pinned entities keep their pinned position. Non-pinned entities sort by
+  // barycenter and fill the remaining rows in order, skipping pinned rows.
+  const nonPinned = inRank.filter((n) => !pinnedRows.has(n));
+  if (nonPinned.length === 0) return;
 
-  const reordered = [...inRank].sort((a, b) => {
+  const barys = computeBarycenters(nonPinned, positions, adjacency);
+  const reordered = [...nonPinned].sort((a, b) => {
     const diff = barys.get(a)! - barys.get(b)!;
     if (diff !== 0) return diff;
     return a.localeCompare(b);
   });
 
-  reordered.forEach((name, i) => positions.set(name, i));
-  byRank.set(rank, reordered);
+  const usedRows = new Set<number>();
+  for (const name of inRank) {
+    if (pinnedRows.has(name)) usedRows.add(pinnedRows.get(name)!);
+  }
+  let nextRow = 0;
+  for (const name of reordered) {
+    while (usedRows.has(nextRow)) nextRow++;
+    positions.set(name, nextRow);
+    nextRow++;
+  }
+
+  // Refresh the bucket order to match new positions (pinned + non-pinned by row).
+  byRank.set(
+    rank,
+    [...inRank].sort((a, b) => (positions.get(a) ?? 0) - (positions.get(b) ?? 0)),
+  );
 }
 
 // One-shot float pass after barycenter sweeps. Restricted to single-entity
@@ -113,18 +137,22 @@ function reorderRank(
 // space below it). Multi-entity ranks are left alone — full floating tends
 // to spread well-grouped entities apart and create new orphans.
 //
+// Pinned entities skip the float — their position is already fixed.
+//
 // Processed in rank order so later ranks see the updated positions of any
 // earlier single-entity ranks that floated.
 function floatPositions(
   byRank: Map<number, string[]>,
   positions: Map<string, number>,
   adjacency: Map<string, Set<string>>,
+  pinnedRows: Map<string, number>,
 ): void {
   const ranks = [...byRank.keys()].sort((a, b) => a - b);
   for (const rank of ranks) {
     const entities = byRank.get(rank);
     if (!entities || entities.length !== 1) continue;
     const name = entities[0]!;
+    if (pinnedRows.has(name)) continue;
     const bary = computeBarycenters(entities, positions, adjacency).get(name)!;
     positions.set(name, Math.max(0, Math.round(bary)));
   }

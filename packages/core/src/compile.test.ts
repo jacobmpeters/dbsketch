@@ -25,6 +25,6 @@ describe('compile', () => {
   });
 
   it('propagates TokenizerError on unrecognized characters', () => {
-    expect(() => compile('@@@nope')).toThrow(TokenizerError);
+    expect(() => compile('???')).toThrow(TokenizerError);
   });
 });

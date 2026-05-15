@@ -51,6 +51,6 @@ describe('tokenize', () => {
   });
 
   it('throws on unexpected character', () => {
-    expect(() => tokenize('@')).toThrow(/Unexpected character/);
+    expect(() => tokenize('?')).toThrow(/Unexpected character/);
   });
 });

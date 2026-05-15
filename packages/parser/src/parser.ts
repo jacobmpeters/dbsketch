@@ -1,5 +1,5 @@
 import { type Token, type TokenKind, tokenize } from './tokenizer.js';
-import type { Column, Entity, IR, LayoutHints, Ref, RefEndpoint } from './types.js';
+import type { Column, Entity, IR, PinHint, Ref, RefEndpoint } from './types.js';
 
 export class ParseError extends Error {
   constructor(
@@ -15,6 +15,7 @@ class Parser {
   private pos = 0;
   private readonly entities: Entity[] = [];
   private readonly refs: Ref[] = [];
+  private readonly pins: PinHint[] = [];
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -25,7 +26,7 @@ class Parser {
     return {
       entities: this.entities,
       refs: this.refs,
-      hints: emptyHints(),
+      hints: { clusters: [], ranks: [], pins: this.pins },
     };
   }
 
@@ -35,7 +36,105 @@ class Parser {
       this.parseTable();
       return;
     }
+    if (tok.kind === 'at_sign') {
+      this.parseLayoutBlock();
+      return;
+    }
     throw new ParseError(`Expected 'Table', got '${tok.value || tok.kind}'`, tok.line, tok.col);
+  }
+
+  private parseLayoutBlock(): void {
+    this.consume('at_sign');
+    const blockType = this.consume('ident');
+    if (blockType.value.toLowerCase() !== 'layout') {
+      throw new ParseError(
+        `Expected 'layout' after '@', got '${blockType.value}'`,
+        blockType.line,
+        blockType.col,
+      );
+    }
+    this.consume('lbrace');
+    while (!this.at('rbrace')) {
+      this.parseHintStatement();
+    }
+    this.consume('rbrace');
+  }
+
+  private parseHintStatement(): void {
+    const tok = this.peek();
+    if (tok.kind !== 'ident') {
+      throw new ParseError(
+        `Expected hint keyword, got '${tok.value || tok.kind}'`,
+        tok.line,
+        tok.col,
+      );
+    }
+    const keyword = tok.value.toLowerCase();
+    if (keyword === 'pin') {
+      this.parsePinHint();
+      return;
+    }
+    throw new ParseError(`Unknown hint: '${tok.value}' (expected 'pin')`, tok.line, tok.col);
+  }
+
+  private parsePinHint(): void {
+    this.consume('ident'); // 'pin'
+    const entityTok = this.consume('ident');
+    const entity = entityTok.value;
+    const atTok = this.consume('ident');
+    if (atTok.value.toLowerCase() !== 'at') {
+      throw new ParseError(
+        `Expected 'at' after entity name, got '${atTok.value}'`,
+        atTok.line,
+        atTok.col,
+      );
+    }
+
+    let col: number | null = null;
+    let row: number | null = null;
+
+    while (true) {
+      const compTok = this.consume('ident');
+      const comp = compTok.value.toLowerCase();
+      if (comp !== 'col' && comp !== 'row') {
+        throw new ParseError(
+          `Expected 'col' or 'row', got '${compTok.value}'`,
+          compTok.line,
+          compTok.col,
+        );
+      }
+      const numTok = this.consume('number');
+      const value = Number.parseInt(numTok.value, 10);
+      if (Number.isNaN(value) || value < 0) {
+        throw new ParseError(
+          `Expected non-negative integer, got '${numTok.value}'`,
+          numTok.line,
+          numTok.col,
+        );
+      }
+      if (comp === 'col') {
+        if (col !== null) {
+          throw new ParseError("Duplicate 'col' in pin", compTok.line, compTok.col);
+        }
+        col = value;
+      } else {
+        if (row !== null) {
+          throw new ParseError("Duplicate 'row' in pin", compTok.line, compTok.col);
+        }
+        row = value;
+      }
+      if (this.at('comma')) {
+        this.consume('comma');
+        continue;
+      }
+      break;
+    }
+
+    if (col === null && row === null) {
+      throw new ParseError('pin must specify col, row, or both', entityTok.line, entityTok.col);
+    }
+
+    this.pins.push({ entity, col, row });
   }
 
   private parseTable(): void {
@@ -151,10 +250,6 @@ function makeRef(left: RefEndpoint, right: RefEndpoint, op: '>' | '<' | '-' | '<
     case '<>':
       return { parent: right, child: left, cardinality: 'many-to-many' };
   }
-}
-
-function emptyHints(): LayoutHints {
-  return { clusters: [], ranks: [], pins: [] };
 }
 
 export function parse(source: string): IR {

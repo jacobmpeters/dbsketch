@@ -32,12 +32,12 @@ export interface RankHint {
   entities: string[];
 }
 
-export type PinRelation = 'right-of' | 'left-of' | 'above' | 'below';
-
 export interface PinHint {
   entity: string;
-  relation: PinRelation;
-  target: string;
+  // Either or both can be specified. null means "let the algorithm decide
+  // for this axis." Both null is rejected by the parser.
+  col: number | null;
+  row: number | null;
 }
 
 export interface LayoutHints {

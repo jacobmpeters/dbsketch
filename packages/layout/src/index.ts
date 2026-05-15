@@ -1,4 +1,4 @@
-export { layout } from './layout.js';
+export { HintConflictError, layout } from './layout.js';
 export { place } from './place.js';
 export { rank } from './rank.js';
 export {
