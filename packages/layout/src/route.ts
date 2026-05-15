@@ -164,7 +164,13 @@ function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
 }
 
 function packRowChannel(edges: MultiHopPlannedEdge[]): number {
-  edges.sort((a, b) => a.parentColStrip - b.parentColStrip);
+  // parentColStrip asc + span desc tiebreak (same heuristic as col-channel
+  // packing — longer-spanning H2's get earlier y-tracks).
+  edges.sort((a, b) => {
+    const xMinDiff = a.parentColStrip - b.parentColStrip;
+    if (xMinDiff !== 0) return xMinDiff;
+    return b.childColStrip - b.parentColStrip - (a.childColStrip - a.parentColStrip);
+  });
   const trackEnds: number[] = [];
   for (const edge of edges) {
     let assigned = -1;
@@ -246,7 +252,15 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
 }
 
 function packVEntries(entries: VEntry[]): number {
-  entries.sort((a, b) => a.yMin - b.yMin);
+  // yMin asc gives optimal track count (standard interval scheduling).
+  // Within ties on yMin, longer-spanning V's get earlier tracks: their H's
+  // sit at the y-extremes (which other V's are less likely to span across),
+  // so fewer H × V crossings result.
+  entries.sort((a, b) => {
+    const yMinDiff = a.yMin - b.yMin;
+    if (yMinDiff !== 0) return yMinDiff;
+    return b.yMax - b.yMin - (a.yMax - a.yMin);
+  });
   const trackEnds: number[] = [];
   for (const e of entries) {
     let assigned = -1;
