@@ -26,7 +26,10 @@ describe('planRoutes', () => {
     expect(result.skippedRefs).toEqual([]);
   });
 
-  it('plans cross-row-strip edges in adjacent col-strips as single-hop', () => {
+  it('classifies adjacent-col edges as single-hop', () => {
+    // (Used to assert specific row strips, but float placement now aligns
+    // single-entity ranks with their connections, so the rows depend on
+    // barycenter — the classification is what we're testing here.)
     const ir = parse(`
       Table products { id int }
       Table users { id int }
@@ -36,8 +39,8 @@ describe('planRoutes', () => {
     expect(result.planned).toHaveLength(1);
     const edge = result.planned[0]!;
     expect(edge.kind).toBe('single');
-    expect(edge.parentRowStrip).toBe(1);
-    expect(edge.childRowStrip).toBe(0);
+    expect(edge.parentColStrip).toBe(0);
+    expect(edge.childColStrip).toBe(1);
     expect(result.skippedRefs).toEqual([]);
   });
 

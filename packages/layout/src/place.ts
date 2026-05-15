@@ -27,6 +27,13 @@ export function place(ir: IR, ranks: Map<string, number>): Placement[] {
     }
   }
 
+  // Float each rank's entities to cluster around their average barycenter.
+  // Without this, single-entity ranks always land at row 0 even when their
+  // connections live in much higher rows — putting fact tables, salaries,
+  // etc. far from their neighbors and pushing all the empty space to the
+  // bottom of the diagram. Floating distributes empty space more evenly.
+  floatPositions(byRank, positions, adjacency);
+
   return ir.entities
     .map((e) => ({
       entity: e.name,
@@ -88,8 +95,48 @@ function reorderRank(
   const inRank = byRank.get(rank);
   if (!inRank || inRank.length <= 1) return;
 
-  const barycenters = new Map<string, number>();
-  for (const name of inRank) {
+  const barys = computeBarycenters(inRank, positions, adjacency);
+
+  const reordered = [...inRank].sort((a, b) => {
+    const diff = barys.get(a)! - barys.get(b)!;
+    if (diff !== 0) return diff;
+    return a.localeCompare(b);
+  });
+
+  reordered.forEach((name, i) => positions.set(name, i));
+  byRank.set(rank, reordered);
+}
+
+// One-shot float pass after barycenter sweeps. Restricted to single-entity
+// ranks: those are the cases where the default "row 0 always" placement is
+// most clearly wrong (think: a fact table at the top with 30 lines of empty
+// space below it). Multi-entity ranks are left alone — full floating tends
+// to spread well-grouped entities apart and create new orphans.
+//
+// Processed in rank order so later ranks see the updated positions of any
+// earlier single-entity ranks that floated.
+function floatPositions(
+  byRank: Map<number, string[]>,
+  positions: Map<string, number>,
+  adjacency: Map<string, Set<string>>,
+): void {
+  const ranks = [...byRank.keys()].sort((a, b) => a - b);
+  for (const rank of ranks) {
+    const entities = byRank.get(rank);
+    if (!entities || entities.length !== 1) continue;
+    const name = entities[0]!;
+    const bary = computeBarycenters(entities, positions, adjacency).get(name)!;
+    positions.set(name, Math.max(0, Math.round(bary)));
+  }
+}
+
+function computeBarycenters(
+  entities: string[],
+  positions: Map<string, number>,
+  adjacency: Map<string, Set<string>>,
+): Map<string, number> {
+  const barys = new Map<string, number>();
+  for (const name of entities) {
     const neighbors = adjacency.get(name) ?? new Set<string>();
     let sum = 0;
     let count = 0;
@@ -101,15 +148,7 @@ function reorderRank(
       }
     }
     // Isolated entities keep their current position so they don't drift.
-    barycenters.set(name, count > 0 ? sum / count : (positions.get(name) ?? 0));
+    barys.set(name, count > 0 ? sum / count : (positions.get(name) ?? 0));
   }
-
-  const reordered = [...inRank].sort((a, b) => {
-    const diff = barycenters.get(a)! - barycenters.get(b)!;
-    if (diff !== 0) return diff;
-    return a.localeCompare(b);
-  });
-
-  reordered.forEach((name, i) => positions.set(name, i));
-  byRank.set(rank, reordered);
+  return barys;
 }
