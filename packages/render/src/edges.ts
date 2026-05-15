@@ -6,9 +6,7 @@ export function drawEdge(canvas: Canvas, edge: EdgeRoute, glyphs: Glyphs): void 
   for (const seg of edge.segments) {
     drawSegment(canvas, seg, glyphs);
   }
-  if (edge.segments.length === 3) {
-    drawCorners(canvas, edge.segments, glyphs);
-  }
+  drawCorners(canvas, edge.segments, glyphs);
   drawPortMarker(canvas, edge.parentPort, glyphs);
   drawPortMarker(canvas, edge.childPort, glyphs);
 }
@@ -118,17 +116,36 @@ function glyphForDirs(dirs: Set<Dir>, glyphs: Glyphs): string {
   return glyphs.horizontal;
 }
 
+// Walk consecutive segment pairs and place a corner glyph at each junction.
+// Direction the previous segment came from + direction the next segment goes
+// determines the corner's two arms — works for any segment count (Z-shape
+// has 2 junctions, multi-hop U-shape has 4, etc.).
 function drawCorners(canvas: Canvas, segments: EdgeSegment[], glyphs: Glyphs): void {
-  const v = segments[1]!;
-  const goingDown = v.y2 > v.y1;
-  // Parent-side junction: arm enters from west (from H1), exits south or north.
-  //   going down  → west + south = ┐ (cornerTR)
-  //   going up    → west + north = ┘ (cornerBR)
-  // Child-side junction: arm enters from north or south, exits east (toward H2).
-  //   going down  → north + east = └ (cornerBL)
-  //   going up    → south + east = ┌ (cornerTL)
-  canvas.set(v.x1, v.y1, goingDown ? glyphs.cornerTR : glyphs.cornerBR);
-  canvas.set(v.x2, v.y2, goingDown ? glyphs.cornerBL : glyphs.cornerTL);
+  for (let i = 0; i < segments.length - 1; i++) {
+    const prev = segments[i]!;
+    const next = segments[i + 1]!;
+    const corner = glyphForDirs(
+      new Set<Dir>([directionAtEnd(prev), directionAtStart(next)]),
+      glyphs,
+    );
+    canvas.set(next.x1, next.y1, corner);
+  }
+}
+
+// Direction the segment came FROM at the junction (the arm of the corner
+// glyph that points back toward the previous segment's body). For
+// zero-length segments we default to the "natural" direction for our
+// pipeline: edges always flow left-to-right, so a degenerate H1 is
+// conceptually east-going (came from west).
+function directionAtEnd(seg: EdgeSegment): Dir {
+  if (seg.kind === 'horizontal') return seg.x2 < seg.x1 ? 'E' : 'W';
+  return seg.y2 < seg.y1 ? 'S' : 'N';
+}
+
+// Direction the segment travels AWAY from the junction toward its endpoint.
+function directionAtStart(seg: EdgeSegment): Dir {
+  if (seg.kind === 'horizontal') return seg.x2 < seg.x1 ? 'W' : 'E';
+  return seg.y2 < seg.y1 ? 'N' : 'S';
 }
 
 function drawPortMarker(canvas: Canvas, port: Port, glyphs: Glyphs): void {
