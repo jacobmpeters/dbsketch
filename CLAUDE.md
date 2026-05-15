@@ -129,4 +129,18 @@ Standing decisions made through discussion. Don't relitigate without revisiting 
 
 - **Channels have a visual-separation floor (2 cols, 1 row) below which they don't shrink even with zero routing.** Without this, adjacent boxes touch and the diagram becomes unreadable. Channels grow with routing demand on top of the floor.
 - **Asymmetric flush-to-parent-side track packing.** A channel's routing tracks pack against the parent (source) border; any visual-separation padding sits on the child side. Saves space at the cost of visual symmetry. A future symmetric mode (padding split evenly) is on the table but deferred.
-- **Refs the v1 router can't handle (multi-hop, cross-row-strip, many-to-many) surface in `Layout.skippedRefs`.** Don't silently drop edges — visibility into what isn't rendered matters more than a clean output that's secretly incomplete.
+- **Refs the router can't handle surface in `Layout.skippedRefs`.** Don't silently drop edges — visibility into what isn't rendered matters more than a clean output that's secretly incomplete. Currently skipped: many-to-many, multi-hop with no row-channel below for the detour (last row strip).
+- **Direction-set merging for line glyphs.** Each line glyph (corner/tee/cross/H/V) decomposes into a set of N/S/E/W directions. Merging at a cell: shared directions = JOIN (union, look up the new glyph), no shared = CROSSING (vertical wins, horizontal gets a visible gap). This produces accurate corner→tee upgrades and the conventional ASCII-art "H passes under V" gap visual without having to write a per-glyph merge table.
+
+## Future-work backlog
+
+Captured in priority order from conversation. Not strict commitments — revisit before picking up.
+
+1. **Detour-above fallback for multi-hop edges.** Currently multi-hop only detours through the row-channel just below the higher of parent/child. When that row-channel doesn't exist (parent and child both in the last row strip), the edge skips. Adding "try above" doubles coverage with modest implementation cost.
+2. **Tighter track packing (`<=` instead of `<`).** Edges that touch at a y-boundary could share a track instead of getting separate tracks. Saves 1-2 cells in dense channels. Risk: visual ambiguity at the merge cell.
+3. **`@layout` hint parsing.** The DSL is sketched in this doc but the parser doesn't read it yet. Wiring it gives users escape valves for the inevitable cases where automatic layout picks something wrong.
+4. **Edge bundling for shared parent ports.** When N FKs leave the same parent port to N children, render as a single trunk that branches. Visually transformative; routing rewrite.
+5. **Crossing minimization at track assignment.** Beyond non-overlap packing, choose tracks to minimize crossings with other edges. NP-hard exact; barycenter-style heuristic. Real win for dense channels but significant slice.
+6. **Star-schema / wide-aspect-ratio layouts.** When a layer has way fewer entities than its neighbors (e.g., one fact table opposite five dimensions), the layered model wastes vertical space. Allowing entities to span multiple row strips would help; breaks the "one entity per (col, row) cell" invariant.
+7. **Color (opt-in flag).** Could differentiate edges with ANSI codes. Defer indefinitely — breaks markdown-renderability story unless gated behind explicit flag.
+8. **DDL/SQL parsing.** Planned per v1 scope; parser front-end is designed to swap in.
