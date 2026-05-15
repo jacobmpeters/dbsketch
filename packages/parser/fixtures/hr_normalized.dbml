@@ -1,0 +1,78 @@
+// Highly normalized HR schema: many small tables, junction tables for
+// many-to-many relationships, audit-style tables, and a self-referential FK
+// on departments. Stresses how the layout handles a graph that's "wide and
+// flat" rather than "tall and chained" — most entities are within 2-3 ranks
+// of each other.
+
+Table companies {
+  id int [pk]
+  name varchar
+  founded_year int
+}
+
+Table departments {
+  id int [pk]
+  company_id int [ref: > companies.id]
+  parent_dept_id int [ref: > departments.id]
+  name varchar
+}
+
+Table positions {
+  id int [pk]
+  title varchar
+  level int
+}
+
+Table persons {
+  id int [pk]
+  first_name varchar
+  last_name varchar
+  email varchar
+}
+
+Table addresses {
+  id int [pk]
+  street varchar
+  city varchar
+  country_code varchar
+}
+
+Table person_addresses {
+  person_id int [ref: > persons.id]
+  address_id int [ref: > addresses.id]
+  kind varchar
+}
+
+Table employees {
+  id int [pk]
+  person_id int [ref: > persons.id]
+  position_id int [ref: > positions.id]
+  department_id int [ref: > departments.id]
+  hire_date date
+}
+
+Table currencies {
+  id int [pk]
+  code varchar
+  name varchar
+}
+
+Table salaries {
+  id int [pk]
+  employee_id int [ref: > employees.id]
+  amount int
+  currency_id int [ref: > currencies.id]
+  effective_date date
+}
+
+Table skills {
+  id int [pk]
+  name varchar
+  category varchar
+}
+
+Table person_skills {
+  person_id int [ref: > persons.id]
+  skill_id int [ref: > skills.id]
+  level int
+}

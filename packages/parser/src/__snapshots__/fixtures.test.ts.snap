@@ -684,6 +684,396 @@ exports[`fixtures > ecommerce.dbml 1`] = `
 }
 `;
 
+exports[`fixtures > hr_normalized.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "founded_year",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "companies",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "company_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "parent_dept_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "departments",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "title",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "level",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "positions",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "first_name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "last_name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "persons",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "street",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "city",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country_code",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "addresses",
+    },
+    {
+      "columns": [
+        {
+          "name": "person_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "address_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "kind",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "person_addresses",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "person_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "position_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "department_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "hire_date",
+          "pk": false,
+          "type": "date",
+        },
+      ],
+      "name": "employees",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "code",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "currencies",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "employee_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "amount",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "currency_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "effective_date",
+          "pk": false,
+          "type": "date",
+        },
+      ],
+      "name": "salaries",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "category",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "skills",
+    },
+    {
+      "columns": [
+        {
+          "name": "person_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "skill_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "level",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "person_skills",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "company_id",
+        "entity": "departments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "companies",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "parent_dept_id",
+        "entity": "departments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "departments",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "person_id",
+        "entity": "person_addresses",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "persons",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "address_id",
+        "entity": "person_addresses",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "addresses",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "person_id",
+        "entity": "employees",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "persons",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "position_id",
+        "entity": "employees",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "positions",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "department_id",
+        "entity": "employees",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "departments",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "employee_id",
+        "entity": "salaries",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "employees",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "currency_id",
+        "entity": "salaries",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "currencies",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "person_id",
+        "entity": "person_skills",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "persons",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "skill_id",
+        "entity": "person_skills",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "skills",
+      },
+    },
+  ],
+}
+`;
+
 exports[`fixtures > library.dbml 1`] = `
 {
   "entities": [
@@ -1303,6 +1693,438 @@ exports[`fixtures > sales_star.dbml 1`] = `
       "parent": {
         "column": "id",
         "entity": "promotion_dim",
+      },
+    },
+  ],
+}
+`;
+
+exports[`fixtures > snowflake.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "code",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "country_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "segment_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date",
+          "pk": false,
+          "type": "date",
+        },
+        {
+          "name": "month",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quarter",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "year",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "date_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "region_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "street",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "city",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "address_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "brand_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "parent_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "category_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "region_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "store_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "sku",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "category_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "brand_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "product_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "address_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "segment_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "customer_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "store_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "customer_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quantity",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "unit_price",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "total",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "sales_fact",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "country_id",
+        "entity": "region_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "country_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "country_id",
+        "entity": "address_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "country_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "country_id",
+        "entity": "brand_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "country_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "parent_id",
+        "entity": "category_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "category_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "region_id",
+        "entity": "store_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "region_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "category_id",
+        "entity": "product_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "category_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "brand_id",
+        "entity": "product_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "brand_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "address_id",
+        "entity": "customer_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "address_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "segment_id",
+        "entity": "customer_dim",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "segment_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "date_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "date_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "product_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "store_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "store_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "customer_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "customer_dim",
       },
     },
   ],

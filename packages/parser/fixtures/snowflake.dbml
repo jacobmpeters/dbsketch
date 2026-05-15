@@ -1,0 +1,82 @@
+// Snowflake schema: a star with normalized dimensions. Each dimension may
+// have its own sub-dimensions (region → country, product → category +
+// brand → country), creating a layered cascade radiating into a single
+// fact table. Stresses deep multi-rank layouts and many-into-one fan-in
+// at the fact.
+
+Table country_dim {
+  id int [pk]
+  code varchar
+  name varchar
+}
+
+Table segment_dim {
+  id int [pk]
+  name varchar
+}
+
+Table date_dim {
+  id int [pk]
+  date date
+  month int
+  quarter int
+  year int
+}
+
+Table region_dim {
+  id int [pk]
+  name varchar
+  country_id int [ref: > country_dim.id]
+}
+
+Table address_dim {
+  id int [pk]
+  street varchar
+  city varchar
+  country_id int [ref: > country_dim.id]
+}
+
+Table brand_dim {
+  id int [pk]
+  name varchar
+  country_id int [ref: > country_dim.id]
+}
+
+Table category_dim {
+  id int [pk]
+  name varchar
+  parent_id int [ref: > category_dim.id]
+}
+
+Table store_dim {
+  id int [pk]
+  name varchar
+  region_id int [ref: > region_dim.id]
+}
+
+Table product_dim {
+  id int [pk]
+  sku varchar
+  name varchar
+  category_id int [ref: > category_dim.id]
+  brand_id int [ref: > brand_dim.id]
+}
+
+Table customer_dim {
+  id int [pk]
+  email varchar
+  name varchar
+  address_id int [ref: > address_dim.id]
+  segment_id int [ref: > segment_dim.id]
+}
+
+Table sales_fact {
+  id int [pk]
+  date_id int [ref: > date_dim.id]
+  product_id int [ref: > product_dim.id]
+  store_id int [ref: > store_dim.id]
+  customer_id int [ref: > customer_dim.id]
+  quantity int
+  unit_price int
+  total int
+}
