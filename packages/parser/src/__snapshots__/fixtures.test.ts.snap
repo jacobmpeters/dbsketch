@@ -268,6 +268,422 @@ exports[`fixtures > cardinalities.dbml 1`] = `
 }
 `;
 
+exports[`fixtures > ecommerce.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "created_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "users",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "sku",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "price",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "stock",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "products",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "slug",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "categories",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "street",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "city",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "addresses",
+    },
+    {
+      "columns": [
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "category_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "product_categories",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "status",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "total",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "created_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "orders",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "rating",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "body",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "reviews",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "order_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quantity",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "unit_price",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "order_items",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "order_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "amount",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "method",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "payments",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "order_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "address_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "tracking_no",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "status",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "shipments",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "addresses",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "product_categories",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "products",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "category_id",
+        "entity": "product_categories",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "categories",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "orders",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "reviews",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "reviews",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "products",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "order_id",
+        "entity": "order_items",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "orders",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "order_items",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "products",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "order_id",
+        "entity": "payments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "orders",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "payments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "order_id",
+        "entity": "shipments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "orders",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "address_id",
+        "entity": "shipments",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "addresses",
+      },
+    },
+  ],
+}
+`;
+
 exports[`fixtures > many-to-many.dbml 1`] = `
 {
   "entities": [

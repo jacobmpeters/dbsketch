@@ -1,0 +1,79 @@
+// Synthetic e-commerce schema for stress-testing layout and routing.
+// 10 entities, 12 FKs, with three rank-0 hubs (categories, products, users),
+// junction-ish tables (product_categories, order_items), and rank-2 dependents
+// that have multi-hop FKs back to rank-0 hubs (payments → users, shipments →
+// addresses, order_items → products).
+
+Table users {
+  id int [pk]
+  email varchar
+  name varchar
+  created_at timestamp
+}
+
+Table products {
+  id int [pk]
+  sku varchar
+  name varchar
+  price int
+  stock int
+}
+
+Table categories {
+  id int [pk]
+  name varchar
+  slug varchar
+}
+
+Table addresses {
+  id int [pk]
+  user_id int [ref: > users.id]
+  street varchar
+  city varchar
+  country varchar
+}
+
+Table product_categories {
+  product_id int [ref: > products.id]
+  category_id int [ref: > categories.id]
+}
+
+Table orders {
+  id int [pk]
+  user_id int [ref: > users.id]
+  status varchar
+  total int
+  created_at timestamp
+}
+
+Table reviews {
+  id int [pk]
+  user_id int [ref: > users.id]
+  product_id int [ref: > products.id]
+  rating int
+  body varchar
+}
+
+Table order_items {
+  id int [pk]
+  order_id int [ref: > orders.id]
+  product_id int [ref: > products.id]
+  quantity int
+  unit_price int
+}
+
+Table payments {
+  id int [pk]
+  order_id int [ref: > orders.id]
+  user_id int [ref: > users.id]
+  amount int
+  method varchar
+}
+
+Table shipments {
+  id int [pk]
+  order_id int [ref: > orders.id]
+  address_id int [ref: > addresses.id]
+  tracking_no varchar
+  status varchar
+}
