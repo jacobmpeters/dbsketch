@@ -132,11 +132,13 @@ class Parser {
   }
 }
 
-// DBML cardinality operators describe the left→right reading of the relationship:
-//   '>'  many-to-one: left is many (child),  right is one  (parent)
-//   '<'  one-to-many: left is one  (parent), right is many (child)
-//   '-'  one-to-one
-//   '<>' many-to-many
+// DBML cardinality operators describe the left→right reading of the relationship.
+// For inline refs, left is the declaring column (FK side by convention) and right
+// is the target (PK side):
+//   '>'  many-to-one:   left is many (child),  right is one  (parent)
+//   '<'  one-to-many:   left is one  (parent), right is many (child)
+//   '-'  one-to-one:    symmetric — declarer placed as child by convention
+//   '<>' many-to-many:  symmetric — declarer placed as child by convention
 // IR is normalized to parent/child so downstream stages don't have to interpret.
 function makeRef(left: RefEndpoint, right: RefEndpoint, op: '>' | '<' | '-' | '<>'): Ref {
   switch (op) {
@@ -145,9 +147,9 @@ function makeRef(left: RefEndpoint, right: RefEndpoint, op: '>' | '<' | '-' | '<
     case '<':
       return { parent: left, child: right, cardinality: 'one-to-many' };
     case '-':
-      return { parent: left, child: right, cardinality: 'one-to-one' };
+      return { parent: right, child: left, cardinality: 'one-to-one' };
     case '<>':
-      return { parent: left, child: right, cardinality: 'many-to-many' };
+      return { parent: right, child: left, cardinality: 'many-to-many' };
   }
 }
 

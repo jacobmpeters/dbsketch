@@ -223,12 +223,12 @@ exports[`fixtures > cardinalities.dbml 1`] = `
     {
       "cardinality": "one-to-one",
       "child": {
-        "column": "id",
-        "entity": "users",
-      },
-      "parent": {
         "column": "user_id",
         "entity": "profiles",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
       },
     },
     {
@@ -245,23 +245,23 @@ exports[`fixtures > cardinalities.dbml 1`] = `
     {
       "cardinality": "many-to-many",
       "child": {
-        "column": "id",
-        "entity": "posts",
-      },
-      "parent": {
         "column": "post_id",
         "entity": "post_tags",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "posts",
       },
     },
     {
       "cardinality": "many-to-many",
       "child": {
-        "column": "id",
-        "entity": "tags",
-      },
-      "parent": {
         "column": "tag_id",
         "entity": "post_tags",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "tags",
       },
     },
   ],
