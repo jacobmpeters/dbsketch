@@ -1,0 +1,511 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`layout snapshots > branching-children 1`] = `
+{
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+        ],
+        "name": "users",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "user_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "posts",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "user_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "sessions",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "user_id",
+          "entity": "posts",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "users",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "user_id",
+          "entity": "sessions",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "users",
+        },
+      },
+    ],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "users",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 1,
+      "entity": "posts",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 1,
+      "entity": "sessions",
+      "rowStrip": 1,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [
+      0,
+    ],
+    "channelRowHeights": [
+      0,
+    ],
+    "colStripWidths": [
+      10,
+      15,
+    ],
+    "rowStripHeights": [
+      6,
+      6,
+    ],
+  },
+}
+`;
+
+exports[`layout snapshots > diamond 1`] = `
+{
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+        ],
+        "name": "a",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "a_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "b",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "a_id",
+            "pk": false,
+            "type": "int",
+          },
+          {
+            "name": "b_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "c",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "a_id",
+          "entity": "b",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "a",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "a_id",
+          "entity": "c",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "a",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "b_id",
+          "entity": "c",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "b",
+        },
+      },
+    ],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "a",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 1,
+      "entity": "b",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 2,
+      "entity": "c",
+      "rowStrip": 0,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [
+      0,
+      0,
+    ],
+    "channelRowHeights": [],
+    "colStripWidths": [
+      10,
+      12,
+      12,
+    ],
+    "rowStripHeights": [
+      7,
+    ],
+  },
+}
+`;
+
+exports[`layout snapshots > junction-table 1`] = `
+{
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "name",
+            "pk": false,
+            "type": "varchar",
+          },
+        ],
+        "name": "users",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "name",
+            "pk": false,
+            "type": "varchar",
+          },
+        ],
+        "name": "groups",
+      },
+      {
+        "columns": [
+          {
+            "name": "user_id",
+            "pk": false,
+            "type": "int",
+          },
+          {
+            "name": "group_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "memberships",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "user_id",
+          "entity": "memberships",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "users",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "group_id",
+          "entity": "memberships",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "groups",
+        },
+      },
+    ],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "groups",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 0,
+      "entity": "users",
+      "rowStrip": 1,
+    },
+    {
+      "colStrip": 1,
+      "entity": "memberships",
+      "rowStrip": 0,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [
+      0,
+    ],
+    "channelRowHeights": [
+      0,
+    ],
+    "colStripWidths": [
+      16,
+      16,
+    ],
+    "rowStripHeights": [
+      6,
+      6,
+    ],
+  },
+}
+`;
+
+exports[`layout snapshots > linear-chain 1`] = `
+{
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+        ],
+        "name": "users",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "user_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "posts",
+      },
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "post_id",
+            "pk": false,
+            "type": "int",
+          },
+        ],
+        "name": "comments",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "user_id",
+          "entity": "posts",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "users",
+        },
+      },
+      {
+        "cardinality": "one-to-many",
+        "child": {
+          "column": "post_id",
+          "entity": "comments",
+        },
+        "parent": {
+          "column": "id",
+          "entity": "posts",
+        },
+      },
+    ],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "users",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 1,
+      "entity": "posts",
+      "rowStrip": 0,
+    },
+    {
+      "colStrip": 2,
+      "entity": "comments",
+      "rowStrip": 0,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [
+      0,
+      0,
+    ],
+    "channelRowHeights": [],
+    "colStripWidths": [
+      10,
+      15,
+      15,
+    ],
+    "rowStripHeights": [
+      6,
+    ],
+  },
+}
+`;
+
+exports[`layout snapshots > single-table 1`] = `
+{
+  "ir": {
+    "entities": [
+      {
+        "columns": [
+          {
+            "name": "id",
+            "pk": true,
+            "type": "int",
+          },
+          {
+            "name": "email",
+            "pk": false,
+            "type": "varchar",
+          },
+        ],
+        "name": "users",
+      },
+    ],
+    "hints": {
+      "clusters": [],
+      "pins": [],
+      "ranks": [],
+    },
+    "refs": [],
+  },
+  "placements": [
+    {
+      "colStrip": 0,
+      "entity": "users",
+      "rowStrip": 0,
+    },
+  ],
+  "sizing": {
+    "channelColWidths": [],
+    "channelRowHeights": [],
+    "colStripWidths": [
+      17,
+    ],
+    "rowStripHeights": [
+      6,
+    ],
+  },
+}
+`;
