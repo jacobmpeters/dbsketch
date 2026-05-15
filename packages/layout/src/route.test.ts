@@ -4,11 +4,9 @@ import { layout } from './layout.js';
 import { place } from './place.js';
 import { rank } from './rank.js';
 import { planRoutes } from './route.js';
-import { rowSize } from './size.js';
 
 function plan(ir: IR) {
-  const placements = place(ir, rank(ir));
-  return planRoutes(ir, placements, rowSize(ir, placements));
+  return planRoutes(ir, place(ir, rank(ir)));
 }
 
 describe('planRoutes', () => {
@@ -19,17 +17,16 @@ describe('planRoutes', () => {
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(1);
-    expect(result.planned[0]?.parentColStrip).toBe(0);
-    expect(result.planned[0]?.childColStrip).toBe(1);
-    expect(result.planned[0]?.parentRowOffset).toBe(3);
-    expect(result.planned[0]?.childRowOffset).toBe(4);
+    const edge = result.planned[0]!;
+    expect(edge.kind).toBe('single');
+    expect(edge.parentColStrip).toBe(0);
+    expect(edge.childColStrip).toBe(1);
+    expect(edge.parentRowOffset).toBe(3);
+    expect(edge.childRowOffset).toBe(4);
     expect(result.skippedRefs).toEqual([]);
   });
 
-  it('plans cross-row-strip edges in adjacent col-strips', () => {
-    // products and users both in rank 0 (no FKs into them). Sorted alphabetically
-    // → products at row 0, users at row 1. orders has FK to users (rank 1, row 0).
-    // The users → orders edge spans different row strips in col-channel 0.
+  it('plans cross-row-strip edges in adjacent col-strips as single-hop', () => {
     const ir = parse(`
       Table products { id int }
       Table users { id int }
@@ -37,19 +34,45 @@ describe('planRoutes', () => {
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(1);
-    expect(result.planned[0]?.parentRowStrip).toBe(1);
-    expect(result.planned[0]?.childRowStrip).toBe(0);
+    const edge = result.planned[0]!;
+    expect(edge.kind).toBe('single');
+    expect(edge.parentRowStrip).toBe(1);
+    expect(edge.childRowStrip).toBe(0);
     expect(result.skippedRefs).toEqual([]);
   });
 
-  it('skips refs that span more than one col-strip', () => {
+  it('routes multi-hop refs by detouring through a row-channel', () => {
+    // Two rank-0 entities (a, b) gives us numRowStrips >= 2, so a row-channel
+    // exists for the detour. a → d crosses cols 0 → 2.
+    const ir = parse(`
+      Table a { id int }
+      Table b { id int }
+      Table c { id int a_id int [ref: > a.id] }
+      Table d { id int c_id int [ref: > c.id] a_id int [ref: > a.id] }
+    `);
+    const result = plan(ir);
+    expect(result.skippedRefs).toEqual([]);
+    expect(result.planned).toHaveLength(3);
+    const multiHop = result.planned.find((p) => p.kind === 'multi');
+    expect(multiHop).toBeDefined();
+    if (multiHop?.kind === 'multi') {
+      expect(multiHop.ref.parent.entity).toBe('a');
+      expect(multiHop.ref.child.entity).toBe('d');
+      expect(multiHop.parentChannelIndex).toBe(0);
+      expect(multiHop.childChannelIndex).toBe(1);
+      expect(multiHop.detourRowChannel).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('skips multi-hop refs when no row-channel exists for detour', () => {
+    // Single row strip means there's nowhere to detour through.
     const ir = parse(`
       Table a { id int }
       Table b { id int a_id int [ref: > a.id] }
       Table c { id int b_id int [ref: > b.id] a_id int [ref: > a.id] }
     `);
     const result = plan(ir);
-    expect(result.planned).toHaveLength(2);
+    // a → c is multi-hop but can't detour (only 1 row strip).
     expect(result.skippedRefs).toHaveLength(1);
     expect(result.skippedRefs[0]?.parent.entity).toBe('a');
     expect(result.skippedRefs[0]?.child.entity).toBe('c');
@@ -72,7 +95,11 @@ describe('planRoutes', () => {
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(1);
-    expect(result.planned[0]?.track).toBe(-1);
+    const edge = result.planned[0]!;
+    expect(edge.kind).toBe('single');
+    if (edge.kind === 'single') {
+      expect(edge.track).toBe(-1);
+    }
     expect(result.channelTrackCounts.get(0) ?? 0).toBe(0);
   });
 
@@ -84,8 +111,6 @@ describe('planRoutes', () => {
         y int [ref: > src.a]
       }
     `);
-    // src.a@3, src.b@4, dst.x@3, dst.y@4. Same row strip.
-    // Edge 1: src.b(4) → dst.x(3). Edge 2: src.a(3) → dst.y(4). Bends overlap.
     const result = plan(ir);
     expect(result.planned).toHaveLength(2);
     expect(result.channelTrackCounts.get(0)).toBe(2);
@@ -105,9 +130,6 @@ describe('planRoutes', () => {
   });
 
   it('shares a track across non-overlapping cross-row-strip bends', () => {
-    // Two parents in row 0 (rank 0), two children in rows 0 and 1 (rank 1).
-    // Each child's FK goes to a different parent; the bends sit in the same
-    // col-channel but at different absolute y, so they share track 0.
     const ir = parse(`
       Table p1 { id int }
       Table p2 { id int }
@@ -116,8 +138,6 @@ describe('planRoutes', () => {
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(2);
-    // Both edges bend (different absolute y), but their y ranges don't overlap
-    // because they're in different row strips, so they share one track.
     expect(result.channelTrackCounts.get(0)).toBe(1);
   });
 });
@@ -142,6 +162,27 @@ describe('layout integration', () => {
     const result = layout(ir);
     expect(result.edges).toHaveLength(1);
     expect(result.edges[0]?.segments.map((s) => s.kind)).toEqual([
+      'horizontal',
+      'vertical',
+      'horizontal',
+    ]);
+  });
+
+  it('produces five segments (H, V, H, V, H) for a multi-hop edge', () => {
+    const ir = parse(`
+      Table a { id int }
+      Table b { id int }
+      Table c { id int a_id int [ref: > a.id] }
+      Table d { id int c_id int [ref: > c.id] a_id int [ref: > a.id] }
+    `);
+    const result = layout(ir);
+    const multiHop = result.edges.find(
+      (e) => e.ref.parent.entity === 'a' && e.ref.child.entity === 'd',
+    );
+    expect(multiHop).toBeDefined();
+    expect(multiHop?.segments.map((s) => s.kind)).toEqual([
+      'horizontal',
+      'vertical',
       'horizontal',
       'vertical',
       'horizontal',
