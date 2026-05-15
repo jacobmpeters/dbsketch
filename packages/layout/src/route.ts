@@ -1,16 +1,18 @@
 import type { Entity, IR, Ref } from '@ascii-erd/parser';
+import type { RowSizing } from './size.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, StripSizing } from './types.js';
 
 export interface PlannedEdge {
   ref: Ref;
   parentColStrip: number;
   childColStrip: number;
-  rowStrip: number;
+  parentRowStrip: number;
+  childRowStrip: number;
   // Row index within the entity box (3 = top border + name + separator).
   parentRowOffset: number;
   childRowOffset: number;
   channelIndex: number;
-  // -1 means straight (parent and child port at the same row, no bend).
+  // -1 means straight (parent and child port at the same absolute y, no bend).
   track: number;
 }
 
@@ -20,11 +22,12 @@ export interface RoutePlan {
   channelTrackCounts: Map<number, number>;
 }
 
-// V1 routes only refs between adjacent col-strips in the same row-strip with
-// asymmetric (one-to-one or one-to-many) cardinality. Multi-hop, vertical, and
-// many-to-many edges go to skippedRefs and are surfaced in the Layout — the
-// user sees them rather than the tool silently dropping relationships.
-export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
+// V1 routes refs between adjacent col-strips with asymmetric (one-to-one or
+// one-to-many) cardinality, regardless of which row-strip each endpoint sits
+// in. Multi-hop and many-to-many edges go to skippedRefs and are surfaced in
+// the Layout — the user sees them rather than the tool silently dropping
+// relationships.
+export function planRoutes(ir: IR, placements: Placement[], rowSizing: RowSizing): RoutePlan {
   const placementByEntity = new Map(placements.map((p) => [p.entity, p]));
   const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
 
@@ -39,7 +42,7 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
     }
   }
 
-  const channelTrackCounts = packAllChannels(planned);
+  const channelTrackCounts = packAllChannels(planned, rowSizing);
   return { planned, skippedRefs, channelTrackCounts };
 }
 
@@ -54,7 +57,8 @@ function tryPlan(
   const childP = placementByEntity.get(ref.child.entity);
   if (!parentP || !childP) return null;
 
-  if (parentP.rowStrip !== childP.rowStrip) return null;
+  // Multi-hop edges (more than one col-strip apart) need routing through
+  // row-channels around obstructing entities. Deferred to a future slice.
   if (childP.colStrip !== parentP.colStrip + 1) return null;
 
   const parentEntity = entityByName.get(ref.parent.entity);
@@ -69,7 +73,8 @@ function tryPlan(
     ref,
     parentColStrip: parentP.colStrip,
     childColStrip: childP.colStrip,
-    rowStrip: parentP.rowStrip,
+    parentRowStrip: parentP.rowStrip,
+    childRowStrip: childP.rowStrip,
     parentRowOffset: 3 + parentColIdx,
     childRowOffset: 3 + childColIdx,
     channelIndex: parentP.colStrip,
@@ -77,11 +82,10 @@ function tryPlan(
   };
 }
 
-// Pack each (channel, row-strip) group via greedy interval scheduling on the
-// vertical span of each Z-shape's bend. Different row-strips never overlap on
-// the y-axis, so they share the channel's x-tracks freely; the channel's total
-// track count is the max across its row-strips.
-function packAllChannels(planned: PlannedEdge[]): Map<number, number> {
+// Greedy interval scheduling on absolute y. Edges in the same col-channel can
+// share an x-track if their vertical spans don't overlap, regardless of which
+// row-strip each endpoint sits in.
+function packAllChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<number, number> {
   const byChannel = new Map<number, PlannedEdge[]>();
   for (const e of planned) {
     let bucket = byChannel.get(e.channelIndex);
@@ -94,55 +98,51 @@ function packAllChannels(planned: PlannedEdge[]): Map<number, number> {
 
   const counts = new Map<number, number>();
   for (const [channel, edges] of byChannel) {
-    const byRowStrip = new Map<number, PlannedEdge[]>();
-    for (const e of edges) {
-      let bucket = byRowStrip.get(e.rowStrip);
-      if (!bucket) {
-        bucket = [];
-        byRowStrip.set(e.rowStrip, bucket);
-      }
-      bucket.push(e);
-    }
-    let maxTracks = 0;
-    for (const groupEdges of byRowStrip.values()) {
-      maxTracks = Math.max(maxTracks, packGroup(groupEdges));
-    }
-    counts.set(channel, maxTracks);
+    counts.set(channel, packChannel(edges, rowSizing));
   }
   return counts;
 }
 
-function packGroup(edges: PlannedEdge[]): number {
+function packChannel(edges: PlannedEdge[], rowSizing: RowSizing): number {
+  const intervals = edges.map((e) => {
+    const py = absoluteY(e.parentRowStrip, e.parentRowOffset, rowSizing);
+    const cy = absoluteY(e.childRowStrip, e.childRowOffset, rowSizing);
+    return { edge: e, yMin: Math.min(py, cy), yMax: Math.max(py, cy), straight: py === cy };
+  });
+
   // Straight edges (no vertical bend) don't compete for x-tracks — they sit at
   // their port row with no width contribution.
-  const bending = edges.filter((e) => e.parentRowOffset !== e.childRowOffset);
-  bending.sort((a, b) => yMin(a) - yMin(b));
+  const bending = intervals.filter((i) => !i.straight);
+  bending.sort((a, b) => a.yMin - b.yMin);
 
   const trackEnds: number[] = [];
-  for (const e of bending) {
+  for (const i of bending) {
     let assigned = -1;
     for (let t = 0; t < trackEnds.length; t++) {
-      if (trackEnds[t]! < yMin(e)) {
-        trackEnds[t] = yMax(e);
+      if (trackEnds[t]! < i.yMin) {
+        trackEnds[t] = i.yMax;
         assigned = t;
         break;
       }
     }
     if (assigned === -1) {
-      trackEnds.push(yMax(e));
+      trackEnds.push(i.yMax);
       assigned = trackEnds.length - 1;
     }
-    e.track = assigned;
+    i.edge.track = assigned;
   }
   return trackEnds.length;
 }
 
-function yMin(e: PlannedEdge): number {
-  return Math.min(e.parentRowOffset, e.childRowOffset);
-}
-
-function yMax(e: PlannedEdge): number {
-  return Math.max(e.parentRowOffset, e.childRowOffset);
+function absoluteY(rowStrip: number, rowOffset: number, rowSizing: RowSizing): number {
+  let y = rowOffset;
+  for (let i = 0; i < rowStrip; i++) {
+    y += rowSizing.rowStripHeights[i] ?? 0;
+    if (i < rowSizing.channelRowHeights.length) {
+      y += rowSizing.channelRowHeights[i] ?? 0;
+    }
+  }
+  return y;
 }
 
 export function materializeEdges(

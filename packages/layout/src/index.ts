@@ -7,5 +7,5 @@ export {
   materializeEdges,
   planRoutes,
 } from './route.js';
-export { size } from './size.js';
+export { type RowSizing, rowSize, size } from './size.js';
 export type * from './types.js';
