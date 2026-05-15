@@ -122,3 +122,11 @@ Surfacing here so they aren't relitigated in code review:
 - **Browser-safe core.** No Node imports in `parser`/`layout`/`render`/`core`.
 - **One hint, one stage.** Layout hints map to a single pipeline stage. If a feature needs to touch multiple stages, redesign it.
 - **Integer cells only.** No continuous-space coordinates in `layout`. The strip grid is the model end-to-end.
+
+## Design decisions
+
+Standing decisions made through discussion. Don't relitigate without revisiting the original tradeoff.
+
+- **Channels have a visual-separation floor (2 cols, 1 row) below which they don't shrink even with zero routing.** Without this, adjacent boxes touch and the diagram becomes unreadable. Channels grow with routing demand on top of the floor.
+- **Asymmetric flush-to-parent-side track packing.** A channel's routing tracks pack against the parent (source) border; any visual-separation padding sits on the child side. Saves space at the cost of visual symmetry. A future symmetric mode (padding split evenly) is on the table but deferred.
+- **Refs the v1 router can't handle (multi-hop, cross-row-strip, many-to-many) surface in `Layout.skippedRefs`.** Don't silently drop edges — visibility into what isn't rendered matters more than a clean output that's secretly incomplete.
