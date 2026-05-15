@@ -41,8 +41,8 @@ describe('render', () => {
       "┌───────────────┐  ┌───────────────┐
       │ users         │  │ posts         │
       ├───────────────┤  ├───────────────┤
-      │ id int        │  │ id int        │
-      │ email varchar │  │ user_id int   │
+      │ id int        ├┐ │ id int        │
+      │ email varchar │└─┤ user_id int   │
       └───────────────┘  │ title varchar │
                          └───────────────┘"
     `);
@@ -65,8 +65,8 @@ describe('render', () => {
       "┌────────┐  ┌──────────────┐
       │ groups │  │ memberships  │
       ├────────┤  ├──────────────┤
-      │ id int │  │ user_id int  │
-      └────────┘  │ group_id int │
+      │ id int ├┐ │ user_id int  │
+      └────────┘└─┤ group_id int │
                   └──────────────┘
 
       ┌────────┐

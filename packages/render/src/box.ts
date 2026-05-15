@@ -15,7 +15,7 @@ export function drawEntity(
 
   hLine(canvas, x, y, width, glyphs.horizontal, glyphs.cornerTL, glyphs.cornerTR);
   textLine(canvas, x, y + 1, width, entity.name, glyphs.vertical, innerWidth);
-  hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeLeft, glyphs.teeRight);
+  hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeE, glyphs.teeW);
   entity.columns.forEach((col, i) => {
     textLine(canvas, x, y + 3 + i, width, `${col.name} ${col.type}`, glyphs.vertical, innerWidth);
   });

@@ -1,6 +1,7 @@
 import type { Layout } from '@ascii-erd/layout';
 import { drawEntity } from './box.js';
 import { Canvas } from './canvas.js';
+import { drawEdge } from './edges.js';
 import { ASCII, type Glyphs, UNICODE } from './glyphs.js';
 
 export interface RenderOptions {
@@ -24,6 +25,12 @@ export function render(layout: Layout, options: RenderOptions = {}): string {
     const y = stripOffset(sizing.rowStripHeights, sizing.channelRowHeights, placement.rowStrip);
     const width = sizing.colStripWidths[placement.colStrip]!;
     drawEntity(canvas, entity, x, y, width, glyphs);
+  }
+
+  // Edges drawn after entities so port markers and channel lines can overwrite
+  // border characters where they connect.
+  for (const edge of layout.edges) {
+    drawEdge(canvas, edge, glyphs);
   }
 
   return canvas.toString();
