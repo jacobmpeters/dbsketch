@@ -1,0 +1,57 @@
+// Classic star schema: a central fact table with FKs to many dimension tables.
+// Exercises fan-in patterns where many edges converge on a single child
+// entity from independent parents. All dimensions sit in rank 0; the fact
+// table sits alone in rank 1.
+
+Table date_dim {
+  id int [pk]
+  date date
+  day_of_week varchar
+  month int
+  quarter int
+  year int
+}
+
+Table product_dim {
+  id int [pk]
+  sku varchar
+  name varchar
+  category varchar
+  brand varchar
+  unit_price decimal
+}
+
+Table store_dim {
+  id int [pk]
+  name varchar
+  address varchar
+  city varchar
+  region varchar
+}
+
+Table customer_dim {
+  id int [pk]
+  email varchar
+  name varchar
+  city varchar
+  segment varchar
+}
+
+Table promotion_dim {
+  id int [pk]
+  code varchar
+  description varchar
+  discount_pct int
+}
+
+Table sales_fact {
+  id int [pk]
+  date_id int [ref: > date_dim.id]
+  product_id int [ref: > product_dim.id]
+  store_id int [ref: > store_dim.id]
+  customer_id int [ref: > customer_dim.id]
+  promotion_id int [ref: > promotion_dim.id]
+  quantity int
+  unit_price decimal
+  total decimal
+}

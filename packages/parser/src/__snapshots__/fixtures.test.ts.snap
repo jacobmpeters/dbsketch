@@ -684,6 +684,271 @@ exports[`fixtures > ecommerce.dbml 1`] = `
 }
 `;
 
+exports[`fixtures > library.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "author",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "country",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "publisher",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "category",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "title",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "isbn",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "author_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "publisher_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "year",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "pages",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "language",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "cover_url",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "price",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "available",
+          "pk": false,
+          "type": "boolean",
+        },
+        {
+          "name": "description",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "book",
+    },
+    {
+      "columns": [
+        {
+          "name": "book_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "category_id",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "book_category",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "joined_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "users",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "user_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "book_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "borrowed_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+        {
+          "name": "returned_at",
+          "pk": false,
+          "type": "timestamp",
+        },
+      ],
+      "name": "borrowing",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "author_id",
+        "entity": "book",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "author",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "publisher_id",
+        "entity": "book",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "publisher",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "book_id",
+        "entity": "book_category",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "book",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "category_id",
+        "entity": "book_category",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "category",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "user_id",
+        "entity": "borrowing",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "users",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "book_id",
+        "entity": "borrowing",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "book",
+      },
+    },
+  ],
+}
+`;
+
 exports[`fixtures > many-to-many.dbml 1`] = `
 {
   "entities": [
@@ -764,6 +1029,280 @@ exports[`fixtures > many-to-many.dbml 1`] = `
       "parent": {
         "column": "id",
         "entity": "groups",
+      },
+    },
+  ],
+}
+`;
+
+exports[`fixtures > sales_star.dbml 1`] = `
+{
+  "entities": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date",
+          "pk": false,
+          "type": "date",
+        },
+        {
+          "name": "day_of_week",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "month",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quarter",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "year",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "date_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "sku",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "category",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "brand",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "unit_price",
+          "pk": false,
+          "type": "decimal",
+        },
+      ],
+      "name": "product_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "address",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "city",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "region",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "store_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "email",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "name",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "city",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "segment",
+          "pk": false,
+          "type": "varchar",
+        },
+      ],
+      "name": "customer_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "code",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "description",
+          "pk": false,
+          "type": "varchar",
+        },
+        {
+          "name": "discount_pct",
+          "pk": false,
+          "type": "int",
+        },
+      ],
+      "name": "promotion_dim",
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "pk": true,
+          "type": "int",
+        },
+        {
+          "name": "date_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "product_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "store_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "customer_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "promotion_id",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "quantity",
+          "pk": false,
+          "type": "int",
+        },
+        {
+          "name": "unit_price",
+          "pk": false,
+          "type": "decimal",
+        },
+        {
+          "name": "total",
+          "pk": false,
+          "type": "decimal",
+        },
+      ],
+      "name": "sales_fact",
+    },
+  ],
+  "hints": {
+    "clusters": [],
+    "pins": [],
+    "ranks": [],
+  },
+  "refs": [
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "date_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "date_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "product_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "product_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "store_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "store_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "customer_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "customer_dim",
+      },
+    },
+    {
+      "cardinality": "one-to-many",
+      "child": {
+        "column": "promotion_id",
+        "entity": "sales_fact",
+      },
+      "parent": {
+        "column": "id",
+        "entity": "promotion_dim",
       },
     },
   ],

@@ -1,0 +1,55 @@
+// Library schema with deliberate variation in entity field counts — exercises
+// how the layout handles asymmetric row-strip heights and entities of very
+// different "weights". Sizes range from 2-column lookups (author, category) to
+// 12-column rich entities (book).
+
+Table author {
+  id int [pk]
+  name varchar
+}
+
+Table publisher {
+  id int [pk]
+  name varchar
+  country varchar
+}
+
+Table category {
+  id int [pk]
+  name varchar
+}
+
+Table book {
+  id int [pk]
+  title varchar
+  isbn varchar
+  author_id int [ref: > author.id]
+  publisher_id int [ref: > publisher.id]
+  year int
+  pages int
+  language varchar
+  cover_url varchar
+  price int
+  available boolean
+  description varchar
+}
+
+Table book_category {
+  book_id int [ref: > book.id]
+  category_id int [ref: > category.id]
+}
+
+Table users {
+  id int [pk]
+  email varchar
+  name varchar
+  joined_at timestamp
+}
+
+Table borrowing {
+  id int [pk]
+  user_id int [ref: > users.id]
+  book_id int [ref: > book.id]
+  borrowed_at timestamp
+  returned_at timestamp
+}
