@@ -13,6 +13,9 @@ export interface Glyphs {
   teeN: string;
   teeS: string;
   cross: string;
+  // Single-character marker for PK rows, written into the otherwise-blank
+  // left-pad cell. Subtle enough to scan past, distinct enough to spot.
+  pkMarker: string;
 }
 
 export const ASCII: Glyphs = {
@@ -27,6 +30,7 @@ export const ASCII: Glyphs = {
   teeN: '+',
   teeS: '+',
   cross: '+',
+  pkMarker: '*',
 };
 
 // Rounded corners (╭ ╮ ╰ ╯) read softer than the sharp box-drawing
@@ -48,4 +52,5 @@ export const UNICODE: Glyphs = {
   teeN: '┴',
   teeS: '┬',
   cross: '┼',
+  pkMarker: '·',
 };

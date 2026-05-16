@@ -19,14 +19,19 @@ export function drawEntity(
   textLine(canvas, x, y + 1, width, padCenter(entity.name, innerWidth), glyphs.vertical);
   hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeE, glyphs.teeW);
   entity.columns.forEach((col, i) => {
+    const rowY = y + 3 + i;
     textLine(
       canvas,
       x,
-      y + 3 + i,
+      rowY,
       width,
       padRight(`${col.name} ${col.type}`, innerWidth),
       glyphs.vertical,
     );
+    // PK marker in the otherwise-blank left-pad cell. Costs no width and
+    // doesn't conflict with edge port markers (those live on the border
+    // at x and x+width-1).
+    if (col.pk) canvas.set(x + 1, rowY, glyphs.pkMarker);
   });
   hLine(canvas, x, bottomY, width, glyphs.horizontal, glyphs.cornerBL, glyphs.cornerBR);
 }
