@@ -104,4 +104,18 @@ describe('layout', () => {
     `);
     expect(() => layout(ir)).toThrow(/unknown entity/);
   });
+
+  it('rejects @center and @col on the same entity (incompatible axes)', () => {
+    const ir = parse(`
+      Table fact { id int a_id int [ref: > a.id] b_id int [ref: > b.id] c_id int [ref: > c.id] }
+      Table a { id int }
+      Table b { id int }
+      Table c { id int }
+      @layout {
+        center fact
+        pin fact at col 0
+      }
+    `);
+    expect(() => layout(ir)).toThrow(/@center and a @col pin/);
+  });
 });

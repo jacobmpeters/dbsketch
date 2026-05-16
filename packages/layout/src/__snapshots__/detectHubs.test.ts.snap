@@ -72,11 +72,11 @@ exports[`detectHubs > snowflake.dbml 1`] = `
     "source": "auto",
   },
   {
-    "entity": "country_dim",
+    "entity": "customer_dim",
     "source": "auto",
   },
   {
-    "entity": "customer_dim",
+    "entity": "product_dim",
     "source": "auto",
   },
 ]

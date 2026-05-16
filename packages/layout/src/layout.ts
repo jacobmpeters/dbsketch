@@ -14,6 +14,7 @@ export class HintConflictError extends Error {
 }
 
 export function layout(ir: IR): Layout {
+  validateHintCombos(ir);
   const centers = detectHubs(ir);
   const ranks = rank(ir, centers);
   applyColPins(ranks, ir.hints, ir);
@@ -45,6 +46,25 @@ export function layout(ir: IR): Layout {
     entityPositions,
     skippedRefs: planResult.skippedRefs,
   };
+}
+
+// A user-provided @center on an entity also constrains its col (the hub
+// sits at a center col chosen by the ranker). Mixing with @col on the same
+// entity sends conflicting signals and produces broken layouts, so reject
+// up front with a clear message.
+function validateHintCombos(ir: IR): void {
+  const pinnedCols = new Map<string, number>();
+  for (const p of ir.hints.pins) {
+    if (p.col !== null) pinnedCols.set(p.entity, p.col);
+  }
+  for (const c of ir.hints.centers) {
+    if (c.source !== 'user') continue;
+    if (pinnedCols.has(c.entity)) {
+      throw new HintConflictError(
+        `entity '${c.entity}' has both @center and a @col pin — these constrain the same axis`,
+      );
+    }
+  }
 }
 
 // Override col-strip assignment for any entity with a col pin. Mutates the
