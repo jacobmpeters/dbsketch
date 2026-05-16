@@ -29,7 +29,8 @@ export function layout(ir: IR): Layout {
     planResult.channelTrackCounts,
     planResult.rowChannelTrackCounts,
   );
-  const entityPositions = computeEntityPositions(ir, placements, sizing);
+  const topMarginHeight = planResult.rowChannelTrackCounts.get(-1) ?? 0;
+  const entityPositions = computeEntityPositions(ir, placements, sizing, topMarginHeight);
   const edges = materializeEdges(planResult.planned, placements, sizing, entityPositions);
   return {
     ir,

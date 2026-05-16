@@ -116,20 +116,14 @@ function tryPlan(
     };
   }
 
-  // Multi-hop. Try the row-channel just below the higher of parent/child
-  // first; if that row-channel doesn't exist (both at the last row strip),
-  // fall back to the row-channel just above the lower of the two. Skip
-  // only when neither direction has a row-channel available.
-  const minRow = Math.min(parentP.rowStrip, childP.rowStrip);
-  const maxRow = Math.max(parentP.rowStrip, childP.rowStrip);
-  let detourRowChannel: number;
-  if (minRow < numRowStrips - 1) {
-    detourRowChannel = minRow;
-  } else if (maxRow > 0) {
-    detourRowChannel = maxRow - 1;
-  } else {
-    return null;
-  }
+  // Multi-hop in compact-layout mode: all H2 segments share a top margin
+  // above all entity boxes. The sentinel detourRowChannel = -1 indicates
+  // "top margin" (route around the top of the canvas). Eventually we may
+  // also support a bottom margin for shorter detours.
+  const detourRowChannel = -1;
+  // numRowStrips parameter no longer used for detour selection (margin is
+  // global), but kept for signature stability.
+  void numRowStrips;
 
   return {
     kind: 'multi',
@@ -143,23 +137,18 @@ function tryPlan(
   };
 }
 
-// Pack multi-hop H2 segments into row-channel y-tracks via interval scheduling
-// on col-strip ranges. Top-of-channel flush: track 0 = topmost y.
+// Pack multi-hop H2 segments into y-tracks within the shared top margin.
+// All multi-hops use the same logical channel (the top margin), so they
+// share track allocation via interval scheduling on x-ranges (col-strip
+// indices).
 function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
-  const byChannel = new Map<number, MultiHopPlannedEdge[]>();
+  const multiHops: MultiHopPlannedEdge[] = [];
   for (const edge of planned) {
-    if (edge.kind !== 'multi') continue;
-    let bucket = byChannel.get(edge.detourRowChannel);
-    if (!bucket) {
-      bucket = [];
-      byChannel.set(edge.detourRowChannel, bucket);
-    }
-    bucket.push(edge);
+    if (edge.kind === 'multi') multiHops.push(edge);
   }
-
   const counts = new Map<number, number>();
-  for (const [channel, edges] of byChannel) {
-    counts.set(channel, packRowChannel(edges));
+  if (multiHops.length > 0) {
+    counts.set(-1, packRowChannel(multiHops));
   }
   return counts;
 }
@@ -377,9 +366,9 @@ function materializeMultiHop(
   const v2ChannelStartX = colChannelStartX(sizing, p.childChannelIndex);
   const v2X = v2ChannelStartX + Math.max(0, p.childTrack);
 
-  // H2 sits at top-of-channel y + detourTrack.
-  const detourChannelStartY = rowChannelStartYFromSizing(sizing, p.detourRowChannel);
-  const detourY = detourChannelStartY + Math.max(0, p.detourTrack);
+  // H2 routes through the top margin (compact-layout mode). detourTrack is
+  // the y-position within the margin (0 = topmost row).
+  const detourY = Math.max(0, p.detourTrack);
 
   const parentPort: Port = { x: parentRightX, y: parentPortY, side: 'right' };
   const childPort: Port = { x: childLeftX, y: childPortY, side: 'left' };

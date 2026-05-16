@@ -44,9 +44,7 @@ describe('planRoutes', () => {
     expect(result.skippedRefs).toEqual([]);
   });
 
-  it('routes multi-hop refs by detouring through a row-channel', () => {
-    // Two rank-0 entities (a, b) gives us numRowStrips >= 2, so a row-channel
-    // exists for the detour. a → d crosses cols 0 → 2.
+  it('routes multi-hop refs through the top margin', () => {
     const ir = parse(`
       Table a { id int }
       Table b { id int }
@@ -63,40 +61,26 @@ describe('planRoutes', () => {
       expect(multiHop.ref.child.entity).toBe('d');
       expect(multiHop.parentChannelIndex).toBe(0);
       expect(multiHop.childChannelIndex).toBe(1);
-      expect(multiHop.detourRowChannel).toBeGreaterThanOrEqual(0);
+      // -1 is the top-margin sentinel; all multi-hops detour above all entities.
+      expect(multiHop.detourRowChannel).toBe(-1);
     }
   });
 
-  it('falls back to detour-above when detour-below row-channel is missing', () => {
-    // Two roots → 2 row strips. Multi-hop edge from root at row 1 to a
-    // child at col 2 row 1: minRow=1 is the last row strip, so detour-below
-    // doesn't exist, but detour-above (row-channel 0) does.
-    const ir = parse(`
-      Table top { id int }
-      Table bottom { id int }
-      Table mid { id int top_id int [ref: > top.id] }
-      Table leaf { id int bottom_id int [ref: > bottom.id] mid_id int [ref: > mid.id] }
-    `);
-    const result = plan(ir);
-    // Both edges from top/bottom to leaf should route. The bottom→leaf edge
-    // is the multi-hop one; with the fallback in place it shouldn't skip.
-    expect(result.skippedRefs).toEqual([]);
-    const multiHop = result.planned.find((p) => p.kind === 'multi');
-    expect(multiHop).toBeDefined();
-  });
-
-  it('skips multi-hop refs when no row-channel exists for detour', () => {
-    // Single row strip means there's nowhere to detour through.
+  it('routes multi-hops via the top margin even with a single row strip', () => {
+    // Previously this case had no detour space (no inter-row channels), but
+    // the top margin is always available.
     const ir = parse(`
       Table a { id int }
       Table b { id int a_id int [ref: > a.id] }
       Table c { id int b_id int [ref: > b.id] a_id int [ref: > a.id] }
     `);
     const result = plan(ir);
-    // a → c is multi-hop but can't detour (only 1 row strip).
-    expect(result.skippedRefs).toHaveLength(1);
-    expect(result.skippedRefs[0]?.parent.entity).toBe('a');
-    expect(result.skippedRefs[0]?.child.entity).toBe('c');
+    expect(result.skippedRefs).toEqual([]);
+    const multiHop = result.planned.find((p) => p.kind === 'multi');
+    expect(multiHop).toBeDefined();
+    if (multiHop?.kind === 'multi') {
+      expect(multiHop.detourRowChannel).toBe(-1);
+    }
   });
 
   it('skips many-to-many refs', () => {
