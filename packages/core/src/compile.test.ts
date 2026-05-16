@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ParseError, TokenizerError, compile } from './index.js';
 
 describe('compile', () => {
-  it('compiles DBML to a Unicode ERD by default', () => {
+  it('compiles DBML to a Unicode ERD with rounded corners by default', () => {
     const out = compile('Table users { id int }');
-    expect(out).toContain('┌');
+    expect(out).toContain('╭');
     expect(out).toContain('users');
     expect(out).toContain('id int');
   });
@@ -13,7 +13,7 @@ describe('compile', () => {
     const out = compile('Table users { id int }', { glyphs: 'ascii' });
     expect(out).toContain('+');
     expect(out).toContain('|');
-    expect(out).not.toContain('┌');
+    expect(out).not.toContain('╭');
   });
 
   it('returns an empty string for empty input', () => {

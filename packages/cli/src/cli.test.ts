@@ -23,16 +23,16 @@ describe('runCli', () => {
     expect(result.stdout).toContain('users');
   });
 
-  it('uses Unicode glyphs by default', () => {
+  it('uses Unicode glyphs (rounded corners) by default', () => {
     const result = runCli(['users.dbml'], makeDeps('Table users { id int }'));
-    expect(result.stdout).toContain('┌');
+    expect(result.stdout).toContain('╭');
   });
 
   it('uses ASCII glyphs when --ascii is passed', () => {
     const result = runCli(['--ascii', 'users.dbml'], makeDeps('Table users { id int }'));
     expect(result.stdout).toContain('+');
     expect(result.stdout).toContain('|');
-    expect(result.stdout).not.toContain('┌');
+    expect(result.stdout).not.toContain('╭');
   });
 
   it('shows usage on --help', () => {

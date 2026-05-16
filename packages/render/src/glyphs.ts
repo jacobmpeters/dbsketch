@@ -29,11 +29,18 @@ export const ASCII: Glyphs = {
   cross: '+',
 };
 
+// Rounded corners (╭ ╮ ╰ ╯) read softer than the sharp box-drawing
+// variants in modern terminals and renders well in code editors,
+// docs sites, and browsers. The straight, tee, and cross glyphs stay
+// sharp — only the four L-corners change. Used for both entity box
+// corners and edge L-bends since the render path treats them
+// identically. Falls back to --ascii for environments where the
+// rounded variants render poorly.
 export const UNICODE: Glyphs = {
-  cornerTL: '┌',
-  cornerTR: '┐',
-  cornerBL: '└',
-  cornerBR: '┘',
+  cornerTL: '╭',
+  cornerTR: '╮',
+  cornerBL: '╰',
+  cornerBR: '╯',
   horizontal: '─',
   vertical: '│',
   teeE: '├',
