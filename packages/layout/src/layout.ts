@@ -1,5 +1,6 @@
 import type { IR, LayoutHints } from '@ascii-erd/parser';
 import { place } from './place.js';
+import { computeEntityPositions } from './positions.js';
 import { rank } from './rank.js';
 import { materializeEdges, planRoutes } from './route.js';
 import { size } from './size.js';
@@ -28,12 +29,14 @@ export function layout(ir: IR): Layout {
     planResult.channelTrackCounts,
     planResult.rowChannelTrackCounts,
   );
-  const edges = materializeEdges(planResult.planned, placements, sizing);
+  const entityPositions = computeEntityPositions(ir, placements, sizing);
+  const edges = materializeEdges(planResult.planned, placements, sizing, entityPositions);
   return {
     ir,
     placements,
     sizing,
     edges,
+    entityPositions,
     skippedRefs: planResult.skippedRefs,
   };
 }

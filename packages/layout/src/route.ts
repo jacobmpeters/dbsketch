@@ -1,4 +1,5 @@
 import type { Entity, IR, Ref } from '@ascii-erd/parser';
+import type { EntityPositions } from './positions.js';
 import { type RowSizing, rowSize } from './size.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, StripSizing } from './types.js';
 
@@ -306,33 +307,27 @@ export function materializeEdges(
   planned: PlannedEdge[],
   placements: Placement[],
   sizing: StripSizing,
+  entityPositions: EntityPositions,
 ): EdgeRoute[] {
-  const placementByEntity = new Map(placements.map((p) => [p.entity, p]));
   return planned.map((p) =>
     p.kind === 'single'
-      ? materializeSingleHop(p, placementByEntity, sizing)
-      : materializeMultiHop(p, placementByEntity, sizing),
+      ? materializeSingleHop(p, sizing, entityPositions)
+      : materializeMultiHop(p, sizing, entityPositions),
   );
 }
 
 function materializeSingleHop(
   p: SingleHopPlannedEdge,
-  placementByEntity: Map<string, Placement>,
   sizing: StripSizing,
+  entityPositions: EntityPositions,
 ): EdgeRoute {
-  const parentP = placementByEntity.get(p.ref.parent.entity)!;
-  const childP = placementByEntity.get(p.ref.child.entity)!;
+  const parentBox = entityPositions.get(p.ref.parent.entity)!;
+  const childBox = entityPositions.get(p.ref.child.entity)!;
 
-  const parentX = stripOffset(sizing.colStripWidths, sizing.channelColWidths, parentP.colStrip);
-  const parentY = stripOffset(sizing.rowStripHeights, sizing.channelRowHeights, parentP.rowStrip);
-  const childX = stripOffset(sizing.colStripWidths, sizing.channelColWidths, childP.colStrip);
-  const childY = stripOffset(sizing.rowStripHeights, sizing.channelRowHeights, childP.rowStrip);
-  const parentWidth = sizing.colStripWidths[parentP.colStrip]!;
-
-  const parentRightX = parentX + parentWidth - 1;
-  const childLeftX = childX;
-  const parentPortY = parentY + p.parentRowOffset;
-  const childPortY = childY + p.childRowOffset;
+  const parentRightX = parentBox.x + parentBox.width - 1;
+  const childLeftX = childBox.x;
+  const parentPortY = parentBox.y + p.parentRowOffset;
+  const childPortY = childBox.y + p.childRowOffset;
   const channelStartX = parentRightX + 1;
 
   const parentPort: Port = { x: parentRightX, y: parentPortY, side: 'right' };
@@ -363,22 +358,16 @@ function materializeSingleHop(
 
 function materializeMultiHop(
   p: MultiHopPlannedEdge,
-  placementByEntity: Map<string, Placement>,
   sizing: StripSizing,
+  entityPositions: EntityPositions,
 ): EdgeRoute {
-  const parentP = placementByEntity.get(p.ref.parent.entity)!;
-  const childP = placementByEntity.get(p.ref.child.entity)!;
+  const parentBox = entityPositions.get(p.ref.parent.entity)!;
+  const childBox = entityPositions.get(p.ref.child.entity)!;
 
-  const parentX = stripOffset(sizing.colStripWidths, sizing.channelColWidths, parentP.colStrip);
-  const parentY = stripOffset(sizing.rowStripHeights, sizing.channelRowHeights, parentP.rowStrip);
-  const childX = stripOffset(sizing.colStripWidths, sizing.channelColWidths, childP.colStrip);
-  const childY = stripOffset(sizing.rowStripHeights, sizing.channelRowHeights, childP.rowStrip);
-  const parentWidth = sizing.colStripWidths[parentP.colStrip]!;
-
-  const parentRightX = parentX + parentWidth - 1;
-  const childLeftX = childX;
-  const parentPortY = parentY + p.parentRowOffset;
-  const childPortY = childY + p.childRowOffset;
+  const parentRightX = parentBox.x + parentBox.width - 1;
+  const childLeftX = childBox.x;
+  const parentPortY = parentBox.y + p.parentRowOffset;
+  const childPortY = childBox.y + p.childRowOffset;
 
   // V1 sits in the parent-side col-channel, flush to the parent border.
   const parentChannelStartX = parentRightX + 1;

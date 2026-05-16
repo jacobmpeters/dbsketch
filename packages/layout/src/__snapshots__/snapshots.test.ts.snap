@@ -96,6 +96,38 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       ],
     },
   ],
+  "entityPositions": Map {
+    "top" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 0,
+    },
+    "bot" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 7,
+    },
+    "mid" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 14,
+    },
+    "x" => {
+      "height": 6,
+      "width": 14,
+      "x": 12,
+      "y": 0,
+    },
+    "y" => {
+      "height": 6,
+      "width": 14,
+      "x": 12,
+      "y": 7,
+    },
+  },
   "ir": {
     "entities": [
       {
@@ -334,6 +366,26 @@ exports[`layout snapshots > branching-children 1`] = `
       ],
     },
   ],
+  "entityPositions": Map {
+    "users" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 7,
+    },
+    "posts" => {
+      "height": 6,
+      "width": 15,
+      "x": 12,
+      "y": 0,
+    },
+    "sessions" => {
+      "height": 6,
+      "width": 15,
+      "x": 12,
+      "y": 7,
+    },
+  },
   "ir": {
     "entities": [
       {
@@ -540,6 +592,26 @@ exports[`layout snapshots > diamond 1`] = `
       ],
     },
   ],
+  "entityPositions": Map {
+    "a" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 0,
+    },
+    "b" => {
+      "height": 6,
+      "width": 12,
+      "x": 12,
+      "y": 0,
+    },
+    "c" => {
+      "height": 7,
+      "width": 12,
+      "x": 26,
+      "y": 0,
+    },
+  },
   "ir": {
     "entities": [
       {
@@ -759,6 +831,26 @@ exports[`layout snapshots > junction-table 1`] = `
       ],
     },
   ],
+  "entityPositions": Map {
+    "groups" => {
+      "height": 6,
+      "width": 16,
+      "x": 0,
+      "y": 0,
+    },
+    "users" => {
+      "height": 6,
+      "width": 16,
+      "x": 0,
+      "y": 7,
+    },
+    "memberships" => {
+      "height": 6,
+      "width": 16,
+      "x": 18,
+      "y": 7,
+    },
+  },
   "ir": {
     "entities": [
       {
@@ -970,6 +1062,26 @@ exports[`layout snapshots > linear-chain 1`] = `
       ],
     },
   ],
+  "entityPositions": Map {
+    "users" => {
+      "height": 5,
+      "width": 10,
+      "x": 0,
+      "y": 0,
+    },
+    "posts" => {
+      "height": 6,
+      "width": 15,
+      "x": 12,
+      "y": 0,
+    },
+    "comments" => {
+      "height": 6,
+      "width": 15,
+      "x": 29,
+      "y": 0,
+    },
+  },
   "ir": {
     "entities": [
       {
@@ -1082,6 +1194,14 @@ exports[`layout snapshots > linear-chain 1`] = `
 exports[`layout snapshots > single-table 1`] = `
 {
   "edges": [],
+  "entityPositions": Map {
+    "users" => {
+      "height": 6,
+      "width": 17,
+      "x": 0,
+      "y": 0,
+    },
+  },
   "ir": {
     "entities": [
       {
