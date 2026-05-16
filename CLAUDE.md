@@ -37,7 +37,8 @@ Most algorithm work lives in `packages/layout` and operates directly on this gri
 
 Sequential stages, each with one responsibility. Each layout hint maps to exactly one stage — that locality is what makes hints predictable.
 
-1. **Parse** — DBML + `@layout` block → IR (entities, columns, refs, hints). `packages/parser`.
+0. **(SQL input only)** — SQL DDL → DBML via `@dbml/core`'s importer. `parseSql(sql, dialect)` in `packages/parser` does this, then hands off to stage 1. Supported dialects: postgres (default; also handles SQLite cleanly as a subset), mysql, mssql, snowflake. We don't carry a second canonical IR — everything funnels through DBML so the rest of the pipeline doesn't fork.
+1. **Parse** — DBML + `@layout` block → IR (entities, columns, refs, hints). `packages/parser`. The parser is permissive: it strictly handles `Table { ... }` and external `Ref` declarations but tolerates anything else (Project, TableGroup, Enum, Note blocks, multi-attribute brackets with not-null/default/note, quoted identifiers, composite-column refs, schema-qualified names) by skipping over it with balanced-brace scanning.
 2. **Detect hubs** — find high-degree entities and emit synthetic `@center` hints. Auto picks the top-1 entity (degree ≥ 3); users can override or add more via explicit `@center`. `packages/layout/detectHubs.ts`.
 3. **Cluster** — modularity/Louvain over the FK graph; assigns each entity to a cluster. Hint: `cluster X { ... }`. *(Not yet wired up.)*
 4. **Rank** — assigns each entity to a col-strip. Two modes:
@@ -50,6 +51,13 @@ Sequential stages, each with one responsibility. Each layout hint maps to exactl
 8. **Route** — edges decompose into horizontal/vertical segments living in channel strips. Interval scheduling assigns each segment a track. Multi-hop edges route through a top margin above all entities.
 9. **Size channels** — channel widths set to (max occupied tracks per channel); recompute final coordinates. Per-col stacking packs entities tightly within each col-strip.
 10. **Render** — strip grid + glyph table (ASCII or Unicode) → string. `packages/render`.
+
+## Input formats
+
+Two front-ends, single IR:
+
+- **DBML** (native). Standard DBML plus our `@layout` extension block. The parser handles the real-world DBML surface (quoted identifiers, multi-attribute brackets, external `Ref:`, Project/TableGroup/Enum/Note/Indexes/Checks blocks, composite-column refs, schema-qualified names) — features get either extracted (Table/Column/PK/FK) or skipped, never errored on.
+- **SQL DDL** (via `@dbml/core`). The parser package depends on `@dbml/core` for SQL → DBML conversion. Resulting DBML feeds into the same DBML parser. Supported dialects match `@dbml/core`'s importer: postgres (also handles SQLite), mysql, mssql, snowflake. CLI auto-detects `.sql` files; library API: `parseSql(sql, dialect)` and `compileSql(sql, dialect, opts)`.
 
 ## DSL surface
 
@@ -91,7 +99,7 @@ apps/
   playground/  # deferred — placeholder for future web demo
 ```
 
-**Browser-compatibility constraint:** `parser`, `layout`, `render`, `core` must not import Node-only APIs (no `fs`, `path`, `process` outside of `@types/node`). `cli` is the sole Node consumer. This keeps `core` shippable to browsers, playgrounds, and any web rendering pipeline.
+**Browser-compatibility constraint:** `parser`, `layout`, `render`, `core` must not import Node-only APIs (no `fs`, `path`, `process` outside of `@types/node`). `cli` is the sole Node consumer. This keeps `core` shippable to browsers, playgrounds, and any web rendering pipeline. `@dbml/core` (a runtime dep of `parser`, used by `parseSql`) is browser-safe — it powers dbdiagram.io.
 
 ## Tooling
 
@@ -104,16 +112,15 @@ apps/
 
 ## v1 scope
 
-- DBML in (file or stdin), ASCII out (stdout).
+- DBML or SQL DDL in (file or stdin), ASCII out (stdout). `.sql` auto-detected by extension; `--sql` forces SQL mode for stdin.
 - Two render modes: `--ascii` (7-bit `+`/`-`/`|`) and `--unicode` (default, box-drawing).
-- Layout hints via `@layout` blocks.
-- Library API exported from `core`.
-- Snapshot test suite covering common ERD shapes.
+- Layout hints via `@layout` blocks (`pin`, `center` with optional `{ left: ... right: ... }` bias).
+- Library API exported from `core` (`compile`, `compileSql`).
+- Snapshot test suite covering common ERD shapes plus a regression set of real-world DBML files in `parser/fixtures-realworld`.
 
 ## Non-goals (v1)
 
 - Watch mode, server, web playground (deferred to v2).
-- DDL/SQL parsing — planned for later; `parser` should be designed so new front-ends slot in cleanly.
 - Custom themes, color, SVG output.
 - Interactive editing.
 - "Optimal" layouts via simulated annealing or other expensive optimization. Strip-grid + interval scheduling is fast and predictable; that's the deliberate tradeoff.
@@ -153,5 +160,4 @@ Captured in priority order from conversation. Not strict commitments — revisit
 4. **Smarter hub-selection metric.** Auto picks the top-1 hub by total degree; some shapes might prefer "centrality" (entity whose neighborhood is densest) or "balanced in/out" (favors fact tables specifically). Phase 5 shipped a closeness tiebreak that was reverted with the cap=1 change; revisit if auto needs to pick more than one.
 5. **Cluster + rank hints.** `cluster X { ... }` and `rank N { ... }` are sketched in the DSL but the parser doesn't read them yet. Lower priority now that `pin` and `@center` cover the main escape valves.
 6. **Crossing minimization at track assignment.** Beyond non-overlap packing, choose tracks to minimize crossings with other edges. NP-hard exact; barycenter-style heuristic. Real win for dense channels but significant slice.
-8. **Color (opt-in flag).** Could differentiate edges with ANSI codes. Defer indefinitely — breaks markdown-renderability story unless gated behind explicit flag.
-9. **DDL/SQL parsing.** Planned per v1 scope; parser front-end is designed to swap in.
+7. **Color (opt-in flag).** Could differentiate edges with ANSI codes. Defer indefinitely — breaks markdown-renderability story unless gated behind explicit flag.
