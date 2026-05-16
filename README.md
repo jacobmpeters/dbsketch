@@ -135,32 +135,57 @@ For a fact table with many dimensions, dbsketch detects the hub and places it in
 
 `·` marks primary key columns. Tees on the entity border (`├`, `┤`) mark relationship endpoints.
 
-### Multi-hub OLTP (no top-margin routing needed)
+### Clinical OLTP (transactional schema with a clear hub)
+
+An EHR-style schema centered on the `encounter` table — the visit that ties patient, provider, diagnoses, medications, and vitals together. The hub is detected automatically; sibling tables order themselves by where they attach on `encounter` so related rows sit close to their FK columns.
+
+```dbml
+Table patient   { id int [pk] mrn varchar name varchar dob date }
+Table provider  { id int [pk] npi varchar name varchar specialty varchar }
+Table encounter {
+  id int [pk]
+  patient_id int [ref: > patient.id]
+  provider_id int [ref: > provider.id]
+  encounter_type varchar
+  started_at timestamp
+  ended_at timestamp
+}
+Table diagnosis  { id int [pk] encounter_id int [ref: > encounter.id] icd_code varchar description varchar }
+Table medication { id int [pk] encounter_id int [ref: > encounter.id] prescriber_id int [ref: > provider.id] name varchar dose varchar }
+Table vital      { id int [pk] encounter_id int [ref: > encounter.id] measure varchar value decimal recorded_at timestamp }
+```
 
 ```
-╭─────────────────────────────╮  ╭───────────────────────╮  ╭──────────────────────────╮  ╭───────────────────────╮
-│         person_map          │  │      respondent       │  │     response_session     │  │      admin_event      │
-├─────────────────────────────┤  ├───────────────────────┤  ├──────────────────────────┤  ├───────────────────────┤
-│·respondent_id       integer ├──┤·respondent_id integer ├╮ │·session_id       integer ├╮ │·event_id      integer │
-│ identity_hash          text │╭─┤ study_id      integer │╰─┤ respondent_id    integer │╰─┤ session_id    integer │
-│ identity_type          text ││ │ external_id      text │  │ questionnaire_id integer ││ │ event_type       text │
-╰─────────────────────────────╯│ │ enrollment_date  text │  │ started_at          text ││ │ occurred_at      text │
-                               │ ╰───────────────────────╯  │ completed_at        text ││ │ performed_by     text │
-╭─────────────────────────────╮│                            │ admin_mode          text ││ ╰───────────────────────╯
-│            study            ││                            │ fhir_response_id    text ││
-├─────────────────────────────┤│                            ╰──────────────────────────╯│ ╭───────────────────────╮
-│·study_id            integer ├╯                                                        │ │       response        │
-│ name                   text │                                                         │ ├───────────────────────┤
-│ principal_investigator text │                                                         │ │·response_id   integer │
-│ irb_number             text │                                                         ╰─┤ session_id    integer │
-│ license                text │                                                           │ qq_id         integer │
-│ doi                    text │                                                           │ option_id     integer │
-╰─────────────────────────────╯                                                           │ response_text    text │
-                                                                                          │ response_numeric real │
-                                                                                          │ response_date    text │
-                                                                                          │ repeat_index  integer │
-                                                                                          ╰───────────────────────╯
+╭───────────────────────╮  ╭────────────────────────╮   ╭───────────────────╮
+│       diagnosis       │  │       encounter        │   │    medication     │
+├───────────────────────┤  ├────────────────────────┤   ├───────────────────┤
+│·id                int │╭─┤·id                 int ├╮  │·id            int │
+│ encounter_id      int ├┤╭┤ patient_id         int │╰──┤ encounter_id  int │
+│ icd_code      varchar ││││ provider_id        int ├─╭┬┤ prescriber_id int │
+│ description   varchar ││││ encounter_type varchar │ │││ name      varchar │
+╰───────────────────────╯│││ started_at   timestamp │ │││ dose      varchar │
+                         │││ ended_at     timestamp │ ││╰───────────────────╯
+╭───────────────────────╮││╰────────────────────────╯ ││
+│         vital         │││                           ││╭───────────────────╮
+├───────────────────────┤││                           │││     provider      │
+│·id                int │││                           ││├───────────────────┤
+│ encounter_id      int ├╯│                           ╰┴┤·id            int │
+│ measure       varchar │ │                             │ npi       varchar │
+│ value         decimal │ │                             │ name      varchar │
+│ recorded_at timestamp │ │                             │ specialty varchar │
+╰───────────────────────╯ │                             ╰───────────────────╯
+                          │
+╭───────────────────────╮ │
+│        patient        │ │
+├───────────────────────┤ │
+│·id                int ├─╯
+│ mrn           varchar │
+│ name          varchar │
+│ dob              date │
+╰───────────────────────╯
 ```
+
+Notice `provider` sits opposite `medication`, not stacked under `patient`: port-aware ordering placed it to align with `encounter.provider_id` (and `medication.prescriber_id`, also on the right), keeping those edges short.
 
 ## How it works (brief)
 
