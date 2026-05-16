@@ -180,31 +180,83 @@ Five opt-in behaviors, all simple. Most schemas need none of them.
 
 ### `--no-types` (compact name-only mode)
 
-Default:
+Useful when types are noise — high-level structural overviews where you care about who-references-what, narrow rendering contexts, or dense schemas where every saved character matters. The savings compound: each entity gets narrower, and a narrower entity means narrower channels around it.
+
+A real 12-entity schema (instrument design for a survey platform), with types — about 200 characters wide:
 
 ```
-╭────────────────────╮  ╭────────────────────╮
-│    dim_country     │  │     dim_region     │
-├────────────────────┤  ├────────────────────┤
-│·country_id INTEGER │  │·region_id  INTEGER │
-│ name       VARCHAR │  │ name       VARCHAR │
-╰────────────────────╯  │ country_id INTEGER │
-                        ╰────────────────────╯
+                                                                                 ╭─────────────────────────────────────────────────────────────╮
+                                                                                 │                                                             │
+╭───────────────────────╮  ╭───────────────────────╮  ╭─────────────────────────╮│ ╭──────────────────────────╮    ╭──────────────────────────╮│  ╭──────────────────────────╮  ╭─────────────────────────╮
+│  response_option_set  │  │    response_option    │  │    scoring_rule_item    ││ │  questionnaire_question  │    │      questionnaire       ││  │       scoring_rule       │  │    scoring_category     │
+├───────────────────────┤  ├───────────────────────┤  ├─────────────────────────┤│ ├──────────────────────────┤    ├──────────────────────────┤│  ├──────────────────────────┤  ├─────────────────────────┤
+│·option_set_id integer ├╮ │·option_id     integer │  │ scoring_rule_id integer ├╭─┤·qq_id            integer ├┬╮╮─┤·questionnaire_id integer ├╰┬┬┤·scoring_rule_id  integer ├╮ │·category_id     integer │
+│ name             text ││ │ question_id   integer ├╮ │ qq_id           integer ├╯ │ questionnaire_id integer ├╯││ │ study_id         integer │ │╰┤ questionnaire_id integer │╰─┤ scoring_rule_id integer │
+│ canonical_url    text │╰─┤ option_set_id integer ││ │ weight             real ││╭┤ question_id      integer │ ││ │ name                text │ │ │ name                text │  │ label              text │
+╰───────────────────────╯  │ option_text      text ││ │ reverse_score   boolean ││││ section_id       integer ├─││╮│ version             text │ │ │ formula             text │  │ min_score          real │
+                           │ option_value     text ││ ╰─────────────────────────╯│││ parent_qq_id     integer ├─│╯││ canonical_url       text │ │ ╰──────────────────────────╯  │ max_score          real │
+                           │ concept_id    integer ││                            │││ count_qq_id      integer ├─╯ │╰──────────────────────────╯ │                               ╰─────────────────────────╯
+                           ╰───────────────────────╯│ ╭─────────────────────────╮│││ display_order    integer │   │                             │
+                                                    │ │        skip_rule        ││││ required         boolean │   │╭──────────────────────────╮ │
+                           ╭───────────────────────╮│ ├─────────────────────────┤││╰──────────────────────────╯   ││         section          │ │
+                           │      grid_column      ││ │·skip_rule_id    integer │││                               │├──────────────────────────┤ │
+                           ├───────────────────────┤│ │ qq_id           integer ├┤│                               ╰┤·section_id       integer │ │
+                           │·column_id     integer ││ │ trigger_qq_id   integer ├╯│                                │ questionnaire_id integer ├─╯
+                           │ question_id   integer ├╮ │ operator           text │ │                                │ name                text │
+                           │ column_text      text ││ │ trigger_value      text │ │                                │ display_order    integer │
+                           │ column_value     text ││ │ action             text │ │                                ╰──────────────────────────╯
+                           ╰───────────────────────╯│ │ enable_behavior    text │ │
+                                                    │ ╰─────────────────────────╯ │
+                           ╭───────────────────────╮│                             │
+                           │       grid_row        ││ ╭─────────────────────────╮ │
+                           ├───────────────────────┤│ │        question         │ │
+                           │·row_id        integer ││ ├─────────────────────────┤ │
+                           │ question_id   integer ├╰─┤·question_id     integer ├─╯
+                           │ row_text         text │  │ link_id            text │
+                           │ display_order integer │  │ question_type      text │
+                           ╰───────────────────────╯  │ question_text      text │
+                                                      │ concept_id      integer │
+                                                      │ version            text │
+                                                      ╰─────────────────────────╯
 ```
 
-`--no-types`:
+Same schema with `--no-types` — about 165 characters wide (17% narrower), and the relationship structure is what your eye lands on first:
 
 ```
-╭─────────────╮  ╭────────────╮
-│ dim_country │  │ dim_region │
-├─────────────┤  ├────────────┤
-│·country_id  │  │·region_id  │
-│ name        │  │ name       │
-╰─────────────╯  │ country_id │
-                 ╰────────────╯
+                                                                   ╭───────────────────────────────────────────────────╮
+                                                                   │                                                   │
+╭─────────────────────╮  ╭─────────────────╮  ╭───────────────────╮│ ╭────────────────────────╮    ╭──────────────────╮│  ╭──────────────────╮  ╭──────────────────╮
+│ response_option_set │  │ response_option │  │ scoring_rule_item ││ │ questionnaire_question │    │  questionnaire   ││  │   scoring_rule   │  │ scoring_category │
+├─────────────────────┤  ├─────────────────┤  ├───────────────────┤│ ├────────────────────────┤    ├──────────────────┤│  ├──────────────────┤  ├──────────────────┤
+│·option_set_id       ├╮ │·option_id       │  │ scoring_rule_id   ├╭─┤·qq_id                  ├┬╮╮─┤·questionnaire_id ├╰┬┬┤·scoring_rule_id  ├╮ │·category_id      │
+│ name                ││ │ question_id     ├╮ │ qq_id             ├╯ │ questionnaire_id       ├╯││ │ study_id         │ │╰┤ questionnaire_id │╰─┤ scoring_rule_id  │
+│ canonical_url       │╰─┤ option_set_id   ││ │ weight            ││╭┤ question_id            │ ││ │ name             │ │ │ name             │  │ label            │
+╰─────────────────────╯  │ option_text     ││ │ reverse_score     ││││ section_id             ├─││╮│ version          │ │ │ formula          │  │ min_score        │
+                         │ option_value    ││ ╰───────────────────╯│││ parent_qq_id           ├─│╯││ canonical_url    │ │ ╰──────────────────╯  │ max_score        │
+                         │ concept_id      ││                      │││ count_qq_id            ├─╯ │╰──────────────────╯ │                       ╰──────────────────╯
+                         ╰─────────────────╯│ ╭───────────────────╮│││ display_order          │   │                     │
+                                            │ │     skip_rule     ││││ required               │   │╭──────────────────╮ │
+                         ╭─────────────────╮│ ├───────────────────┤││╰────────────────────────╯   ││     section      │ │
+                         │   grid_column   ││ │·skip_rule_id      │││                             │├──────────────────┤ │
+                         ├─────────────────┤│ │ qq_id             ├┤│                             ╰┤·section_id       │ │
+                         │·column_id       ││ │ trigger_qq_id     ├╯│                              │ questionnaire_id ├─╯
+                         │ question_id     ├╮ │ operator          │ │                              │ name             │
+                         │ column_text     ││ │ trigger_value     │ │                              │ display_order    │
+                         │ column_value    ││ │ action            │ │                              ╰──────────────────╯
+                         ╰─────────────────╯│ │ enable_behavior   │ │
+                                            │ ╰───────────────────╯ │
+                         ╭─────────────────╮│                       │
+                         │    grid_row     ││ ╭───────────────────╮ │
+                         ├─────────────────┤│ │     question      │ │
+                         │·row_id          ││ ├───────────────────┤ │
+                         │ question_id     ├╰─┤·question_id       ├─╯
+                         │ row_text        │  │ link_id           │
+                         │ display_order   │  │ question_type     │
+                         ╰─────────────────╯  │ question_text     │
+                                              │ concept_id        │
+                                              │ version           │
+                                              ╰───────────────────╯
 ```
-
-Useful when types are noise — high-level structural overviews, narrow rendering contexts.
 
 ### `--no-infer-refs` (skip relationship inference)
 
