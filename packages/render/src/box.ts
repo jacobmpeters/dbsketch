@@ -14,10 +14,19 @@ export function drawEntity(
   const bottomY = y + 3 + entity.columns.length;
 
   hLine(canvas, x, y, width, glyphs.horizontal, glyphs.cornerTL, glyphs.cornerTR);
-  textLine(canvas, x, y + 1, width, entity.name, glyphs.vertical, innerWidth);
+  // Title centered; columns left-aligned (left alignment makes columns easier
+  // to scan, centering the title gives the box a clear visual focus).
+  textLine(canvas, x, y + 1, width, padCenter(entity.name, innerWidth), glyphs.vertical);
   hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeE, glyphs.teeW);
   entity.columns.forEach((col, i) => {
-    textLine(canvas, x, y + 3 + i, width, `${col.name} ${col.type}`, glyphs.vertical, innerWidth);
+    textLine(
+      canvas,
+      x,
+      y + 3 + i,
+      width,
+      padRight(`${col.name} ${col.type}`, innerWidth),
+      glyphs.vertical,
+    );
   });
   hLine(canvas, x, bottomY, width, glyphs.horizontal, glyphs.cornerBL, glyphs.cornerBR);
 }
@@ -41,16 +50,23 @@ function textLine(
   x: number,
   y: number,
   width: number,
-  text: string,
+  paddedText: string,
   vertical: string,
-  innerWidth: number,
 ): void {
   canvas.set(x, y, vertical);
-  canvas.setRow(x + 2, y, padRight(text, innerWidth));
+  canvas.setRow(x + 2, y, paddedText);
   canvas.set(x + width - 1, y, vertical);
 }
 
 function padRight(s: string, width: number): string {
   if (s.length >= width) return s.slice(0, width);
   return s + ' '.repeat(width - s.length);
+}
+
+function padCenter(s: string, width: number): string {
+  if (s.length >= width) return s.slice(0, width);
+  const total = width - s.length;
+  const left = Math.floor(total / 2);
+  const right = total - left;
+  return ' '.repeat(left) + s + ' '.repeat(right);
 }

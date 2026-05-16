@@ -8,7 +8,7 @@ describe('render', () => {
     const out = render(layout(parse('Table users { id int email varchar }')));
     expect(out).toMatchInlineSnapshot(`
       "╭───────────────╮
-      │ users         │
+      │     users     │
       ├───────────────┤
       │ id int        │
       │ email varchar │
@@ -20,7 +20,7 @@ describe('render', () => {
     const out = render(layout(parse('Table users { id int email varchar }')), { glyphs: 'ascii' });
     expect(out).toMatchInlineSnapshot(`
       "+---------------+
-      | users         |
+      |     users     |
       +---------------+
       | id int        |
       | email varchar |
@@ -39,7 +39,7 @@ describe('render', () => {
     );
     expect(out).toMatchInlineSnapshot(`
       "╭───────────────╮  ╭───────────────╮
-      │ users         │  │ posts         │
+      │     users     │  │     posts     │
       ├───────────────┤  ├───────────────┤
       │ id int        ├╮ │ id int        │
       │ email varchar │╰─┤ user_id int   │
@@ -93,7 +93,7 @@ describe('render', () => {
       ╰────────╯
 
       ╭────────╮
-      │ tall   │
+      │  tall  │
       ├────────┤
       │ a int  │
       │ b int  │
