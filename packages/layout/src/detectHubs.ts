@@ -14,11 +14,15 @@ import type { CenterHint, IR } from '@ascii-erd/parser';
 // (hub permutation) brute-forceable and prevents low-signal hubs from
 // fragmenting the layout.
 //
-// Returns the merged hints.centers array — user entries first, then auto
-// entries that don't conflict with user centers or with @col pins.
+// Returns the merged hints.centers array. If the user provided any
+// @center hints, auto-detection is suppressed entirely — the user
+// being explicit means they've thought about it. Otherwise, auto picks
+// up to K=3 hubs by degree.
 export function detectHubs(ir: IR): CenterHint[] {
-  const merged: CenterHint[] = [...ir.hints.centers];
-  const claimed = new Set(merged.map((c) => c.entity));
+  const userCenters = ir.hints.centers.filter((c) => c.source === 'user');
+  if (userCenters.length > 0) return [...userCenters];
+
+  const claimed = new Set<string>();
   for (const pin of ir.hints.pins) {
     if (pin.col !== null) claimed.add(pin.entity);
   }
@@ -39,11 +43,12 @@ export function detectHubs(ir: IR): CenterHint[] {
       return a.entity.localeCompare(b.entity);
     });
 
-  const autoSlots = cap - merged.filter((c) => c.source === 'auto').length;
-  for (const cand of candidates.slice(0, autoSlots)) {
-    merged.push({ entity: cand.entity, left: [], right: [], source: 'auto' });
-  }
-  return merged;
+  return candidates.slice(0, cap).map((c) => ({
+    entity: c.entity,
+    left: [],
+    right: [],
+    source: 'auto' as const,
+  }));
 }
 
 function computeDegree(ir: IR): Map<string, number> {

@@ -1,5 +1,5 @@
 import { type Token, type TokenKind, tokenize } from './tokenizer.js';
-import type { Column, Entity, IR, PinHint, Ref, RefEndpoint } from './types.js';
+import type { CenterHint, Column, Entity, IR, PinHint, Ref, RefEndpoint } from './types.js';
 
 export class ParseError extends Error {
   constructor(
@@ -16,6 +16,7 @@ class Parser {
   private readonly entities: Entity[] = [];
   private readonly refs: Ref[] = [];
   private readonly pins: PinHint[] = [];
+  private readonly centers: CenterHint[] = [];
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -26,7 +27,7 @@ class Parser {
     return {
       entities: this.entities,
       refs: this.refs,
-      hints: { clusters: [], ranks: [], pins: this.pins, centers: [] },
+      hints: { clusters: [], ranks: [], pins: this.pins, centers: this.centers },
     };
   }
 
@@ -74,7 +75,62 @@ class Parser {
       this.parsePinHint();
       return;
     }
-    throw new ParseError(`Unknown hint: '${tok.value}' (expected 'pin')`, tok.line, tok.col);
+    if (keyword === 'center') {
+      this.parseCenterHint();
+      return;
+    }
+    throw new ParseError(
+      `Unknown hint: '${tok.value}' (expected 'pin' or 'center')`,
+      tok.line,
+      tok.col,
+    );
+  }
+
+  // Syntax:
+  //   center entity
+  //   center entity { left: a, b }
+  //   center entity { right: c, d }
+  //   center entity { left: a, b right: c, d }
+  // Sides may appear in either order. No comma between the last entity of
+  // one side and the next side keyword.
+  private parseCenterHint(): void {
+    this.consume('ident'); // 'center'
+    const entity = this.consume('ident').value;
+    const left: string[] = [];
+    const right: string[] = [];
+
+    if (this.at('lbrace')) {
+      this.consume('lbrace');
+      const seen = new Set<string>();
+      while (!this.at('rbrace')) {
+        const sideTok = this.consume('ident');
+        const side = sideTok.value.toLowerCase();
+        if (side !== 'left' && side !== 'right') {
+          throw new ParseError(
+            `Expected 'left' or 'right', got '${sideTok.value}'`,
+            sideTok.line,
+            sideTok.col,
+          );
+        }
+        if (seen.has(side)) {
+          throw new ParseError(`Duplicate '${side}' in center`, sideTok.line, sideTok.col);
+        }
+        seen.add(side);
+        this.consume('colon');
+        const list = side === 'left' ? left : right;
+        while (true) {
+          list.push(this.consume('ident').value);
+          if (this.at('comma')) {
+            this.consume('comma');
+            continue;
+          }
+          break;
+        }
+      }
+      this.consume('rbrace');
+    }
+
+    this.centers.push({ entity, left, right, source: 'user' });
   }
 
   private parsePinHint(): void {

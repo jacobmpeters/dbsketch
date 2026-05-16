@@ -144,6 +144,64 @@ describe('parse', () => {
     ).toThrow(/Unknown hint/);
   });
 
+  it('parses a bare center hint', () => {
+    const ir = parse(`
+      Table sales_fact { id int }
+      @layout { center sales_fact }
+    `);
+    expect(ir.hints.centers).toEqual([
+      { entity: 'sales_fact', left: [], right: [], source: 'user' },
+    ]);
+  });
+
+  it('parses a center hint with left and right bias', () => {
+    const ir = parse(`
+      Table sales_fact { id int }
+      Table dim_a { id int }
+      Table dim_b { id int }
+      Table dim_c { id int }
+      @layout {
+        center sales_fact { left: dim_a, dim_b right: dim_c }
+      }
+    `);
+    expect(ir.hints.centers).toEqual([
+      { entity: 'sales_fact', left: ['dim_a', 'dim_b'], right: ['dim_c'], source: 'user' },
+    ]);
+  });
+
+  it('parses center sides in either order', () => {
+    const ir = parse(`
+      Table f { id int }
+      Table a { id int }
+      Table b { id int }
+      @layout { center f { right: b left: a } }
+    `);
+    expect(ir.hints.centers[0]).toEqual({
+      entity: 'f',
+      left: ['a'],
+      right: ['b'],
+      source: 'user',
+    });
+  });
+
+  it('rejects duplicate side keywords in center', () => {
+    expect(() =>
+      parse(`
+        Table f { id int }
+        @layout { center f { left: a left: b } }
+      `),
+    ).toThrow(/Duplicate 'left'/);
+  });
+
+  it('rejects unknown side keyword in center', () => {
+    expect(() =>
+      parse(`
+        Table f { id int }
+        @layout { center f { top: a } }
+      `),
+    ).toThrow(/Expected 'left' or 'right'/);
+  });
+
   it('throws ParseError on syntax errors with line info', () => {
     try {
       parse('Table users {\n  id int [oops');
