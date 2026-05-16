@@ -1,12 +1,12 @@
 {
-  "name": "@ascii-erd/cli",
+  "name": "@dbsketch/cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "ascii-erd": "./dist/bin.js"
+    "dbsketch": "./dist/bin.js"
   },
   "files": ["dist"],
   "scripts": {
@@ -14,6 +14,6 @@
     "dev": "tsx src/bin.ts"
   },
   "dependencies": {
-    "@ascii-erd/core": "workspace:*"
+    "@dbsketch/core": "workspace:*"
   }
 }

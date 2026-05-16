@@ -1,4 +1,4 @@
-import type { EdgeRoute, EdgeSegment, Port } from '@ascii-erd/layout';
+import type { EdgeRoute, EdgeSegment, Port } from '@dbsketch/layout';
 import type { Canvas } from './canvas.js';
 import type { Glyphs } from './glyphs.js';
 

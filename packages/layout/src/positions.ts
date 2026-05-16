@@ -1,4 +1,4 @@
-import type { IR } from '@ascii-erd/parser';
+import type { IR } from '@dbsketch/parser';
 import type { Placement, StripSizing } from './types.js';
 
 // Absolute position and dimensions of an entity box on the canvas.

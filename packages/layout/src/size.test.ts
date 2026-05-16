@@ -1,4 +1,4 @@
-import { parse } from '@ascii-erd/parser';
+import { parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
 import { place } from './place.js';
 import { rank } from './rank.js';

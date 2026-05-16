@@ -1,5 +1,5 @@
-import { layout } from '@ascii-erd/layout';
-import { parse } from '@ascii-erd/parser';
+import { layout } from '@dbsketch/layout';
+import { parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
 import { render } from './render.js';
 

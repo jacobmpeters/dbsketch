@@ -1,5 +1,5 @@
 {
-  "name": "@ascii-erd/render",
+  "name": "@dbsketch/render",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@ascii-erd/layout": "workspace:*",
-    "@ascii-erd/parser": "workspace:*"
+    "@dbsketch/layout": "workspace:*",
+    "@dbsketch/parser": "workspace:*"
   }
 }

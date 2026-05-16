@@ -1,10 +1,10 @@
-# ascii-erd
+# dbsketch
 
 Code-first ERD diagramming tool that compiles DBML schemas into ASCII or Unicode box-drawing diagrams. The differentiator is a **grid-native, deterministic layout algorithm** designed for the character grid from cell zero — not continuous-space layout projected onto characters.
 
 ## Thesis
 
-Existing ERD tools (Mermaid, dbdiagram, GraphViz) lay out in continuous 2D space, then project to a grid or SVG. The projection step is where alignment breaks: variable-width entities don't snap cleanly, edges meet boxes off-center, lines come out crooked. ascii-erd designs the algorithm for the integer character grid from the start, so the output is the algorithm's native form — no projection, no approximation gap.
+Existing ERD tools (Mermaid, dbdiagram, GraphViz) lay out in continuous 2D space, then project to a grid or SVG. The projection step is where alignment breaks: variable-width entities don't snap cleanly, edges meet boxes off-center, lines come out crooked. dbsketch designs the algorithm for the integer character grid from the start, so the output is the algorithm's native form — no projection, no approximation gap.
 
 Three properties fall out of this and are non-negotiable:
 

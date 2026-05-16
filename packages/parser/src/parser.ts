@@ -34,7 +34,7 @@ class Parser {
   // Top-level dispatch:
   //   Table NAME { ... }        → tables (data we care about)
   //   Ref ... | Ref: ...        → external relationship declarations
-  //   @layout { ... }           → ascii-erd hints
+  //   @layout { ... }           → dbsketch hints
   //   anything else IDENT ... { ... }  → tolerated; consumed and discarded
   //     (Project, TableGroup, Enum, Note, etc.)
   private parseTopLevel(): void {

@@ -1,4 +1,4 @@
-import type { IR, LayoutHints } from '@ascii-erd/parser';
+import type { IR, LayoutHints } from '@dbsketch/parser';
 import { detectHubs } from './detectHubs.js';
 import { place } from './place.js';
 import { computeEntityPositions } from './positions.js';

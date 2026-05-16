@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { type SqlDialect, compile, compileSql } from '@ascii-erd/core';
+import { type SqlDialect, compile, compileSql } from '@dbsketch/core';
 
 export interface CliDeps {
   readFile: (path: string) => string;
@@ -13,7 +13,7 @@ export interface CliResult {
   exitCode: number;
 }
 
-export const USAGE = `Usage: ascii-erd [options] [file.dbml|file.sql]
+export const USAGE = `Usage: dbsketch [options] [file.dbml|file.sql]
 
 Reads DBML or SQL DDL from a file (or stdin if omitted) and writes
 the rendered ERD to stdout. SQL inputs are detected by the .sql

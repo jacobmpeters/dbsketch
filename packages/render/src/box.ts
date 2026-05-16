@@ -1,4 +1,4 @@
-import type { Column, Entity } from '@ascii-erd/parser';
+import type { Column, Entity } from '@dbsketch/parser';
 import type { Canvas } from './canvas.js';
 import type { Glyphs } from './glyphs.js';
 

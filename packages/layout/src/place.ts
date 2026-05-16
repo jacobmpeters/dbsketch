@@ -1,4 +1,4 @@
-import type { IR } from '@ascii-erd/parser';
+import type { IR } from '@dbsketch/parser';
 import type { Placement } from './types.js';
 
 // Sugiyama-style crossing minimization typically converges in 2-3 iterations

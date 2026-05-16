@@ -1,4 +1,4 @@
-import type { CenterHint, IR } from '@ascii-erd/parser';
+import type { CenterHint, IR } from '@dbsketch/parser';
 
 // Assigns each entity to a col-strip. Two strategies:
 //   - hub-distance ranking (when centers are provided): hubs sit in

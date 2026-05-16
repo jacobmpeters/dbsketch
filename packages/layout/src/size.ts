@@ -1,4 +1,4 @@
-import type { Entity, IR } from '@ascii-erd/parser';
+import type { Entity, IR } from '@dbsketch/parser';
 import type { Placement, StripSizing } from './types.js';
 
 // Visual-separation floor for channels, applied before any routing demand.

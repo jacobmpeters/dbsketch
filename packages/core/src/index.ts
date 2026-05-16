@@ -1,6 +1,6 @@
-import { layout } from '@ascii-erd/layout';
-import { type IR, type SqlDialect, inferRefs, parse, parseSql } from '@ascii-erd/parser';
-import { type RenderOptions, render } from '@ascii-erd/render';
+import { layout } from '@dbsketch/layout';
+import { type IR, type SqlDialect, inferRefs, parse, parseSql } from '@dbsketch/parser';
+import { type RenderOptions, render } from '@dbsketch/render';
 
 export type InferRefsMode = 'auto' | 'never';
 
@@ -53,7 +53,7 @@ export function compileSql(
   return render(layout(ir), options);
 }
 
-export { ParseError, TokenizerError } from '@ascii-erd/parser';
-export type * from '@ascii-erd/parser';
-export type * from '@ascii-erd/layout';
-export type * from '@ascii-erd/render';
+export { ParseError, TokenizerError } from '@dbsketch/parser';
+export type * from '@dbsketch/parser';
+export type * from '@dbsketch/layout';
+export type * from '@dbsketch/render';

@@ -1,4 +1,4 @@
-import type { CenterHint, IR } from '@ascii-erd/parser';
+import type { CenterHint, IR } from '@dbsketch/parser';
 
 // Hub auto-detection: find tables that look like layout centers (fact tables,
 // junction tables with many incoming FKs, etc.) and emit synthetic @center

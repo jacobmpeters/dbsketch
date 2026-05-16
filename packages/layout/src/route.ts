@@ -1,4 +1,4 @@
-import type { Entity, IR, Ref } from '@ascii-erd/parser';
+import type { Entity, IR, Ref } from '@dbsketch/parser';
 import type { EntityPositions } from './positions.js';
 import { type RowSizing, rowSize } from './size.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, Side, StripSizing } from './types.js';

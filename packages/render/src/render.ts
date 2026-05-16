@@ -1,4 +1,4 @@
-import type { Layout } from '@ascii-erd/layout';
+import type { Layout } from '@dbsketch/layout';
 import { drawEntity } from './box.js';
 import { Canvas } from './canvas.js';
 import { drawEdge } from './edges.js';

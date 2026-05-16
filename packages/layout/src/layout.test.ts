@@ -1,4 +1,4 @@
-import { parse } from '@ascii-erd/parser';
+import { parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
 import { HintConflictError, layout } from './layout.js';
 

@@ -1,4 +1,4 @@
-import { type IR, parse } from '@ascii-erd/parser';
+import { type IR, parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
 import { layout } from './layout.js';
 import { place } from './place.js';

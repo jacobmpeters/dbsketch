@@ -26,25 +26,25 @@ importers:
 
   packages/cli:
     dependencies:
-      '@ascii-erd/core':
+      '@dbsketch/core':
         specifier: workspace:*
         version: link:../core
 
   packages/core:
     dependencies:
-      '@ascii-erd/layout':
+      '@dbsketch/layout':
         specifier: workspace:*
         version: link:../layout
-      '@ascii-erd/parser':
+      '@dbsketch/parser':
         specifier: workspace:*
         version: link:../parser
-      '@ascii-erd/render':
+      '@dbsketch/render':
         specifier: workspace:*
         version: link:../render
 
   packages/layout:
     dependencies:
-      '@ascii-erd/parser':
+      '@dbsketch/parser':
         specifier: workspace:*
         version: link:../parser
 
@@ -56,10 +56,10 @@ importers:
 
   packages/render:
     dependencies:
-      '@ascii-erd/layout':
+      '@dbsketch/layout':
         specifier: workspace:*
         version: link:../layout
-      '@ascii-erd/parser':
+      '@dbsketch/parser':
         specifier: workspace:*
         version: link:../parser
 

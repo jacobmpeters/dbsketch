@@ -1,4 +1,4 @@
-import type { IR, Ref } from '@ascii-erd/parser';
+import type { IR, Ref } from '@dbsketch/parser';
 
 export interface Placement {
   entity: string;

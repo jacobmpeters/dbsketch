@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from '@ascii-erd/parser';
+import { parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
 import { detectHubs } from './detectHubs.js';
 
