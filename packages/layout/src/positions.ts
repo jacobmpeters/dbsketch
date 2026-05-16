@@ -77,3 +77,33 @@ function stripOffset(strips: number[], channels: number[], index: number): numbe
   }
   return offset;
 }
+
+// Per-col-stacked Y position of each entity, ignoring top margin (so the
+// values are relative). Routing uses this for V-interval packing so track
+// assignment reflects the actual rendered Y positions rather than the
+// strip-derived approximation (which inflates intervals when entities
+// stack tighter than the row-strip layout assumed).
+export function relativeEntityYs(ir: IR, placements: Placement[]): Map<string, number> {
+  const ys = new Map<string, number>();
+  const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
+  const byCol = new Map<number, Placement[]>();
+  for (const p of placements) {
+    let bucket = byCol.get(p.colStrip);
+    if (!bucket) {
+      bucket = [];
+      byCol.set(p.colStrip, bucket);
+    }
+    bucket.push(p);
+  }
+  for (const bucket of byCol.values()) {
+    bucket.sort((a, b) => a.rowStrip - b.rowStrip);
+    let y = 0;
+    for (const p of bucket) {
+      const entity = entityByName.get(p.entity);
+      if (!entity) continue;
+      ys.set(p.entity, y);
+      y += 4 + entity.columns.length + STACK_GAP;
+    }
+  }
+  return ys;
+}

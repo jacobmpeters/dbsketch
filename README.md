@@ -8,24 +8,24 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
 ╭───────────────╮  ╭──────────────────╮  ╭──────────────────────╮  ╭───────────────────╮
 │  dim_region   │  │     dim_date     │  │   fact_claim_line    │  │   dim_provider    │
 ├───────────────┤  ├──────────────────┤  ├──────────────────────┤  ├───────────────────┤
-│·region_id INT ├╮ │·date_key    DATE ├╮ │·claim_line_id BIGINT │╭─┤·provider_id   INT │
-│ name  VARCHAR ││ │ year         INT │╰─┤ date_key        DATE ││ │ specialty VARCHAR │
-╰───────────────╯│ │ quarter      INT │ ╭┤ patient_id       INT ││ │ tier      VARCHAR │
-                 │ ╰──────────────────╯ ││ provider_id      INT ├╯ ╰───────────────────╯
-                 │                      ││ payer_id         INT ├─╮
-                 │ ╭──────────────────╮ ││ diagnosis_id     INT ├╮│╭───────────────────╮
-                 │ │   dim_patient    │╭│┤ procedure_id     INT ││││     dim_payer     │
+│·region_id INT ├╮ │·date_key    DATE ├╮ │·claim_line_id BIGINT │ ╭┤·provider_id   INT │
+│ name  VARCHAR ││ │ year         INT │╰─┤ date_key        DATE │ ││ specialty VARCHAR │
+╰───────────────╯│ │ quarter      INT │╭─┤ patient_id       INT │ ││ tier      VARCHAR │
+                 │ ╰──────────────────╯│ │ provider_id      INT ├─╯╰───────────────────╯
+                 │                     │ │ payer_id         INT ├─╮
+                 │ ╭──────────────────╮│ │ diagnosis_id     INT ├╮│╭───────────────────╮
+                 │ │   dim_patient    ││╭┤ procedure_id     INT ││││     dim_payer     │
                  │ ├──────────────────┤│││ quantity         INT │││├───────────────────┤
-                 │ │·patient_id   INT ├│╯│ charge       DECIMAL ││╰┤·payer_id      INT │
-                 │ │ age_band VARCHAR ││ │ paid         DECIMAL ││ │ plan_name VARCHAR │
-                 │ │ sex      VARCHAR ││ ╰──────────────────────╯│ │ plan_type VARCHAR │
-                 ╰─┤ region_id    INT ││                         │ ╰───────────────────╯
-                   ╰──────────────────╯│                         │
-                                       │                         │ ╭───────────────────╮
-                   ╭──────────────────╮│                         │ │   dim_diagnosis   │
-                   │  dim_procedure   ││                         │ ├───────────────────┤
-                   ├──────────────────┤│                         ╰─┤·diagnosis_id  INT │
-                   │·procedure_id INT ├╯                           │ icd_code  VARCHAR │
+                 │ │·patient_id   INT ├╯││ charge       DECIMAL ││╰┤·payer_id      INT │
+                 │ │ age_band VARCHAR │ ││ paid         DECIMAL ││ │ plan_name VARCHAR │
+                 │ │ sex      VARCHAR │ │╰──────────────────────╯│ │ plan_type VARCHAR │
+                 ╰─┤ region_id    INT │ │                        │ ╰───────────────────╯
+                   ╰──────────────────╯ │                        │
+                                        │                        │ ╭───────────────────╮
+                   ╭──────────────────╮ │                        │ │   dim_diagnosis   │
+                   │  dim_procedure   │ │                        │ ├───────────────────┤
+                   ├──────────────────┤ │                        ╰─┤·diagnosis_id  INT │
+                   │·procedure_id INT ├─╯                          │ icd_code  VARCHAR │
                    │ cpt_code VARCHAR │                            │ category  VARCHAR │
                    │ category VARCHAR │                            ╰───────────────────╯
                    ╰──────────────────╯

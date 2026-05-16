@@ -1,6 +1,5 @@
 import type { Entity, IR, Ref } from '@dbsketch/parser';
-import type { EntityPositions } from './positions.js';
-import { type RowSizing, rowSize } from './size.js';
+import { type EntityPositions, relativeEntityYs } from './positions.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, Side, StripSizing } from './types.js';
 
 interface BasePlannedEdge {
@@ -86,8 +85,12 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   }
 
   const rowChannelTrackCounts = packRowChannels(planned);
-  const rowSizing = rowSize(ir, placements, rowChannelTrackCounts);
-  const channelTrackCounts = packColChannels(planned, rowSizing);
+  // V-interval packing uses per-col-stacked Y positions (matching what the
+  // renderer will actually produce) instead of strip-derived Y. The two
+  // diverge whenever entities in a col are shorter than the strip is tall;
+  // strip-derived intervals inflate, producing wrong track assignments.
+  const entityYs = relativeEntityYs(ir, placements);
+  const channelTrackCounts = packColChannels(planned, entityYs);
 
   return { planned, skippedRefs, channelTrackCounts, rowChannelTrackCounts };
 }
@@ -229,6 +232,11 @@ function packRowChannel(edges: MultiHopPlannedEdge[]): number {
 interface VEntry {
   yMin: number;
   yMax: number;
+  // +1 if the V's edge runs forward (parent west of channel), -1 if backward
+  // (parent east), 0 if direction is meaningless (same-col). Used to decide
+  // whether to reverse track indices after FFD so that track 0 always lands
+  // on the source side of the channel.
+  direction: 1 | -1 | 0;
   assign: (track: number) => void;
 }
 
@@ -244,7 +252,19 @@ interface VEntry {
 // Channel width = distinct bundle groups + standalone edges, instead of
 // edge count — a clear win wherever a PK is referenced by multiple FKs
 // in the same target col.
-function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<number, number> {
+function packColChannels(
+  planned: PlannedEdge[],
+  entityYs: Map<string, number>,
+): Map<number, number> {
+  // Y coordinate of an edge endpoint in the relative space used for V-
+  // interval packing. The top margin sits at y < 0 from the entity-space
+  // perspective; we model it with negative coordinates here so detour Y
+  // values are smaller than any entity-row Y, which is what the renderer
+  // does too.
+  const endpointY = (entity: string, rowOffset: number): number =>
+    (entityYs.get(entity) ?? 0) + rowOffset;
+  const detourY = (detourTrack: number): number => -1 - Math.max(0, detourTrack);
+
   const byChannel = new Map<number, VEntry[]>();
   const add = (channel: number, entry: VEntry): void => {
     let bucket = byChannel.get(channel);
@@ -259,8 +279,8 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
   const singleBundles = new Map<string, SingleHopPlannedEdge[]>();
   for (const edge of planned) {
     if (edge.kind !== 'single') continue;
-    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
+    const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
     if (py === cy) continue; // straight: no V segment, no track needed
     const key = `${edge.channelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
     let bucket = singleBundles.get(key);
@@ -276,14 +296,15 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
     let yMin = Number.POSITIVE_INFINITY;
     let yMax = Number.NEGATIVE_INFINITY;
     for (const edge of edges) {
-      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-      const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+      const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
+      const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
       yMin = Math.min(yMin, py, cy);
       yMax = Math.max(yMax, py, cy);
     }
     add(channel, {
       yMin,
       yMax,
+      direction: edges[0]!.direction,
       assign: (t) => {
         for (const edge of edges) edge.track = t;
       },
@@ -309,14 +330,15 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
     let yMin = Number.POSITIVE_INFINITY;
     let yMax = Number.NEGATIVE_INFINITY;
     for (const edge of edges) {
-      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-      const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
+      const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
+      const dy = detourY(edge.detourTrack);
       yMin = Math.min(yMin, py, dy);
       yMax = Math.max(yMax, py, dy);
     }
     add(channel, {
       yMin,
       yMax,
+      direction: edges[0]!.direction,
       assign: (t) => {
         for (const edge of edges) edge.parentTrack = t;
       },
@@ -325,11 +347,12 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
   // V2 segments are independent per edge.
   for (const edge of planned) {
     if (edge.kind !== 'multi') continue;
-    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
-    const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
+    const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
+    const dy = detourY(edge.detourTrack);
     add(edge.childChannelIndex, {
       yMin: Math.min(dy, cy),
       yMax: Math.max(dy, cy),
+      direction: edge.direction,
       assign: (t) => {
         edge.childTrack = t;
       },
@@ -339,11 +362,15 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
   // Same-col edges: independent V per edge in the chosen side-channel.
   for (const edge of planned) {
     if (edge.kind !== 'same-col') continue;
-    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
+    const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
     add(edge.channelIndex, {
       yMin: Math.min(py, cy),
       yMax: Math.max(py, cy),
+      // Same-col edges live in a side-channel; both ports are on the same
+      // side of the entity, so source/target don't map to channel east/west.
+      // Mark neutral so they don't pull the channel toward a reversal.
+      direction: 0,
       assign: (t) => {
         edge.track = t;
       },
@@ -368,6 +395,7 @@ function packVEntries(entries: VEntry[]): number {
     return b.yMax - b.yMin - (a.yMax - a.yMin);
   });
   const trackEnds: number[] = [];
+  const rawTracks: number[] = [];
   for (const e of entries) {
     let assigned = -1;
     for (let t = 0; t < trackEnds.length; t++) {
@@ -381,31 +409,29 @@ function packVEntries(entries: VEntry[]): number {
       trackEnds.push(e.yMax);
       assigned = trackEnds.length - 1;
     }
-    e.assign(assigned);
+    rawTracks.push(assigned);
+  }
+
+  // Track 0 = west cell of the channel. For forward edges that's the source
+  // (parent) side; for backward edges it's the target (child) side. FFD-by-
+  // yMin tends to place a V's "trapped" endpoint on track 0, which is what
+  // we want for forward channels but the *opposite* of what we want for
+  // backward channels. Flip the index when the channel is backward-dominant
+  // so track 0 consistently means "source-adjacent" — H1 stays 0 cells, H2
+  // crosses the channel, and a longer V on track N-1 doesn't intercept a
+  // shorter V's H2.
+  let fwd = 0;
+  let bwd = 0;
+  for (const e of entries) {
+    if (e.direction === 1) fwd++;
+    else if (e.direction === -1) bwd++;
+  }
+  const reverse = bwd > fwd && trackEnds.length > 1;
+  for (let i = 0; i < entries.length; i++) {
+    const raw = rawTracks[i]!;
+    entries[i]!.assign(reverse ? trackEnds.length - 1 - raw : raw);
   }
   return trackEnds.length;
-}
-
-function absoluteY(rowStrip: number, rowOffset: number, rowSizing: RowSizing): number {
-  let y = rowOffset;
-  for (let i = 0; i < rowStrip; i++) {
-    y += rowSizing.rowStripHeights[i] ?? 0;
-    if (i < rowSizing.channelRowHeights.length) {
-      y += rowSizing.channelRowHeights[i] ?? 0;
-    }
-  }
-  return y;
-}
-
-function rowChannelStartY(channelIndex: number, rowSizing: RowSizing): number {
-  let y = 0;
-  for (let i = 0; i <= channelIndex; i++) {
-    y += rowSizing.rowStripHeights[i] ?? 0;
-    if (i < channelIndex) {
-      y += rowSizing.channelRowHeights[i] ?? 0;
-    }
-  }
-  return y;
 }
 
 export function materializeEdges(
