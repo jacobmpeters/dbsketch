@@ -6,6 +6,8 @@ export type TokenKind =
   | 'rbrace'
   | 'lbracket'
   | 'rbracket'
+  | 'lparen'
+  | 'rparen'
   | 'colon'
   | 'comma'
   | 'dot'
@@ -38,6 +40,8 @@ const SINGLE_CHAR: Record<string, TokenKind> = {
   '}': 'rbrace',
   '[': 'lbracket',
   ']': 'rbracket',
+  '(': 'lparen',
+  ')': 'rparen',
   ':': 'colon',
   ',': 'comma',
   '.': 'dot',
@@ -74,11 +78,54 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
+    // Line comment: // ... \n
     if (ch === '/' && peek(1) === '/') {
       while (pos < source.length && peek() !== '\n') advance();
       continue;
     }
 
+    // Block comment: /* ... */
+    if (ch === '/' && peek(1) === '*') {
+      advance();
+      advance();
+      while (pos < source.length && !(peek() === '*' && peek(1) === '/')) advance();
+      if (pos < source.length) {
+        advance();
+        advance();
+      }
+      continue;
+    }
+
+    // Triple-quoted string: '''...'''  (multi-line). Backslash escapes are
+    // processed (\' produces a literal ', \\ produces a literal \) so that
+    // closing-quote detection isn't fooled by escaped single quotes in the
+    // content.
+    if (ch === "'" && peek(1) === "'" && peek(2) === "'") {
+      advance();
+      advance();
+      advance();
+      let value = '';
+      while (pos < source.length && !(peek() === "'" && peek(1) === "'" && peek(2) === "'")) {
+        if (peek() === '\\' && peek(1) !== undefined) {
+          advance();
+          value += advance();
+          continue;
+        }
+        value += advance();
+      }
+      if (pos >= source.length) {
+        throw new TokenizerError('Unterminated triple-quoted string', startLine, startCol);
+      }
+      advance();
+      advance();
+      advance();
+      tokens.push({ kind: 'string', value, line: startLine, col: startCol });
+      continue;
+    }
+
+    // Single or double quoted string. Quoted identifiers (e.g. "vocabulary"
+    // used as a table name) share this token kind; the parser accepts either
+    // ident or string where a name is expected.
     if (ch === "'" || ch === '"') {
       const quote = ch;
       advance();
@@ -89,10 +136,32 @@ export function tokenize(source: string): Token[] {
           value += advance();
           continue;
         }
+        if (peek() === '\n') {
+          throw new TokenizerError('Unterminated string', startLine, startCol);
+        }
         value += advance();
       }
       if (pos >= source.length) {
         throw new TokenizerError('Unterminated string', startLine, startCol);
+      }
+      advance();
+      tokens.push({ kind: 'string', value, line: startLine, col: startCol });
+      continue;
+    }
+
+    // Backtick string: `expr` — used for code expressions in defaults.
+    // Parser treats these as opaque values to discard.
+    if (ch === '`') {
+      advance();
+      let value = '';
+      while (pos < source.length && peek() !== '`') {
+        if (peek() === '\n') {
+          throw new TokenizerError('Unterminated backtick string', startLine, startCol);
+        }
+        value += advance();
+      }
+      if (pos >= source.length) {
+        throw new TokenizerError('Unterminated backtick string', startLine, startCol);
       }
       advance();
       tokens.push({ kind: 'string', value, line: startLine, col: startCol });
@@ -129,6 +198,18 @@ export function tokenize(source: string): Token[] {
     if (/[A-Za-z_]/.test(ch)) {
       let value = '';
       while (pos < source.length && /[A-Za-z0-9_]/.test(peek()!)) {
+        value += advance();
+      }
+      tokens.push({ kind: 'ident', value, line: startLine, col: startCol });
+      continue;
+    }
+
+    // Hex color literal: #abc123, used in [headercolor: ...] and similar.
+    // Tokenized as a generic ident so attribute-value parsers can consume
+    // it without special casing.
+    if (ch === '#' && peek(1) !== undefined && /[A-Fa-f0-9]/.test(peek(1)!)) {
+      let value = '';
+      while (pos < source.length && /[A-Fa-f0-9#]/.test(peek()!)) {
         value += advance();
       }
       tokens.push({ kind: 'ident', value, line: startLine, col: startCol });

@@ -1,0 +1,85 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`real-world fixtures > holistics-advanced-ecommerce.dbml 1`] = `
+{
+  "entities": 5,
+  "refs": 5,
+}
+`;
+
+exports[`real-world fixtures > holistics-basic-simple-table.dbml 1`] = `
+{
+  "entities": 1,
+  "refs": 0,
+}
+`;
+
+exports[`real-world fixtures > holistics-mysql-schema.dbml 1`] = `
+{
+  "entities": 14,
+  "refs": 4,
+}
+`;
+
+exports[`real-world fixtures > holistics-pg-schema.dbml 1`] = `
+{
+  "entities": 15,
+  "refs": 4,
+}
+`;
+
+exports[`real-world fixtures > olap_aggregates.dbml 1`] = `
+{
+  "entities": 11,
+  "refs": 13,
+}
+`;
+
+exports[`real-world fixtures > olap_omop.dbml 1`] = `
+{
+  "entities": 6,
+  "refs": 6,
+}
+`;
+
+exports[`real-world fixtures > olap_provenance.dbml 1`] = `
+{
+  "entities": 4,
+  "refs": 4,
+}
+`;
+
+exports[`real-world fixtures > olap_star.dbml 1`] = `
+{
+  "entities": 9,
+  "refs": 13,
+}
+`;
+
+exports[`real-world fixtures > oltp_instrument.dbml 1`] = `
+{
+  "entities": 12,
+  "refs": 16,
+}
+`;
+
+exports[`real-world fixtures > oltp_provenance.dbml 1`] = `
+{
+  "entities": 6,
+  "refs": 1,
+}
+`;
+
+exports[`real-world fixtures > oltp_study_response.dbml 1`] = `
+{
+  "entities": 6,
+  "refs": 5,
+}
+`;
+
+exports[`real-world fixtures > oltp_vocabulary.dbml 1`] = `
+{
+  "entities": 3,
+  "refs": 3,
+}
+`;
