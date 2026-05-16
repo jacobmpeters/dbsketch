@@ -5,6 +5,7 @@ dist/
 .vscode/
 .idea/
 .claude/
+CLAUDE.md
 coverage/
 .env
 .env.local
