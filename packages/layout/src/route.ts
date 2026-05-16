@@ -1,7 +1,7 @@
 import type { Entity, IR, Ref } from '@ascii-erd/parser';
 import type { EntityPositions } from './positions.js';
 import { type RowSizing, rowSize } from './size.js';
-import type { EdgeRoute, EdgeSegment, Placement, Port, StripSizing } from './types.js';
+import type { EdgeRoute, EdgeSegment, Placement, Port, Side, StripSizing } from './types.js';
 
 interface BasePlannedEdge {
   ref: Ref;
@@ -12,6 +12,10 @@ interface BasePlannedEdge {
   // Row index within the entity box (3 = top border + name + separator).
   parentRowOffset: number;
   childRowOffset: number;
+  // +1 if child is to the right of parent (standard left-to-right flow),
+  // -1 if to the left (only possible with center placement). All routing
+  // mirrors based on this sign.
+  direction: 1 | -1;
 }
 
 export interface SingleHopPlannedEdge extends BasePlannedEdge {
@@ -91,9 +95,10 @@ function tryPlan(
   if (parentColIdx === -1 || childColIdx === -1) return null;
 
   const colDiff = childP.colStrip - parentP.colStrip;
-  // Parent must be to the left of child. (Rank assignment guarantees this for
-  // one-to-many; same-col edges (cycles) and reverse edges aren't supported.)
-  if (colDiff <= 0) return null;
+  // Same-col edges (cycles) and zero-distance refs aren't routable.
+  if (colDiff === 0) return null;
+  const direction: 1 | -1 = colDiff > 0 ? 1 : -1;
+  const absDiff = Math.abs(colDiff);
 
   const base: BasePlannedEdge = {
     ref,
@@ -103,25 +108,29 @@ function tryPlan(
     childRowStrip: childP.rowStrip,
     parentRowOffset: 3 + parentColIdx,
     childRowOffset: 3 + childColIdx,
+    direction,
   };
 
-  if (colDiff === 1) {
+  if (absDiff === 1) {
+    // Channel between adjacent cols, regardless of direction.
+    const channelIndex = Math.min(parentP.colStrip, childP.colStrip);
     return {
       kind: 'single',
       ...base,
-      channelIndex: parentP.colStrip,
+      channelIndex,
       track: -1,
     };
   }
 
-  // All multi-hop H2 segments share a top margin above all entity boxes.
-  // detourRowChannel = -1 is the sentinel for "top margin" (we may later
-  // add a bottom margin as an alternative).
+  // Multi-hop: V1 in the channel adjacent to parent on the child side,
+  // V2 in the channel adjacent to child on the parent side, H2 in top margin.
+  const parentChannelIndex = direction > 0 ? parentP.colStrip : parentP.colStrip - 1;
+  const childChannelIndex = direction > 0 ? childP.colStrip - 1 : childP.colStrip;
   return {
     kind: 'multi',
     ...base,
-    parentChannelIndex: parentP.colStrip,
-    childChannelIndex: childP.colStrip - 1,
+    parentChannelIndex,
+    childChannelIndex,
     detourRowChannel: -1,
     parentTrack: -1,
     childTrack: -1,
@@ -146,25 +155,32 @@ function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
 }
 
 function packRowChannel(edges: MultiHopPlannedEdge[]): number {
-  // parentColStrip asc + span desc tiebreak (same heuristic as col-channel
-  // packing — longer-spanning H2's get earlier y-tracks).
+  // xMin asc + span desc tiebreak. With center placement edges can run
+  // either direction, so compare on min/max col rather than parent/child.
+  const range = (e: MultiHopPlannedEdge): [number, number] => {
+    const a = Math.min(e.parentColStrip, e.childColStrip);
+    const b = Math.max(e.parentColStrip, e.childColStrip);
+    return [a, b];
+  };
   edges.sort((a, b) => {
-    const xMinDiff = a.parentColStrip - b.parentColStrip;
-    if (xMinDiff !== 0) return xMinDiff;
-    return b.childColStrip - b.parentColStrip - (a.childColStrip - a.parentColStrip);
+    const [aMin, aMax] = range(a);
+    const [bMin, bMax] = range(b);
+    if (aMin !== bMin) return aMin - bMin;
+    return bMax - bMin - (aMax - aMin);
   });
   const trackEnds: number[] = [];
   for (const edge of edges) {
+    const [xMin, xMax] = range(edge);
     let assigned = -1;
     for (let t = 0; t < trackEnds.length; t++) {
-      if (trackEnds[t]! < edge.parentColStrip) {
-        trackEnds[t] = edge.childColStrip;
+      if (trackEnds[t]! < xMin) {
+        trackEnds[t] = xMax;
         assigned = t;
         break;
       }
     }
     if (assigned === -1) {
-      trackEnds.push(edge.childColStrip);
+      trackEnds.push(xMax);
       assigned = trackEnds.length - 1;
     }
     edge.detourTrack = assigned;
@@ -305,33 +321,43 @@ function materializeSingleHop(
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
   const childBox = entityPositions.get(p.ref.child.entity)!;
 
-  const parentRightX = parentBox.x + parentBox.width - 1;
-  const childLeftX = childBox.x;
+  // For forward edges (direction +1): parent's right port → child's left port.
+  // For backward edges (-1): parent's left port → child's right port. The
+  // channel sits between them either way; bend tracks pack flush to parent.
+  const parentPortX = p.direction > 0 ? parentBox.x + parentBox.width - 1 : parentBox.x;
+  const childPortX = p.direction > 0 ? childBox.x : childBox.x + childBox.width - 1;
   const parentPortY = parentBox.y + p.parentRowOffset;
   const childPortY = childBox.y + p.childRowOffset;
-  const channelStartX = parentRightX + 1;
+  const parentSide: Side = p.direction > 0 ? 'right' : 'left';
+  const childSide: Side = p.direction > 0 ? 'left' : 'right';
 
-  const parentPort: Port = { x: parentRightX, y: parentPortY, side: 'right' };
-  const childPort: Port = { x: childLeftX, y: childPortY, side: 'left' };
+  const parentPort: Port = { x: parentPortX, y: parentPortY, side: parentSide };
+  const childPort: Port = { x: childPortX, y: childPortY, side: childSide };
 
   let segments: EdgeSegment[];
   if (parentPortY === childPortY) {
-    segments = [
-      {
-        kind: 'horizontal',
-        x1: channelStartX,
-        y1: parentPortY,
-        x2: childLeftX - 1,
-        y2: parentPortY,
-      },
-    ];
+    // Straight horizontal segment between the two port columns.
+    const xLo = Math.min(parentPortX, childPortX);
+    const xHi = Math.max(parentPortX, childPortX);
+    segments = [{ kind: 'horizontal', x1: xLo + 1, y1: parentPortY, x2: xHi - 1, y2: parentPortY }];
   } else {
-    // Asymmetric flush-to-parent-side: bend at channelStart + track.
-    const bendX = channelStartX + Math.max(0, p.track);
+    // V tracks pack from the channel's left edge regardless of edge
+    // direction. With mixed forward + backward edges in the same channel,
+    // anchoring each to its own parent would map distinct track indices
+    // to the same X cell (collision); a single anchor side avoids that.
+    // Forward edges keep their original "flush to parent" placement;
+    // backward edges land further from their parent than ideal but never
+    // overlap a forward edge.
+    const channelLeftX = colChannelStartX(sizing, p.channelIndex);
+    const bendX = channelLeftX + Math.max(0, p.track);
+    // H1/H2 include the port cells. drawPortMarker repaints those cells
+    // at the end, so the horizontal glyph there is invisible. The benefit:
+    // x1 always conveys travel direction (x2-x1 has a sign), so corner
+    // selection works for backward edges without separate direction hints.
     segments = [
-      { kind: 'horizontal', x1: channelStartX, y1: parentPortY, x2: bendX, y2: parentPortY },
+      { kind: 'horizontal', x1: parentPortX, y1: parentPortY, x2: bendX, y2: parentPortY },
       { kind: 'vertical', x1: bendX, y1: parentPortY, x2: bendX, y2: childPortY },
-      { kind: 'horizontal', x1: bendX, y1: childPortY, x2: childLeftX - 1, y2: childPortY },
+      { kind: 'horizontal', x1: bendX, y1: childPortY, x2: childPortX, y2: childPortY },
     ];
   }
   return { ref: p.ref, parentPort, childPort, segments };
@@ -345,32 +371,37 @@ function materializeMultiHop(
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
   const childBox = entityPositions.get(p.ref.child.entity)!;
 
-  const parentRightX = parentBox.x + parentBox.width - 1;
-  const childLeftX = childBox.x;
+  const parentPortX = p.direction > 0 ? parentBox.x + parentBox.width - 1 : parentBox.x;
+  const childPortX = p.direction > 0 ? childBox.x : childBox.x + childBox.width - 1;
   const parentPortY = parentBox.y + p.parentRowOffset;
   const childPortY = childBox.y + p.childRowOffset;
+  const parentSide: Side = p.direction > 0 ? 'right' : 'left';
+  const childSide: Side = p.direction > 0 ? 'left' : 'right';
 
-  // V1 sits in the parent-side col-channel, flush to the parent border.
-  const parentChannelStartX = parentRightX + 1;
-  const v1X = parentChannelStartX + Math.max(0, p.parentTrack);
-
-  // V2 sits in the child-side col-channel, also flush to its left edge.
-  const v2ChannelStartX = colChannelStartX(sizing, p.childChannelIndex);
-  const v2X = v2ChannelStartX + Math.max(0, p.childTrack);
+  // V1 and V2 both pack from their channel's left edge (track grows right),
+  // regardless of edge direction. See materializeSingleHop for the rationale:
+  // mixed forward/backward edges in one channel must use a single anchor
+  // side to avoid track-index collisions.
+  const v1ChannelLeftX = colChannelStartX(sizing, p.parentChannelIndex);
+  const v1X = v1ChannelLeftX + Math.max(0, p.parentTrack);
+  const v2ChannelLeftX = colChannelStartX(sizing, p.childChannelIndex);
+  const v2X = v2ChannelLeftX + Math.max(0, p.childTrack);
 
   // H2 routes through the top margin (compact-layout mode). detourTrack is
   // the y-position within the margin (0 = topmost row).
   const detourY = Math.max(0, p.detourTrack);
 
-  const parentPort: Port = { x: parentRightX, y: parentPortY, side: 'right' };
-  const childPort: Port = { x: childLeftX, y: childPortY, side: 'left' };
+  const parentPort: Port = { x: parentPortX, y: parentPortY, side: parentSide };
+  const childPort: Port = { x: childPortX, y: childPortY, side: childSide };
 
+  // H1/H5 include the port cells so x2-x1 has a sign that directionAtEnd
+  // can read; drawPortMarker repaints them. Same trick as single-hop.
   const segments: EdgeSegment[] = [
-    { kind: 'horizontal', x1: parentChannelStartX, y1: parentPortY, x2: v1X, y2: parentPortY },
+    { kind: 'horizontal', x1: parentPortX, y1: parentPortY, x2: v1X, y2: parentPortY },
     { kind: 'vertical', x1: v1X, y1: parentPortY, x2: v1X, y2: detourY },
     { kind: 'horizontal', x1: v1X, y1: detourY, x2: v2X, y2: detourY },
     { kind: 'vertical', x1: v2X, y1: detourY, x2: v2X, y2: childPortY },
-    { kind: 'horizontal', x1: v2X, y1: childPortY, x2: childLeftX - 1, y2: childPortY },
+    { kind: 'horizontal', x1: v2X, y1: childPortY, x2: childPortX, y2: childPortY },
   ];
 
   return { ref: p.ref, parentPort, childPort, segments };

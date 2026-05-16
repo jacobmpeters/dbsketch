@@ -1,4 +1,5 @@
 import type { IR, LayoutHints } from '@ascii-erd/parser';
+import { detectHubs } from './detectHubs.js';
 import { place } from './place.js';
 import { computeEntityPositions } from './positions.js';
 import { rank } from './rank.js';
@@ -13,9 +14,13 @@ export class HintConflictError extends Error {
 }
 
 export function layout(ir: IR): Layout {
-  const ranks = rank(ir);
+  const centers = detectHubs(ir);
+  const ranks = rank(ir, centers);
   applyColPins(ranks, ir.hints, ir);
-  validateColPins(ranks, ir);
+  // With center placement the parent-col < child-col invariant is
+  // intentionally relaxed (the whole point is fanning edges to both
+  // sides of the hub), so skip that validation when centers exist.
+  if (centers.length === 0) validateColPins(ranks, ir);
 
   const pinnedRows = collectPinnedRows(ir.hints);
   validatePinPositions(ir.hints);
