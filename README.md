@@ -276,6 +276,84 @@ compileSql(sqlSource, dialect?, options?)
 
 The lower-level packages (`@dbsketch/parser`, `@dbsketch/layout`, `@dbsketch/render`) are also published if you want to walk the IR or layout directly.
 
+## Worked example: narrowing a wide diagram with a hint
+
+The snowflake schema from the top of this README, as DBML:
+
+```dbml
+Table dim_date     { date_key date [pk] year integer month integer }
+Table dim_country  { country_id integer [pk] name varchar }
+Table dim_region   { region_id integer [pk] name varchar country_id integer [ref: > dim_country.country_id] }
+Table dim_store    { store_id integer [pk] name varchar region_id integer [ref: > dim_region.region_id] }
+Table dim_product  { product_id integer [pk] sku varchar name varchar }
+Table fact_sales {
+  sale_id bigint [pk]
+  date_key date [ref: > dim_date.date_key]
+  store_id integer [ref: > dim_store.store_id]
+  product_id integer [ref: > dim_product.product_id]
+  quantity integer
+  revenue decimal
+}
+```
+
+Default rendering puts `fact_sales` in the center with dim subtrees fanning out left and right — five columns wide:
+
+```
+╭────────────────────╮  ╭────────────────────╮  ╭───────────────────╮  ╭────────────────────╮  ╭────────────────────╮
+│    dim_country     │  │     dim_region     │  │     dim_date      │  │     fact_sales     │  │    dim_product     │
+├────────────────────┤  ├────────────────────┤  ├───────────────────┤  ├────────────────────┤  ├────────────────────┤
+│·country_id integer ├╮ │·region_id  integer ├╮ │·date_key     date ├╮ │·sale_id     bigint │╭─┤·product_id integer │
+│ name       varchar ││ │ name       varchar ││ │ year      integer │╰─┤ date_key      date ││ │ sku        varchar │
+╰────────────────────╯╰─┤ country_id integer ││ │ month     integer │╭─┤ store_id   integer ││ │ name       varchar │
+                        ╰────────────────────╯│ ╰───────────────────╯│ │ product_id integer ├╯ ╰────────────────────╯
+                                              │                      │ │ quantity   integer │
+                                              │ ╭───────────────────╮│ │ revenue    decimal │
+                                              │ │     dim_store     ││ ╰────────────────────╯
+                                              │ ├───────────────────┤│
+                                              │ │·store_id  integer ├╯
+                                              │ │ name      varchar │
+                                              ╰─┤ region_id integer │
+                                                ╰───────────────────╯
+```
+
+To narrow it to four columns, wrap `dim_product` below `dim_date` by pinning it. Append this to the DBML:
+
+```dbml
+@layout {
+  pin dim_product at col 2, row 2
+}
+```
+
+```
+╭────────────────────╮  ╭────────────────────╮  ╭────────────────────╮  ╭────────────────────╮
+│    dim_country     │  │     dim_region     │  │      dim_date      │  │     fact_sales     │
+├────────────────────┤  ├────────────────────┤  ├────────────────────┤  ├────────────────────┤
+│·country_id integer ├╮ │·region_id  integer ├╮ │·date_key      date ├╮ │·sale_id     bigint │
+│ name       varchar ││ │ name       varchar ││ │ year       integer │╰─┤ date_key      date │
+╰────────────────────╯╰─┤ country_id integer ││ │ month      integer │ ╭┤ store_id   integer │
+                        ╰────────────────────╯│ ╰────────────────────╯╭│┤ product_id integer │
+                                              │                       │││ quantity   integer │
+                                              │ ╭────────────────────╮│││ revenue    decimal │
+                                              │ │     dim_store      │││╰────────────────────╯
+                                              │ ├────────────────────┤││
+                                              │ │·store_id   integer ├│╯
+                                              │ │ name       varchar ││
+                                              ╰─┤ region_id  integer ││
+                                                ╰────────────────────╯│
+                                                                      │
+                                                ╭────────────────────╮│
+                                                │    dim_product     ││
+                                                ├────────────────────┤│
+                                                │·product_id integer ├╯
+                                                │ sku        varchar │
+                                                │ name       varchar │
+                                                ╰────────────────────╯
+```
+
+Same schema, same algorithm — one hint to encode local intent.
+
+> **Caveat.** Pinning two related entities into the same column drops the edge between them silently (same-column edges aren't routable). Pin into neighboring columns instead; the routing engine handles forward and backward flow when an `@center` is active.
+
 ## License
 
 MIT.
