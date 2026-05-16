@@ -38,14 +38,18 @@ Most algorithm work lives in `packages/layout` and operates directly on this gri
 Sequential stages, each with one responsibility. Each layout hint maps to exactly one stage — that locality is what makes hints predictable.
 
 1. **Parse** — DBML + `@layout` block → IR (entities, columns, refs, hints). `packages/parser`.
-2. **Cluster** — modularity/Louvain over the FK graph; assigns each entity to a cluster. Hint: `cluster X { ... }`.
-3. **Rank** — Sugiyama-style layering by FK direction; junction tables (two FKs) sit between parents by construction. Hint: `rank N { ... }`.
-4. **Place** — assign each entity to a `(col-strip, row-strip)` cell. Honors `pin` hints (`@right-of`, `@above`, etc.).
-5. **Reorder columns** — within each entity, reorder columns so FK columns sit near the edge facing the related entity. Minimizes line bends. Honors `@preserve-order` opt-out.
-6. **Assign ports** — each FK gets a port on the source/target entity at the row of the relevant column.
-7. **Route** — edges decompose into horizontal/vertical segments living in channel strips. Interval scheduling assigns each segment a track.
-8. **Size channels** — channel widths set to (max occupied tracks per channel); recompute final coordinates.
-9. **Render** — strip grid + glyph table (ASCII or Unicode) → string. `packages/render`.
+2. **Detect hubs** — find high-degree entities and emit synthetic `@center` hints. Auto picks the top-1 entity (degree ≥ 3); users can override or add more via explicit `@center`. `packages/layout/detectHubs.ts`.
+3. **Cluster** — modularity/Louvain over the FK graph; assigns each entity to a cluster. Hint: `cluster X { ... }`. *(Not yet wired up.)*
+4. **Rank** — assigns each entity to a col-strip. Two modes:
+   - *Hub-distance* (when centers exist): BFS from the hub on the undirected FK graph; col = hubCol ± distance, with direct neighbors split between left and right. Multi-hub uses a spine with bridge cols for shared neighbors.
+   - *Balanced* (no centers): Sugiyama-style layering by FK direction with a width cap to control aspect ratio.
+   Hints: `rank N { ... }` *(not yet wired)*, `@center entity { left: ... right: ... }`.
+5. **Place** — assign each entity to a `(col-strip, row-strip)` cell. Honors `pin` hints (`pin X at col N, row M`).
+6. **Reorder columns** — within each entity, reorder columns so FK columns sit near the edge facing the related entity. Minimizes line bends. Honors `@preserve-order` opt-out. *(Not yet wired.)*
+7. **Assign ports** — each FK gets a port on the source/target entity at the row of the relevant column.
+8. **Route** — edges decompose into horizontal/vertical segments living in channel strips. Interval scheduling assigns each segment a track. Multi-hop edges route through a top margin above all entities.
+9. **Size channels** — channel widths set to (max occupied tracks per channel); recompute final coordinates. Per-col stacking packs entities tightly within each col-strip.
+10. **Render** — strip grid + glyph table (ASCII or Unicode) → string. `packages/render`.
 
 ## DSL surface
 
@@ -64,9 +68,9 @@ Table posts {
 }
 
 @layout {
-  cluster auth { users, sessions }
-  rank 0  { users }
-  pin posts @right-of users
+  pin users at col 0
+  pin posts at col 1, row 2
+  center sales_fact { left: date_dim, customer_dim right: product_dim, store_dim }
 }
 ```
 
@@ -128,19 +132,26 @@ Surfacing here so they aren't relitigated in code review:
 Standing decisions made through discussion. Don't relitigate without revisiting the original tradeoff.
 
 - **Channels have a visual-separation floor (2 cols, 1 row) below which they don't shrink even with zero routing.** Without this, adjacent boxes touch and the diagram becomes unreadable. Channels grow with routing demand on top of the floor.
-- **Asymmetric flush-to-parent-side track packing.** A channel's routing tracks pack against the parent (source) border; any visual-separation padding sits on the child side. Saves space at the cost of visual symmetry. A future symmetric mode (padding split evenly) is on the table but deferred.
-- **Refs the router can't handle surface in `Layout.skippedRefs`.** Don't silently drop edges — visibility into what isn't rendered matters more than a clean output that's secretly incomplete. Currently skipped: many-to-many, multi-hop with no row-channel below for the detour (last row strip).
+- **Asymmetric flush-to-parent-side track packing for single-direction channels.** A channel's routing tracks pack against the parent (source) border; visual-separation padding sits on the child side. With mixed forward + backward edges in the same channel (only possible with `@center` placement), tracks pack from the channel's LEFT edge regardless of direction — anchoring each edge to its own parent would map distinct track indices to the same X cell.
+- **Per-col entity packing.** Each col-strip packs its entities tightly from the top with a single-row gap between them, rather than aligning every entity to a shared row-strip grid. Eliminates the dead space that appears beside tall fact tables.
+- **Multi-hop edges route through a single top margin** above all entities (sentinel detour-row-channel = -1). Per-col packing breaks the "row R is at the same y in every col" invariant, so inter-row channels no longer have a well-defined position; the top margin is always available and trivially valid. Multi-hops never skip for lack of detour space.
+- **Hub auto-detection caps at 1 hub.** Single-hub centering is a clear win across schema shapes; multi-hub layouts are wider and only help when the schema has genuinely distinct subtrees, so they're opt-in via explicit `@center` hints rather than auto-emitted. The multi-hub ranker (spine + bridge cols) is wired up but only activates when the user provides 2+ centers.
+- **`@center` placement intentionally breaks parent-col < child-col.** The whole point of fanning edges to both sides of a hub is that some FKs flow right-to-left. The router handles `colDiff < 0` by mirroring port-side selection, segment endpoints, and bend computation. Validation that would reject backward edges only runs when there are no centers.
+- **`@center` and `@col` on the same entity are rejected up front.** Both constrain the col axis; silently letting one win produces wrong layouts. `HintConflictError` surfaces the conflict at layout entry.
+- **Refs the router can't handle surface in `Layout.skippedRefs`.** Don't silently drop edges — visibility into what isn't rendered matters more than a clean output that's secretly incomplete. Currently skipped: many-to-many.
 - **Direction-set merging for line glyphs.** Each line glyph (corner/tee/cross/H/V) decomposes into a set of N/S/E/W directions. Merging at a cell: shared directions = JOIN (union, look up the new glyph), no shared = CROSSING (vertical wins, horizontal gets a visible gap). This produces accurate corner→tee upgrades and the conventional ASCII-art "H passes under V" gap visual without having to write a per-glyph merge table.
+- **H1/H2 segments include their port cells.** Single-cell horizontal segments can't convey travel direction from `x2 - x1` alone, which corrupts corner-glyph selection at bends for backward edges. Extending H1/H2 to include the port cell makes the sign unambiguous; `drawPortMarker` repaints the port cell last so the segment glyph is invisible.
 
 ## Future-work backlog
 
 Captured in priority order from conversation. Not strict commitments — revisit before picking up.
 
-1. **Detour-above fallback for multi-hop edges.** Currently multi-hop only detours through the row-channel just below the higher of parent/child. When that row-channel doesn't exist (parent and child both in the last row strip), the edge skips. Adding "try above" doubles coverage with modest implementation cost.
-2. **Tighter track packing (`<=` instead of `<`).** Edges that touch at a y-boundary could share a track instead of getting separate tracks. Saves 1-2 cells in dense channels. Risk: visual ambiguity at the merge cell.
-3. **`@layout` hint parsing.** The DSL is sketched in this doc but the parser doesn't read it yet. Wiring it gives users escape valves for the inevitable cases where automatic layout picks something wrong.
-4. **Edge bundling for shared parent ports.** When N FKs leave the same parent port to N children, render as a single trunk that branches. Visually transformative; routing rewrite.
-5. **Crossing minimization at track assignment.** Beyond non-overlap packing, choose tracks to minimize crossings with other edges. NP-hard exact; barycenter-style heuristic. Real win for dense channels but significant slice.
-6. **Star-schema / wide-aspect-ratio layouts.** When a layer has way fewer entities than its neighbors (e.g., one fact table opposite five dimensions), the layered model wastes vertical space. Allowing entities to span multiple row strips would help; breaks the "one entity per (col, row) cell" invariant.
-7. **Color (opt-in flag).** Could differentiate edges with ANSI codes. Defer indefinitely — breaks markdown-renderability story unless gated behind explicit flag.
-8. **DDL/SQL parsing.** Planned per v1 scope; parser front-end is designed to swap in.
+1. **Max-width control (col folding).** Schemas with long FK chains (categories → products → order_items → orders) render wide. A `--max-cols N` flag would fold outermost cols inward, stacking their entities into inner-neighbor col-strips. Per-col stacking handles the pileup; cost is more multi-hop edges. ~100-200 lines + design choice for fold strategy.
+2. **Bottom-margin fallback for multi-hop.** All multi-hops currently share one top-margin band. For schemas with many multi-hops (`pure_star` before center placement, `snowflake` with multi-hub), splitting traffic between top and bottom margins would halve the band height.
+3. **Tighter track packing (`<=` instead of `<`).** Edges that touch at a y-boundary could share a track instead of getting separate tracks. Saves 1-2 cells in dense channels. Risk: visual ambiguity at the merge cell.
+4. **Smarter hub-selection metric.** Auto picks the top-1 hub by total degree; some shapes might prefer "centrality" (entity whose neighborhood is densest) or "balanced in/out" (favors fact tables specifically). Phase 5 shipped a closeness tiebreak that was reverted with the cap=1 change; revisit if auto needs to pick more than one.
+5. **Cluster + rank hints.** `cluster X { ... }` and `rank N { ... }` are sketched in the DSL but the parser doesn't read them yet. Lower priority now that `pin` and `@center` cover the main escape valves.
+6. **Edge bundling for shared parent ports.** When N FKs leave the same parent port to N children, render as a single trunk that branches. Visually transformative; routing rewrite.
+7. **Crossing minimization at track assignment.** Beyond non-overlap packing, choose tracks to minimize crossings with other edges. NP-hard exact; barycenter-style heuristic. Real win for dense channels but significant slice.
+8. **Color (opt-in flag).** Could differentiate edges with ANSI codes. Defer indefinitely — breaks markdown-renderability story unless gated behind explicit flag.
+9. **DDL/SQL parsing.** Planned per v1 scope; parser front-end is designed to swap in.
