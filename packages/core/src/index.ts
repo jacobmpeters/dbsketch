@@ -10,6 +10,10 @@ export interface CompileOptions extends RenderOptions {
   // user-declared relationships aren't augmented with guesses.
   // 'never': never infer.
   inferRefs?: InferRefsMode;
+  // false: strip column types from the IR before layout. Entities render
+  // names only and are correspondingly narrower. Useful for high-level
+  // structural overviews where types are noise.
+  showTypes?: boolean;
 }
 
 function withInferred(ir: IR, mode: InferRefsMode = 'auto'): IR {
@@ -20,8 +24,21 @@ function withInferred(ir: IR, mode: InferRefsMode = 'auto'): IR {
   return { ...ir, refs };
 }
 
+function withoutTypes(ir: IR, showTypes: boolean | undefined): IR {
+  if (showTypes !== false) return ir;
+  return {
+    ...ir,
+    entities: ir.entities.map((e) => ({
+      ...e,
+      columns: e.columns.map((c) => ({ ...c, type: '' })),
+    })),
+  };
+}
+
 export function compile(dbml: string, options?: CompileOptions): string {
-  const ir = withInferred(parse(dbml), options?.inferRefs);
+  let ir = parse(dbml);
+  ir = withInferred(ir, options?.inferRefs);
+  ir = withoutTypes(ir, options?.showTypes);
   return render(layout(ir), options);
 }
 
@@ -30,7 +47,9 @@ export function compileSql(
   dialect: SqlDialect = 'postgres',
   options?: CompileOptions,
 ): string {
-  const ir = withInferred(parseSql(sql, dialect), options?.inferRefs);
+  let ir = parseSql(sql, dialect);
+  ir = withInferred(ir, options?.inferRefs);
+  ir = withoutTypes(ir, options?.showTypes);
   return render(layout(ir), options);
 }
 

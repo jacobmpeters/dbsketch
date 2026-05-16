@@ -61,10 +61,12 @@ export function size(
 
 // Box-drawn entity: │ <inner> │ where inner = max(name, max(col_name + ' ' + col_type)).
 // Total width = inner + 4 (left border, space, content, space, right border).
+// Empty col.type (used when --no-types strips them) skips the joining space.
 function entityWidth(entity: Entity): number {
   let inner = entity.name.length;
   for (const col of entity.columns) {
-    inner = Math.max(inner, col.name.length + 1 + col.type.length);
+    const contentLen = col.type ? col.name.length + 1 + col.type.length : col.name.length;
+    inner = Math.max(inner, contentLen);
   }
   return inner + 4;
 }

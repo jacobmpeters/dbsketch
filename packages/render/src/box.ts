@@ -1,4 +1,4 @@
-import type { Entity } from '@ascii-erd/parser';
+import type { Column, Entity } from '@ascii-erd/parser';
 import type { Canvas } from './canvas.js';
 import type { Glyphs } from './glyphs.js';
 
@@ -20,14 +20,7 @@ export function drawEntity(
   hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeE, glyphs.teeW);
   entity.columns.forEach((col, i) => {
     const rowY = y + 3 + i;
-    textLine(
-      canvas,
-      x,
-      rowY,
-      width,
-      padRight(`${col.name} ${col.type}`, innerWidth),
-      glyphs.vertical,
-    );
+    textLine(canvas, x, rowY, width, formatColumnRow(col, innerWidth), glyphs.vertical);
     // PK marker in the otherwise-blank left-pad cell. Costs no width and
     // doesn't conflict with edge port markers (those live on the border
     // at x and x+width-1).
@@ -66,6 +59,16 @@ function textLine(
 function padRight(s: string, width: number): string {
   if (s.length >= width) return s.slice(0, width);
   return s + ' '.repeat(width - s.length);
+}
+
+// Format one column row's text. Right-aligns the type so types form a column
+// on the right edge — `name<...spaces...>type`. Empty col.type (when --no-types
+// strips them at the IR level) renders just the left-aligned name.
+function formatColumnRow(col: Column, innerWidth: number): string {
+  if (!col.type) return padRight(col.name, innerWidth);
+  const gap = innerWidth - col.name.length - col.type.length;
+  if (gap < 1) return padRight(`${col.name} ${col.type}`, innerWidth);
+  return col.name + ' '.repeat(gap) + col.type;
 }
 
 function padCenter(s: string, width: number): string {

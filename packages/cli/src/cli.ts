@@ -25,6 +25,8 @@ Options:
   --dialect=NAME     SQL dialect: postgres (default), mysql, mssql, snowflake
   --no-infer-refs    Don't infer relationships from PK-name matches when
                      the schema declares none (default: infer)
+  --no-types         Render column names only, no data types. Entities are
+                     correspondingly narrower
   -h, --help         Show this help
 `;
 
@@ -36,6 +38,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     sql?: boolean | undefined;
     dialect?: string | undefined;
     'no-infer-refs'?: boolean | undefined;
+    'no-types'?: boolean | undefined;
     help?: boolean | undefined;
   };
   let positionals: string[];
@@ -47,6 +50,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
         sql: { type: 'boolean', default: false },
         dialect: { type: 'string' },
         'no-infer-refs': { type: 'boolean', default: false },
+        'no-types': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
@@ -93,6 +97,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
   const opts = {
     glyphs: values.ascii ? ('ascii' as const) : ('unicode' as const),
     inferRefs: values['no-infer-refs'] ? ('never' as const) : ('auto' as const),
+    showTypes: !values['no-types'],
   };
 
   try {
