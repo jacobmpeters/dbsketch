@@ -55,12 +55,11 @@ export interface RoutePlan {
 export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   const placementByEntity = new Map(placements.map((p) => [p.entity, p]));
   const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
-  const numRowStrips = placements.reduce((m, p) => Math.max(m, p.rowStrip), -1) + 1;
 
   const planned: PlannedEdge[] = [];
   const skippedRefs: Ref[] = [];
   for (const ref of ir.refs) {
-    const fit = tryPlan(ref, placementByEntity, entityByName, numRowStrips);
+    const fit = tryPlan(ref, placementByEntity, entityByName);
     if (fit) planned.push(fit);
     else skippedRefs.push(ref);
   }
@@ -76,7 +75,6 @@ function tryPlan(
   ref: Ref,
   placementByEntity: Map<string, Placement>,
   entityByName: Map<string, Entity>,
-  numRowStrips: number,
 ): PlannedEdge | null {
   if (ref.cardinality === 'many-to-many') return null;
 
@@ -116,21 +114,15 @@ function tryPlan(
     };
   }
 
-  // Multi-hop in compact-layout mode: all H2 segments share a top margin
-  // above all entity boxes. The sentinel detourRowChannel = -1 indicates
-  // "top margin" (route around the top of the canvas). Eventually we may
-  // also support a bottom margin for shorter detours.
-  const detourRowChannel = -1;
-  // numRowStrips parameter no longer used for detour selection (margin is
-  // global), but kept for signature stability.
-  void numRowStrips;
-
+  // All multi-hop H2 segments share a top margin above all entity boxes.
+  // detourRowChannel = -1 is the sentinel for "top margin" (we may later
+  // add a bottom margin as an alternative).
   return {
     kind: 'multi',
     ...base,
     parentChannelIndex: parentP.colStrip,
     childChannelIndex: childP.colStrip - 1,
-    detourRowChannel,
+    detourRowChannel: -1,
     parentTrack: -1,
     childTrack: -1,
     detourTrack: -1,
@@ -384,15 +376,6 @@ function materializeMultiHop(
   return { ref: p.ref, parentPort, childPort, segments };
 }
 
-function stripOffset(strips: number[], channels: number[], index: number): number {
-  let offset = 0;
-  for (let i = 0; i < index; i++) {
-    offset += strips[i]!;
-    if (i < channels.length) offset += channels[i]!;
-  }
-  return offset;
-}
-
 function colChannelStartX(sizing: StripSizing, channelIndex: number): number {
   let x = 0;
   for (let i = 0; i <= channelIndex; i++) {
@@ -400,13 +383,4 @@ function colChannelStartX(sizing: StripSizing, channelIndex: number): number {
     if (i < channelIndex) x += sizing.channelColWidths[i] ?? 0;
   }
   return x;
-}
-
-function rowChannelStartYFromSizing(sizing: StripSizing, channelIndex: number): number {
-  let y = 0;
-  for (let i = 0; i <= channelIndex; i++) {
-    y += sizing.rowStripHeights[i] ?? 0;
-    if (i < channelIndex) y += sizing.channelRowHeights[i] ?? 0;
-  }
-  return y;
 }
