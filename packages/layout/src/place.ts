@@ -5,6 +5,20 @@ import type { Placement } from './types.js';
 // of forward + backward sweeps. Four covers most real schemas comfortably.
 const BARYCENTER_PASSES = 4;
 
+// Each link records which row of the neighbor's box the edge attaches to,
+// so siblings that share a single neighbor can be ordered by where they
+// connect on that neighbor (instead of all computing the same bary value
+// and tie-breaking alphabetically).
+interface NeighborLink {
+  neighbor: string;
+  // 3 + columnIndex on the neighbor's side (3 accounts for the box's top
+  // border, name, and separator rows).
+  portRowOnNeighbor: number;
+  // Total height of the neighbor entity in cells (4 borders + columns).
+  // Used to normalize portRowOnNeighbor into a sub-1 tiebreaker.
+  neighborHeight: number;
+}
+
 // Place each entity at (rank, row-within-rank). Within each rank, entities are
 // ordered by barycenter — the mean row position of their FK neighbors — so
 // connected entities cluster together. This translates directly to fewer edge
@@ -78,15 +92,37 @@ function initialPositions(byRank: Map<number, string[]>): Map<string, number> {
 }
 
 // Adjacency is undirected — both parent→child and child→parent contribute to
-// barycenter. Includes refs the router can't currently route (multi-hop,
-// many-to-many) because they still represent semantic connections worth
-// honoring in placement.
-function buildAdjacency(ir: IR): Map<string, Set<string>> {
-  const adj = new Map<string, Set<string>>();
-  for (const e of ir.entities) adj.set(e.name, new Set());
+// barycenter. Each link records the port row on the neighbor's side so star-
+// schema siblings (all sharing a single fact-table neighbor) can be ordered
+// by where on the fact they attach, rather than ending up with identical
+// barycenters and tie-breaking alphabetically. Includes refs the router
+// can't route (multi-hop, many-to-many) because they still represent
+// semantic connections worth honoring in placement.
+function buildAdjacency(ir: IR): Map<string, NeighborLink[]> {
+  const adj = new Map<string, NeighborLink[]>();
+  for (const e of ir.entities) adj.set(e.name, []);
+  const heightOf = new Map(ir.entities.map((e) => [e.name, 4 + e.columns.length]));
+  const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
+  const colIdx = (entity: string, column: string): number => {
+    const ent = entityByName.get(entity);
+    return ent ? ent.columns.findIndex((c) => c.name === column) : -1;
+  };
   for (const ref of ir.refs) {
-    adj.get(ref.parent.entity)?.add(ref.child.entity);
-    adj.get(ref.child.entity)?.add(ref.parent.entity);
+    const pIdx = colIdx(ref.parent.entity, ref.parent.column);
+    const cIdx = colIdx(ref.child.entity, ref.child.column);
+    if (pIdx < 0 || cIdx < 0) continue;
+    const pHeight = heightOf.get(ref.parent.entity) ?? 4;
+    const cHeight = heightOf.get(ref.child.entity) ?? 4;
+    adj.get(ref.parent.entity)?.push({
+      neighbor: ref.child.entity,
+      portRowOnNeighbor: 3 + cIdx,
+      neighborHeight: cHeight,
+    });
+    adj.get(ref.child.entity)?.push({
+      neighbor: ref.parent.entity,
+      portRowOnNeighbor: 3 + pIdx,
+      neighborHeight: pHeight,
+    });
   }
   return adj;
 }
@@ -95,7 +131,7 @@ function reorderRank(
   rank: number,
   byRank: Map<number, string[]>,
   positions: Map<string, number>,
-  adjacency: Map<string, Set<string>>,
+  adjacency: Map<string, NeighborLink[]>,
   pinnedRows: Map<string, number>,
 ): void {
   const inRank = byRank.get(rank);
@@ -106,10 +142,18 @@ function reorderRank(
   const nonPinned = inRank.filter((n) => !pinnedRows.has(n));
   if (nonPinned.length === 0) return;
 
-  const barys = computeBarycenters(nonPinned, positions, adjacency);
+  const barys = computeBarycenters(nonPinned, positions, adjacency, { usePort: false });
+  // Port-row mean: which row of the neighbor each sibling attaches to,
+  // averaged across edges. Used as a tiebreaker when raw barys collide
+  // (the star-schema case where N dims all share one fact neighbor at
+  // one position). Doesn't disturb the integer-aligning behavior of the
+  // primary bary value.
+  const portTie = computePortRowMeans(nonPinned, positions, adjacency);
   const reordered = [...nonPinned].sort((a, b) => {
     const diff = barys.get(a)! - barys.get(b)!;
     if (diff !== 0) return diff;
+    const portDiff = portTie.get(a)! - portTie.get(b)!;
+    if (portDiff !== 0) return portDiff;
     return a.localeCompare(b);
   });
 
@@ -144,7 +188,7 @@ function reorderRank(
 function floatPositions(
   byRank: Map<number, string[]>,
   positions: Map<string, number>,
-  adjacency: Map<string, Set<string>>,
+  adjacency: Map<string, NeighborLink[]>,
   pinnedRows: Map<string, number>,
 ): void {
   const ranks = [...byRank.keys()].sort((a, b) => a - b);
@@ -153,7 +197,9 @@ function floatPositions(
     if (!entities || entities.length !== 1) continue;
     const name = entities[0]!;
     if (pinnedRows.has(name)) continue;
-    const bary = computeBarycenters(entities, positions, adjacency).get(name)!;
+    // Port-row contribution is omitted here — float wants the unbiased
+    // integer position, not the sibling-ordering tiebreaker.
+    const bary = computeBarycenters([name], positions, adjacency, { usePort: false }).get(name)!;
     positions.set(name, Math.max(0, Math.round(bary)));
   }
 }
@@ -161,22 +207,52 @@ function floatPositions(
 function computeBarycenters(
   entities: string[],
   positions: Map<string, number>,
-  adjacency: Map<string, Set<string>>,
+  adjacency: Map<string, NeighborLink[]>,
+  options: { usePort: boolean },
 ): Map<string, number> {
   const barys = new Map<string, number>();
   for (const name of entities) {
-    const neighbors = adjacency.get(name) ?? new Set<string>();
+    const links = adjacency.get(name) ?? [];
     let sum = 0;
     let count = 0;
-    for (const neighbor of neighbors) {
-      const pos = positions.get(neighbor);
-      if (pos !== undefined) {
-        sum += pos;
-        count++;
-      }
+    for (const link of links) {
+      const pos = positions.get(link.neighbor);
+      if (pos === undefined) continue;
+      const portContribution = options.usePort ? link.portRowOnNeighbor / link.neighborHeight : 0;
+      sum += pos + portContribution;
+      count++;
     }
     // Isolated entities keep their current position so they don't drift.
     barys.set(name, count > 0 ? sum / count : (positions.get(name) ?? 0));
   }
   return barys;
+}
+
+// Average port-row-on-neighbor across an entity's edges. Used purely as a
+// sort tiebreaker — siblings whose only neighbor is the same fact table at
+// the same row position get differentiated by which row of the fact they
+// attach to (e.g., date_dim attaches to fact's date_id row 4, while
+// currency_dim attaches to fact's currency_id row 10).
+//
+// Entities with no edges return +Infinity so they fall through to the
+// alphabetical tiebreaker rather than competing with edge-having siblings
+// on a meaningless port value.
+function computePortRowMeans(
+  entities: string[],
+  positions: Map<string, number>,
+  adjacency: Map<string, NeighborLink[]>,
+): Map<string, number> {
+  const means = new Map<string, number>();
+  for (const name of entities) {
+    const links = adjacency.get(name) ?? [];
+    let sum = 0;
+    let count = 0;
+    for (const link of links) {
+      if (positions.get(link.neighbor) === undefined) continue;
+      sum += link.portRowOnNeighbor;
+      count++;
+    }
+    means.set(name, count > 0 ? sum / count : Number.POSITIVE_INFINITY);
+  }
+  return means;
 }

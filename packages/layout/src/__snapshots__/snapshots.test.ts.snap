@@ -812,7 +812,7 @@ exports[`layout snapshots > junction-table 1`] = `
       "parentPort": {
         "side": "right",
         "x": 15,
-        "y": 10,
+        "y": 3,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -828,22 +828,8 @@ exports[`layout snapshots > junction-table 1`] = `
       "segments": [
         {
           "kind": "horizontal",
-          "x1": 15,
-          "x2": 16,
-          "y1": 10,
-          "y2": 10,
-        },
-        {
-          "kind": "vertical",
           "x1": 16,
-          "x2": 16,
-          "y1": 10,
-          "y2": 3,
-        },
-        {
-          "kind": "horizontal",
-          "x1": 16,
-          "x2": 18,
+          "x2": 17,
           "y1": 3,
           "y2": 3,
         },
@@ -858,7 +844,7 @@ exports[`layout snapshots > junction-table 1`] = `
       "parentPort": {
         "side": "right",
         "x": 15,
-        "y": 3,
+        "y": 10,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -875,20 +861,20 @@ exports[`layout snapshots > junction-table 1`] = `
         {
           "kind": "horizontal",
           "x1": 15,
-          "x2": 16,
-          "y1": 3,
-          "y2": 3,
+          "x2": 17,
+          "y1": 10,
+          "y2": 10,
         },
         {
           "kind": "vertical",
-          "x1": 16,
-          "x2": 16,
-          "y1": 3,
+          "x1": 17,
+          "x2": 17,
+          "y1": 10,
           "y2": 4,
         },
         {
           "kind": "horizontal",
-          "x1": 16,
+          "x1": 17,
           "x2": 18,
           "y1": 4,
           "y2": 4,
@@ -897,13 +883,13 @@ exports[`layout snapshots > junction-table 1`] = `
     },
   ],
   "entityPositions": Map {
-    "groups" => {
+    "users" => {
       "height": 6,
       "width": 16,
       "x": 0,
       "y": 0,
     },
-    "users" => {
+    "groups" => {
       "height": 6,
       "width": 16,
       "x": 0,
@@ -998,12 +984,12 @@ exports[`layout snapshots > junction-table 1`] = `
   "placements": [
     {
       "colStrip": 0,
-      "entity": "groups",
+      "entity": "users",
       "rowStrip": 0,
     },
     {
       "colStrip": 0,
-      "entity": "users",
+      "entity": "groups",
       "rowStrip": 1,
     },
     {
