@@ -63,4 +63,25 @@ describe('runCli', () => {
     const result = runCli([], makeDeps('Table users { id int }'));
     expect(result.stdout.endsWith('\n')).toBe(true);
   });
+
+  it('parses SQL when the file ends in .sql', () => {
+    const sql = 'CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(50));';
+    const result = runCli(['schema.sql'], makeDeps(sql));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('users');
+    expect(result.stdout).toContain('id');
+  });
+
+  it('forces SQL mode with --sql for stdin input', () => {
+    const sql = 'CREATE TABLE products (id INT PRIMARY KEY);';
+    const result = runCli(['--sql'], makeDeps(sql));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('products');
+  });
+
+  it('rejects an invalid --dialect value', () => {
+    const result = runCli(['--sql', '--dialect=bogus'], makeDeps('CREATE TABLE x (id INT);'));
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('invalid --dialect');
+  });
 });

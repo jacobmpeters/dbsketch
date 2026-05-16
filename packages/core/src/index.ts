@@ -1,11 +1,19 @@
 import { layout } from '@ascii-erd/layout';
-import { parse } from '@ascii-erd/parser';
+import { type SqlDialect, parse, parseSql } from '@ascii-erd/parser';
 import { type RenderOptions, render } from '@ascii-erd/render';
 
 export type CompileOptions = RenderOptions;
 
 export function compile(dbml: string, options?: CompileOptions): string {
   return render(layout(parse(dbml)), options);
+}
+
+export function compileSql(
+  sql: string,
+  dialect: SqlDialect = 'postgres',
+  options?: CompileOptions,
+): string {
+  return render(layout(parseSql(sql, dialect)), options);
 }
 
 export { ParseError, TokenizerError } from '@ascii-erd/parser';

@@ -149,15 +149,14 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    // Backtick string: `expr` — used for code expressions in defaults.
-    // Parser treats these as opaque values to discard.
+    // Backtick string: `expr` — used for code expressions in defaults and
+    // CHECK clauses. May span multiple lines (e.g. a multi-line CHECK
+    // expression emitted by @dbml/core's SQL importer). Parser treats
+    // these as opaque values to discard.
     if (ch === '`') {
       advance();
       let value = '';
       while (pos < source.length && peek() !== '`') {
-        if (peek() === '\n') {
-          throw new TokenizerError('Unterminated backtick string', startLine, startCol);
-        }
         value += advance();
       }
       if (pos >= source.length) {

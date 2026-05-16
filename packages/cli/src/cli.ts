@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { compile } from '@ascii-erd/core';
+import { type SqlDialect, compile, compileSql } from '@ascii-erd/core';
 
 export interface CliDeps {
   readFile: (path: string) => string;
@@ -13,24 +13,36 @@ export interface CliResult {
   exitCode: number;
 }
 
-export const USAGE = `Usage: ascii-erd [options] [file.dbml]
+export const USAGE = `Usage: ascii-erd [options] [file.dbml|file.sql]
 
-Reads DBML from a file (or stdin if omitted) and writes the rendered
-ERD to stdout.
+Reads DBML or SQL DDL from a file (or stdin if omitted) and writes
+the rendered ERD to stdout. SQL inputs are detected by the .sql
+extension; for stdin, use --sql to force SQL mode.
 
 Options:
-  --ascii      Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
-  -h, --help   Show this help
+  --ascii          Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
+  --sql            Treat input as SQL DDL (forced for stdin)
+  --dialect=NAME   SQL dialect: postgres (default), mysql, mssql, snowflake
+  -h, --help       Show this help
 `;
 
+const VALID_DIALECTS: SqlDialect[] = ['postgres', 'mysql', 'mssql', 'snowflake'];
+
 export function runCli(args: string[], deps: CliDeps): CliResult {
-  let values: { ascii?: boolean | undefined; help?: boolean | undefined };
+  let values: {
+    ascii?: boolean | undefined;
+    sql?: boolean | undefined;
+    dialect?: string | undefined;
+    help?: boolean | undefined;
+  };
   let positionals: string[];
   try {
     const parsed = parseArgs({
       args,
       options: {
         ascii: { type: 'boolean', default: false },
+        sql: { type: 'boolean', default: false },
+        dialect: { type: 'string' },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
@@ -46,9 +58,11 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
   }
 
   let input: string;
+  let path: string | undefined;
   if (positionals.length > 0) {
+    path = positionals[0]!;
     try {
-      input = deps.readFile(positionals[0]!);
+      input = deps.readFile(path);
     } catch (e) {
       return { stdout: '', stderr: `error: ${(e as Error).message}\n`, exitCode: 1 };
     }
@@ -58,8 +72,24 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     return { stdout: '', stderr: USAGE, exitCode: 1 };
   }
 
+  const isSql = values.sql === true || (path !== undefined && /\.sql$/i.test(path));
+
+  let dialect: SqlDialect = 'postgres';
+  if (values.dialect !== undefined) {
+    if (!VALID_DIALECTS.includes(values.dialect as SqlDialect)) {
+      return {
+        stdout: '',
+        stderr: `error: invalid --dialect '${values.dialect}' (expected one of: ${VALID_DIALECTS.join(', ')})\n`,
+        exitCode: 1,
+      };
+    }
+    dialect = values.dialect as SqlDialect;
+  }
+
   try {
-    const out = compile(input, { glyphs: values.ascii ? 'ascii' : 'unicode' });
+    const out = isSql
+      ? compileSql(input, dialect, { glyphs: values.ascii ? 'ascii' : 'unicode' })
+      : compile(input, { glyphs: values.ascii ? 'ascii' : 'unicode' });
     const padded = out.length > 0 && !out.endsWith('\n') ? `${out}\n` : out;
     return { stdout: padded, stderr: '', exitCode: 0 };
   } catch (e) {
