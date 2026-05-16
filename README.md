@@ -20,6 +20,8 @@ ASCII-art ERD diagrams from DBML or SQL, designed to look clean by default and l
                                                 ╰───────────────────╯
 ```
 
+> **A note on viewing.** Diagrams are monospace text. They look best in a terminal, a code editor, or any markdown renderer that horizontally scrolls fenced code blocks (GitHub and most modern editors do; some viewers will wrap the lines and the box-drawing will fall apart). They also assume **tight line-height** — the vertical box-drawing characters (`│`) are sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1.0 by default; prose-mode markdown sometimes doesn't. For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`. The examples below are all real CLI output.
+
 ## Why this exists
 
 Existing ERD tools — Mermaid, dbdiagram, GraphViz — lay out in continuous 2D space and project onto a grid. The projection is where things break: variable-width entities don't snap cleanly, edges meet boxes off-center, dense schemas need manual repositioning to be readable. Most of them produce SVG/PNG output that you can't paste into a README, a CHANGELOG entry, or a prompt.
