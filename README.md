@@ -2,22 +2,33 @@
 
 ASCII-art ERD diagrams from DBML or SQL, designed to look clean by default and live happily inside a README, a docstring, or an LLM prompt.
 
+A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — all relationships inferred from PK-name matches:
+
 ```
-╭────────────────────╮  ╭────────────────────╮  ╭───────────────────╮  ╭────────────────────╮  ╭────────────────────╮
-│    dim_country     │  │     dim_region     │  │     dim_date      │  │     fact_sales     │  │    dim_product     │
-├────────────────────┤  ├────────────────────┤  ├───────────────────┤  ├────────────────────┤  ├────────────────────┤
-│·country_id INTEGER ├╮ │·region_id  INTEGER ├╮ │·date_key     DATE ├╮ │·sale_id     BIGINT │╭─┤·product_id INTEGER │
-│ name       VARCHAR ││ │ name       VARCHAR ││ │ year      INTEGER │╰─┤ date_key      DATE ││ │ sku        VARCHAR │
-╰────────────────────╯╰─┤ country_id INTEGER ││ │ month     INTEGER │╭─┤ store_id   INTEGER ││ │ name       VARCHAR │
-                        ╰────────────────────╯│ ╰───────────────────╯│ │ product_id INTEGER ├╯ ╰────────────────────╯
-                                              │                      │ │ quantity   INTEGER │
-                                              │ ╭───────────────────╮│ │ revenue    DECIMAL │
-                                              │ │     dim_store     ││ ╰────────────────────╯
-                                              │ ├───────────────────┤│
-                                              │ │·store_id  INTEGER ├╯
-                                              │ │ name      VARCHAR │
-                                              ╰─┤ region_id INTEGER │
-                                                ╰───────────────────╯
+╭───────────────╮  ╭──────────────────╮  ╭──────────────────────╮  ╭───────────────────╮
+│  dim_region   │  │     dim_date     │  │   fact_claim_line    │  │   dim_provider    │
+├───────────────┤  ├──────────────────┤  ├──────────────────────┤  ├───────────────────┤
+│·region_id INT ├╮ │·date_key    DATE ├╮ │·claim_line_id BIGINT │╭─┤·provider_id   INT │
+│ name  VARCHAR ││ │ year         INT │╰─┤ date_key        DATE ││ │ specialty VARCHAR │
+╰───────────────╯│ │ quarter      INT │ ╭┤ patient_id       INT ││ │ tier      VARCHAR │
+                 │ ╰──────────────────╯ ││ provider_id      INT ├╯ ╰───────────────────╯
+                 │                      ││ payer_id         INT ├─╮
+                 │ ╭──────────────────╮ ││ diagnosis_id     INT ├╮│╭───────────────────╮
+                 │ │   dim_patient    │╭│┤ procedure_id     INT ││││     dim_payer     │
+                 │ ├──────────────────┤│││ quantity         INT │││├───────────────────┤
+                 │ │·patient_id   INT ├│╯│ charge       DECIMAL ││╰┤·payer_id      INT │
+                 │ │ age_band VARCHAR ││ │ paid         DECIMAL ││ │ plan_name VARCHAR │
+                 │ │ sex      VARCHAR ││ ╰──────────────────────╯│ │ plan_type VARCHAR │
+                 ╰─┤ region_id    INT ││                         │ ╰───────────────────╯
+                   ╰──────────────────╯│                         │
+                                       │                         │ ╭───────────────────╮
+                   ╭──────────────────╮│                         │ │   dim_diagnosis   │
+                   │  dim_procedure   ││                         │ ├───────────────────┤
+                   ├──────────────────┤│                         ╰─┤·diagnosis_id  INT │
+                   │·procedure_id INT ├╯                           │ icd_code  VARCHAR │
+                   │ cpt_code VARCHAR │                            │ category  VARCHAR │
+                   │ category VARCHAR │                            ╰───────────────────╯
+                   ╰──────────────────╯
 ```
 
 > **A note on viewing.** Diagrams are monospace text. They look best in a terminal, a code editor, or any markdown renderer that horizontally scrolls fenced code blocks (GitHub and most modern editors do; some viewers will wrap the lines and the box-drawing will fall apart). They also assume **tight line-height** — the vertical box-drawing characters (`│`) are sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1.0 by default; prose-mode markdown sometimes doesn't. For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`. The examples below are all real CLI output.
