@@ -93,6 +93,39 @@ describe('planRoutes', () => {
     expect(result.skippedRefs).toHaveLength(1);
   });
 
+  it('routes self-FKs as same-col edges', () => {
+    // departments.parent_dept_id → departments.id is the canonical case.
+    // Adding the other → tree ref pushes tree to col 1 so there's a
+    // channel available for the self-FK to route through.
+    const ir = parse(`
+      Table other { id int }
+      Table tree {
+        id int [pk]
+        other_id int [ref: > other.id]
+        parent_id int [ref: > tree.id]
+      }
+    `);
+    const result = plan(ir);
+    expect(result.skippedRefs).toEqual([]);
+    const selfFk = result.planned.find(
+      (p) => p.ref.parent.entity === 'tree' && p.ref.child.entity === 'tree',
+    );
+    expect(selfFk?.kind).toBe('same-col');
+  });
+
+  it('skips same-col edges when there is no adjacent channel to route through', () => {
+    // Single-col diagram: nowhere to route a same-col edge.
+    const ir = parse(`
+      Table tree {
+        id int [pk]
+        parent_id int [ref: > tree.id]
+      }
+    `);
+    const result = plan(ir);
+    expect(result.planned).toEqual([]);
+    expect(result.skippedRefs).toHaveLength(1);
+  });
+
   it('does not allocate a track for straight edges (same port row)', () => {
     const ir = parse(`
       Table src { a int }

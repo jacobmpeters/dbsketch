@@ -40,7 +40,21 @@ export interface MultiHopPlannedEdge extends BasePlannedEdge {
   detourTrack: number;
 }
 
-export type PlannedEdge = SingleHopPlannedEdge | MultiHopPlannedEdge;
+// Same-col edges: parent and child sit in the same col-strip (different
+// rows). Covers self-FKs (e.g., departments.parent_dept_id → departments.id)
+// and the user-pinned case where two related entities share a column.
+// Path: leaves entity on one side, V down/up through the adjacent
+// col-channel, returns on the same side. Side is 'right' when there's a
+// col-channel to the right of the shared col; falls back to 'left' for
+// the rightmost col.
+export interface SameColPlannedEdge extends BasePlannedEdge {
+  kind: 'same-col';
+  channelIndex: number;
+  side: 'left' | 'right';
+  track: number;
+}
+
+export type PlannedEdge = SingleHopPlannedEdge | MultiHopPlannedEdge | SameColPlannedEdge;
 
 export interface RoutePlan {
   planned: PlannedEdge[];
@@ -59,11 +73,14 @@ export interface RoutePlan {
 export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   const placementByEntity = new Map(placements.map((p) => [p.entity, p]));
   const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
+  // Highest col-strip index in use; needed to decide which side a same-col
+  // edge routes around (right by default, left when no channel exists right).
+  const maxColStrip = placements.reduce((m, p) => Math.max(m, p.colStrip), 0);
 
   const planned: PlannedEdge[] = [];
   const skippedRefs: Ref[] = [];
   for (const ref of ir.refs) {
-    const fit = tryPlan(ref, placementByEntity, entityByName);
+    const fit = tryPlan(ref, placementByEntity, entityByName, maxColStrip);
     if (fit) planned.push(fit);
     else skippedRefs.push(ref);
   }
@@ -79,6 +96,7 @@ function tryPlan(
   ref: Ref,
   placementByEntity: Map<string, Placement>,
   entityByName: Map<string, Entity>,
+  maxColStrip: number,
 ): PlannedEdge | null {
   if (ref.cardinality === 'many-to-many') return null;
 
@@ -95,9 +113,7 @@ function tryPlan(
   if (parentColIdx === -1 || childColIdx === -1) return null;
 
   const colDiff = childP.colStrip - parentP.colStrip;
-  // Same-col edges (cycles) and zero-distance refs aren't routable.
-  if (colDiff === 0) return null;
-  const direction: 1 | -1 = colDiff > 0 ? 1 : -1;
+  const direction: 1 | -1 = colDiff >= 0 ? 1 : -1;
   const absDiff = Math.abs(colDiff);
 
   const base: BasePlannedEdge = {
@@ -110,6 +126,28 @@ function tryPlan(
     childRowOffset: 3 + childColIdx,
     direction,
   };
+
+  if (colDiff === 0) {
+    // Same-col edge: parent and child in same col-strip. Self-FKs land here
+    // too (parent.entity === child.entity → same Placement). Endpoints must
+    // be at different y positions; a ref to the same column of the same
+    // entity has nothing to draw.
+    if (parentP.rowStrip === childP.rowStrip && parentColIdx === childColIdx) {
+      return null;
+    }
+    // Prefer routing through the channel to the right of this col. The
+    // rightmost col has no channel to its right, so fall back to the left.
+    const side: 'left' | 'right' = parentP.colStrip < maxColStrip ? 'right' : 'left';
+    const channelIndex = side === 'right' ? parentP.colStrip : parentP.colStrip - 1;
+    if (channelIndex < 0) return null; // single-col diagram: nowhere to route
+    return {
+      kind: 'same-col',
+      ...base,
+      channelIndex,
+      side,
+      track: -1,
+    };
+  }
 
   if (absDiff === 1) {
     // Channel between adjacent cols, regardless of direction.
@@ -298,6 +336,20 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
     });
   }
 
+  // Same-col edges: independent V per edge in the chosen side-channel.
+  for (const edge of planned) {
+    if (edge.kind !== 'same-col') continue;
+    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
+    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    add(edge.channelIndex, {
+      yMin: Math.min(py, cy),
+      yMax: Math.max(py, cy),
+      assign: (t) => {
+        edge.track = t;
+      },
+    });
+  }
+
   const counts = new Map<number, number>();
   for (const [channel, entries] of byChannel) {
     counts.set(channel, packVEntries(entries));
@@ -362,11 +414,11 @@ export function materializeEdges(
   sizing: StripSizing,
   entityPositions: EntityPositions,
 ): EdgeRoute[] {
-  return planned.map((p) =>
-    p.kind === 'single'
-      ? materializeSingleHop(p, sizing, entityPositions)
-      : materializeMultiHop(p, sizing, entityPositions),
-  );
+  return planned.map((p) => {
+    if (p.kind === 'single') return materializeSingleHop(p, sizing, entityPositions);
+    if (p.kind === 'multi') return materializeMultiHop(p, sizing, entityPositions);
+    return materializeSameCol(p, sizing, entityPositions);
+  });
 }
 
 function materializeSingleHop(
@@ -458,6 +510,39 @@ function materializeMultiHop(
     { kind: 'horizontal', x1: v1X, y1: detourY, x2: v2X, y2: detourY },
     { kind: 'vertical', x1: v2X, y1: detourY, x2: v2X, y2: childPortY },
     { kind: 'horizontal', x1: v2X, y1: childPortY, x2: childPortX, y2: childPortY },
+  ];
+
+  return { ref: p.ref, parentPort, childPort, segments };
+}
+
+function materializeSameCol(
+  p: SameColPlannedEdge,
+  sizing: StripSizing,
+  entityPositions: EntityPositions,
+): EdgeRoute {
+  const parentBox = entityPositions.get(p.ref.parent.entity)!;
+  const childBox = entityPositions.get(p.ref.child.entity)!;
+
+  // Both ports leave from the same side (the side facing the chosen
+  // channel). The V travels through the adjacent channel and comes back.
+  const portX = p.side === 'right' ? parentBox.x + parentBox.width - 1 : parentBox.x;
+  const parentPortY = parentBox.y + p.parentRowOffset;
+  const childPortY = childBox.y + p.childRowOffset;
+  const portSide: Side = p.side;
+
+  const channelLeftX = colChannelStartX(sizing, p.channelIndex);
+  const bendX = channelLeftX + Math.max(0, p.track);
+
+  const parentPort: Port = { x: portX, y: parentPortY, side: portSide };
+  const childPort: Port = { x: portX, y: childPortY, side: portSide };
+
+  // Include the port cells in H1/H3 so x2-x1 has a sign — corner glyph
+  // selection at the bends works correctly. drawPortMarker repaints
+  // the port cells last.
+  const segments: EdgeSegment[] = [
+    { kind: 'horizontal', x1: portX, y1: parentPortY, x2: bendX, y2: parentPortY },
+    { kind: 'vertical', x1: bendX, y1: parentPortY, x2: bendX, y2: childPortY },
+    { kind: 'horizontal', x1: bendX, y1: childPortY, x2: portX, y2: childPortY },
   ];
 
   return { ref: p.ref, parentPort, childPort, segments };
