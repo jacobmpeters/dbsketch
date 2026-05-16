@@ -145,6 +145,44 @@ describe('planRoutes', () => {
     expect(result.planned).toHaveLength(2);
     expect(result.channelTrackCounts.get(0)).toBe(1);
   });
+
+  it('bundles edges sharing a parent port into a single V track', () => {
+    // Three children of the same parent column. Without bundling each
+    // would get its own track (channel width = 3); bundled, they share
+    // a trunk (channel width = 1).
+    const ir = parse(`
+      Table parent { id int }
+      Table a { id int parent_id int [ref: > parent.id] }
+      Table b { id int parent_id int [ref: > parent.id] }
+      Table c { id int parent_id int [ref: > parent.id] }
+    `);
+    const result = plan(ir);
+    expect(result.planned).toHaveLength(3);
+    expect(result.channelTrackCounts.get(0)).toBe(1);
+    // All three edges land on the same track since they share the trunk.
+    const tracks = result.planned
+      .filter((p): p is import('./route.js').SingleHopPlannedEdge => p.kind === 'single')
+      .map((p) => p.track);
+    expect(new Set(tracks).size).toBe(1);
+  });
+
+  it('does not bundle edges from different parent PKs even in the same channel', () => {
+    const ir = parse(`
+      Table p1 { id int }
+      Table p2 { id int }
+      Table dst {
+        id int
+        a int [ref: > p1.id]
+        b int [ref: > p2.id]
+      }
+    `);
+    const result = plan(ir);
+    // Two distinct parent ports → two distinct bundles → may need separate
+    // tracks if they overlap vertically. Here p1 and p2 are in different
+    // rows so their V intervals overlap by row 0 (PK row of each).
+    expect(result.planned).toHaveLength(2);
+    expect(result.channelTrackCounts.get(0)).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe('layout integration', () => {

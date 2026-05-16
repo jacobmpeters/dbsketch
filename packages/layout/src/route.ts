@@ -198,6 +198,14 @@ interface VEntry {
 //   single-hop: one V (parent_y ↔ child_y) in channelIndex
 //   multi-hop:  V1 (parent_y ↔ detour_y) in parentChannelIndex AND
 //               V2 (detour_y ↔ child_y) in childChannelIndex
+//
+// Single-hop edges that share (parent_entity, parent_column, channel,
+// direction) are *bundled*: they emit one VEntry whose y-range spans the
+// union of all member intervals, and whose assign() sets the track on
+// every member. The result is a single trunk V shared by all branches.
+// Channel width = distinct bundle groups + standalone edges, instead of
+// edge count — a clear win wherever a PK is referenced by multiple FKs
+// in the same target col.
 function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<number, number> {
   const byChannel = new Map<number, VEntry[]>();
   const add = (channel: number, entry: VEntry): void => {
@@ -209,37 +217,61 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
     bucket.push(entry);
   };
 
+  // First pass: group single-hop edges by bundle key.
+  const singleBundles = new Map<string, SingleHopPlannedEdge[]>();
   for (const edge of planned) {
-    if (edge.kind === 'single') {
-      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-      const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
-      if (py === cy) continue; // straight: no V segment
-      add(edge.channelIndex, {
-        yMin: Math.min(py, cy),
-        yMax: Math.max(py, cy),
-        assign: (t) => {
-          edge.track = t;
-        },
-      });
-    } else {
-      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-      const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
-      const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
-      add(edge.parentChannelIndex, {
-        yMin: Math.min(py, dy),
-        yMax: Math.max(py, dy),
-        assign: (t) => {
-          edge.parentTrack = t;
-        },
-      });
-      add(edge.childChannelIndex, {
-        yMin: Math.min(dy, cy),
-        yMax: Math.max(dy, cy),
-        assign: (t) => {
-          edge.childTrack = t;
-        },
-      });
+    if (edge.kind !== 'single') continue;
+    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
+    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    if (py === cy) continue; // straight: no V segment, no track needed
+    const key = `${edge.channelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
+    let bucket = singleBundles.get(key);
+    if (!bucket) {
+      bucket = [];
+      singleBundles.set(key, bucket);
     }
+    bucket.push(edge);
+  }
+
+  for (const edges of singleBundles.values()) {
+    const channel = edges[0]!.channelIndex;
+    let yMin = Number.POSITIVE_INFINITY;
+    let yMax = Number.NEGATIVE_INFINITY;
+    for (const edge of edges) {
+      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
+      const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+      yMin = Math.min(yMin, py, cy);
+      yMax = Math.max(yMax, py, cy);
+    }
+    add(channel, {
+      yMin,
+      yMax,
+      assign: (t) => {
+        for (const edge of edges) edge.track = t;
+      },
+    });
+  }
+
+  // Multi-hop: V1 and V2 (no bundling for v1; each edge keeps its own track).
+  for (const edge of planned) {
+    if (edge.kind !== 'multi') continue;
+    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
+    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
+    add(edge.parentChannelIndex, {
+      yMin: Math.min(py, dy),
+      yMax: Math.max(py, dy),
+      assign: (t) => {
+        edge.parentTrack = t;
+      },
+    });
+    add(edge.childChannelIndex, {
+      yMin: Math.min(dy, cy),
+      yMax: Math.max(dy, cy),
+      assign: (t) => {
+        edge.childTrack = t;
+      },
+    });
   }
 
   const counts = new Map<number, number>();
