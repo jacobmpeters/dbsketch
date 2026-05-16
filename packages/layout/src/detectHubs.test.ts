@@ -48,30 +48,33 @@ describe('detectHubs', () => {
     expect(a?.source).toBe('user');
   });
 
-  it('breaks degree ties by closeness to already-selected hubs', () => {
-    // The primary hub (sales, degree 4) is unambiguous. The secondary
-    // tie is between `near` (1 hop from sales) and `aaaa` (disconnected
-    // from sales), both at degree 3. Closeness should win — picking the
-    // far leaf would produce a fragmented spine.
+  it('auto-detects at most one hub (multi-hub is opt-in via explicit @center)', () => {
     const ir = parse(`
-      Table sales { id int a_id int [ref: > a.id] b_id int [ref: > b.id] c_id int [ref: > c.id] d_id int [ref: > d.id] }
+      Table fact { id int a_id int [ref: > a.id] b_id int [ref: > b.id] c_id int [ref: > c.id] d_id int [ref: > d.id] }
+      Table other { id int x_id int [ref: > a.id] y_id int [ref: > b.id] z_id int [ref: > c.id] }
       Table a { id int }
       Table b { id int }
       Table c { id int }
       Table d { id int }
-      Table near { id int n1_id int [ref: > leaf1.id] n2_id int [ref: > leaf2.id] s_id int [ref: > sales.id] }
-      Table leaf1 { id int }
-      Table leaf2 { id int }
-      Table aaaa { id int x1_id int [ref: > xa.id] x2_id int [ref: > xb.id] x3_id int [ref: > xc.id] }
-      Table xa { id int }
-      Table xb { id int }
-      Table xc { id int }
     `);
+    // Both fact (deg 4) and other (deg 3) clear the threshold, but auto
+    // only picks the top one.
     const hubs = detectHubs(ir).map((c) => c.entity);
-    expect(hubs[0]).toBe('sales');
-    // `near` connects to sales (dist 1), `aaaa` is in its own component.
-    // The closeness tiebreak picks near as the 2nd hub.
-    expect(hubs).toContain('near');
-    expect(hubs.indexOf('near')).toBeLessThan(hubs.indexOf('aaaa'));
+    expect(hubs).toEqual(['fact']);
+  });
+
+  it('honors all user-provided @center hints regardless of auto cap', () => {
+    const ir = parse(`
+      Table fact { id int a_id int [ref: > a.id] b_id int [ref: > b.id] c_id int [ref: > c.id] }
+      Table a { id int }
+      Table b { id int }
+      Table c { id int }
+    `);
+    ir.hints.centers.push(
+      { entity: 'a', left: [], right: [], source: 'user' },
+      { entity: 'b', left: [], right: [], source: 'user' },
+    );
+    const hubs = detectHubs(ir).map((c) => c.entity);
+    expect(hubs).toEqual(['a', 'b']);
   });
 });

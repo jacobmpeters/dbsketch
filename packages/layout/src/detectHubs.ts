@@ -11,11 +11,11 @@ import type { CenterHint, IR } from '@ascii-erd/parser';
 // referenced hubs (high in-count) with a single number.
 // Threshold: degree >= 3 (absolute floor — anything less isn't a hub by any
 // reasonable definition).
-// Cap: K=3 hubs per IR (top-K by degree). The cap keeps later passes
-// (hub permutation) brute-forceable and prevents low-signal hubs from
-// fragmenting the layout. Combined with the floor, snowflake-style schemas
-// pick up their regional hubs (each dim subtree's anchor) alongside the
-// primary fact table.
+// Auto cap: 1 hub. Single-hub centering is a clear win across schema shapes;
+// multi-hub layouts are wider and only help when the schema has genuinely
+// distinct subtrees, so they're opt-in via explicit @center hints rather
+// than auto-emitted. The ranker still handles multi-hub when the user
+// provides 2+ centers — only the detector is conservative.
 //
 // Returns the merged hints.centers array. If the user provided any
 // @center hints, auto-detection is suppressed entirely — the user
@@ -32,87 +32,22 @@ export function detectHubs(ir: IR): CenterHint[] {
 
   const degree = computeDegree(ir);
   const threshold = 3;
-  const cap = 3;
+  const cap = 1;
 
   const candidates = ir.entities
     .map((e) => ({ entity: e.name, deg: degree.get(e.name) ?? 0 }))
-    .filter((c) => c.deg >= threshold && !claimed.has(c.entity));
+    .filter((c) => c.deg >= threshold && !claimed.has(c.entity))
+    .sort((a, b) => {
+      if (b.deg !== a.deg) return b.deg - a.deg;
+      return a.entity.localeCompare(b.entity);
+    });
 
-  // Sequential pick: first hub by degree desc (alpha tiebreak); subsequent
-  // hubs prefer candidates closest to already-selected hubs. This favors
-  // intermediate "fact-table-adjacent" entities over peripheral leaves
-  // that happen to have the same degree — e.g., for snowflake at degree 3,
-  // picks product_dim (1 hop from sales_fact) over country_dim (3 hops).
-  const adj = buildUndirectedAdjLight(ir);
-  const distFromSelected = new Map<string, number>();
-  const selected: typeof candidates = [];
-
-  while (selected.length < cap && candidates.length > selected.length) {
-    let best: (typeof candidates)[0] | undefined;
-    for (const c of candidates) {
-      if (selected.some((s) => s.entity === c.entity)) continue;
-      if (best === undefined) {
-        best = c;
-        continue;
-      }
-      if (selected.length > 0) {
-        const cDist = distFromSelected.get(c.entity) ?? Number.POSITIVE_INFINITY;
-        const bDist = distFromSelected.get(best.entity) ?? Number.POSITIVE_INFINITY;
-        if (cDist !== bDist) {
-          if (cDist < bDist) best = c;
-          continue;
-        }
-      }
-      if (c.deg !== best.deg) {
-        if (c.deg > best.deg) best = c;
-        continue;
-      }
-      if (c.entity.localeCompare(best.entity) < 0) best = c;
-    }
-    if (!best) break;
-    selected.push(best);
-    // Refresh distances from the newly added hub.
-    const bfs = bfsDist(adj, best.entity);
-    for (const [entity, d] of bfs) {
-      const prev = distFromSelected.get(entity);
-      if (prev === undefined || d < prev) distFromSelected.set(entity, d);
-    }
-  }
-
-  return selected.map((c) => ({
+  return candidates.slice(0, cap).map((c) => ({
     entity: c.entity,
     left: [],
     right: [],
     source: 'auto' as const,
   }));
-}
-
-function buildUndirectedAdjLight(ir: IR): Map<string, Set<string>> {
-  const adj = new Map<string, Set<string>>();
-  for (const e of ir.entities) adj.set(e.name, new Set());
-  for (const ref of ir.refs) {
-    if (ref.cardinality === 'many-to-many') continue;
-    if (ref.parent.entity === ref.child.entity) continue;
-    adj.get(ref.parent.entity)?.add(ref.child.entity);
-    adj.get(ref.child.entity)?.add(ref.parent.entity);
-  }
-  return adj;
-}
-
-function bfsDist(adj: Map<string, Set<string>>, source: string): Map<string, number> {
-  const dist = new Map<string, number>();
-  dist.set(source, 0);
-  const queue: string[] = [source];
-  while (queue.length > 0) {
-    const cur = queue.shift()!;
-    const d = dist.get(cur)!;
-    for (const n of [...(adj.get(cur) ?? [])].sort()) {
-      if (dist.has(n)) continue;
-      dist.set(n, d + 1);
-      queue.push(n);
-    }
-  }
-  return dist;
 }
 
 function computeDegree(ir: IR): Map<string, number> {
