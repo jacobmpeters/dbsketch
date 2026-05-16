@@ -16,6 +16,10 @@ exports[`detectHubs > ecommerce.dbml 1`] = `
     "entity": "users",
     "source": "auto",
   },
+  {
+    "entity": "products",
+    "source": "auto",
+  },
 ]
 `;
 
@@ -23,6 +27,10 @@ exports[`detectHubs > hr_normalized.dbml 1`] = `
 [
   {
     "entity": "employees",
+    "source": "auto",
+  },
+  {
+    "entity": "persons",
     "source": "auto",
   },
 ]
@@ -61,6 +69,14 @@ exports[`detectHubs > snowflake.dbml 1`] = `
 [
   {
     "entity": "sales_fact",
+    "source": "auto",
+  },
+  {
+    "entity": "country_dim",
+    "source": "auto",
+  },
+  {
+    "entity": "customer_dim",
     "source": "auto",
   },
 ]

@@ -1,16 +1,16 @@
 import type { CenterHint, IR } from '@ascii-erd/parser';
 
 // Assigns each entity to a col-strip. Two strategies:
-//   - hub-distance ranking (when centers are provided): the hub sits in a
-//     center col with related entities fanning out on both sides by FK
-//     distance. Breaks the parent-left invariant intentionally.
-//   - balanced layering (default): Sugiyama-style left-to-right by FK
-//     direction with a width cap to control aspect ratio.
-//
-// For Phase 2 only single-hub centering is wired up; multiple centers
-// fall back to balanced layering (multi-hub is Phase 4).
+//   - hub-distance ranking (when centers are provided): hubs sit in
+//     center cols with related entities fanning out by FK distance.
+//     For one hub, neighbors split between left and right; for multiple
+//     hubs, a spine of hubs is interleaved with bridge cols for
+//     entities equidistant to adjacent hubs.
+//   - balanced layering (default, no centers): Sugiyama-style left-to-right
+//     by FK direction with a width cap to control aspect ratio.
 export function rank(ir: IR, centers: CenterHint[] = []): Map<string, number> {
   if (centers.length === 1) return hubDistanceRank(ir, centers[0]!);
+  if (centers.length > 1) return multiHubRank(ir, centers);
   return balancedRank(ir);
 }
 
@@ -123,6 +123,212 @@ function hubDistanceRank(ir: IR, center: CenterHint): Map<string, number> {
   }
 
   return cols;
+}
+
+// Multi-hub ranking: arrange hubs along a horizontal spine with bridge
+// cols between adjacent hubs for shared neighbors. Each non-hub entity
+// is either assigned to its closest hub (fans out exclusive of that hub)
+// or, if equidistant to two adjacent hubs, lands in their bridge.
+//
+// Layout (3 hubs example):
+//   [exclusive-L of H0] [H0] [bridge 0-1] [H1] [bridge 1-2] [H2] [exclusive-R of H2]
+//
+// Side rules:
+//   - Entities assigned to leftmost hub  → its LEFT side (exclusive-L)
+//   - Entities assigned to rightmost hub → its RIGHT side (exclusive-R)
+//   - Middle-hub-exclusive entities go on the LEFT (joins previous bridge area).
+//     This is a v1 simplification; middle hubs rarely have purely-exclusive
+//     neighbors in practice (otherwise they wouldn't be midway between hubs).
+//
+// Bridge entity at depth d sits in col (leftHub.col + d) — snaps to the
+// left hub. Asymmetric, but keeps the bridge width = max depth instead of
+// 2 * max depth.
+function multiHubRank(ir: IR, centers: CenterHint[]): Map<string, number> {
+  const hubs = centers.map((c) => c.entity);
+  const adj = buildUndirectedAdj(ir);
+
+  const distByHub = new Map<string, Map<string, number>>();
+  for (const hub of hubs) {
+    distByHub.set(hub, bfsDistances(adj, hub));
+  }
+
+  const hubOrder = orderHubs(hubs, distByHub);
+  const hubIndex = new Map(hubOrder.map((h, i) => [h, i]));
+  const K = hubOrder.length;
+
+  interface Assignment {
+    hubIdx: number;
+    depth: number;
+    isBridge: boolean;
+  }
+  const assignments = new Map<string, Assignment>();
+  for (const hub of hubOrder) {
+    assignments.set(hub, { hubIdx: hubIndex.get(hub)!, depth: 0, isBridge: false });
+  }
+
+  for (const e of ir.entities) {
+    if (assignments.has(e.name)) continue;
+    let minDist = Number.POSITIVE_INFINITY;
+    for (const hub of hubOrder) {
+      const d = distByHub.get(hub)?.get(e.name);
+      if (d !== undefined) minDist = Math.min(minDist, d);
+    }
+    if (!Number.isFinite(minDist)) continue;
+    const closestIdxs: number[] = [];
+    for (let i = 0; i < K; i++) {
+      if (distByHub.get(hubOrder[i]!)?.get(e.name) === minDist) closestIdxs.push(i);
+    }
+    if (closestIdxs.length === 1) {
+      assignments.set(e.name, { hubIdx: closestIdxs[0]!, depth: minDist, isBridge: false });
+      continue;
+    }
+    // Multiple hubs equidistant — try bridge between adjacent pair.
+    let bridgeLeft = -1;
+    for (let i = 0; i < K - 1; i++) {
+      if (closestIdxs.includes(i) && closestIdxs.includes(i + 1)) {
+        bridgeLeft = i;
+        break;
+      }
+    }
+    if (bridgeLeft !== -1) {
+      assignments.set(e.name, { hubIdx: bridgeLeft, depth: minDist, isBridge: true });
+    } else {
+      // Equidistant to non-adjacent hubs (rare). Pick alphabetical hub.
+      const pickIdx = closestIdxs.sort((a, b) => hubOrder[a]!.localeCompare(hubOrder[b]!))[0]!;
+      assignments.set(e.name, { hubIdx: pickIdx, depth: minDist, isBridge: false });
+    }
+  }
+
+  // Layout dimensions
+  const leftDepth = new Array<number>(K).fill(0); // exclusive depth on a hub's LEFT
+  const rightDepth = new Array<number>(K).fill(0); // exclusive depth on a hub's RIGHT
+  const bridgeDepth = new Array<number>(Math.max(0, K - 1)).fill(0);
+
+  for (const [name, a] of assignments) {
+    if (a.depth === 0) continue;
+    if (a.isBridge) {
+      bridgeDepth[a.hubIdx] = Math.max(bridgeDepth[a.hubIdx]!, a.depth);
+      continue;
+    }
+    if (a.hubIdx === 0) leftDepth[0] = Math.max(leftDepth[0]!, a.depth);
+    else if (a.hubIdx === K - 1) rightDepth[K - 1] = Math.max(rightDepth[K - 1]!, a.depth);
+    else leftDepth[a.hubIdx] = Math.max(leftDepth[a.hubIdx]!, a.depth);
+    void name;
+  }
+
+  const hubCol = new Array<number>(K).fill(0);
+  hubCol[0] = leftDepth[0]!;
+  for (let i = 1; i < K; i++) {
+    // Space between hub i-1 and hub i must hold both the bridge and any
+    // left-exclusive entities of hub i (middle-hub case). Both share cols
+    // adjacent to each other; reserve enough room for the larger.
+    const gap = Math.max(bridgeDepth[i - 1]!, leftDepth[i] ?? 0);
+    hubCol[i] = hubCol[i - 1]! + gap + 1;
+  }
+
+  const cols = new Map<string, number>();
+  for (const [name, a] of assignments) {
+    if (a.depth === 0) {
+      cols.set(name, hubCol[a.hubIdx]!);
+      continue;
+    }
+    if (a.isBridge) {
+      cols.set(name, hubCol[a.hubIdx]! + a.depth);
+      continue;
+    }
+    if (a.hubIdx === 0) {
+      cols.set(name, hubCol[0]! - a.depth);
+    } else if (a.hubIdx === K - 1) {
+      cols.set(name, hubCol[a.hubIdx]! + a.depth);
+    } else {
+      cols.set(name, hubCol[a.hubIdx]! - a.depth);
+    }
+  }
+
+  // Unreachable entities → cols after the rightmost.
+  let nextCol = (hubCol[K - 1] ?? 0) + (rightDepth[K - 1] ?? 0) + 1;
+  const unreachable = ir.entities
+    .map((e) => e.name)
+    .filter((n) => !cols.has(n))
+    .sort();
+  for (const n of unreachable) {
+    cols.set(n, nextCol);
+    nextCol++;
+  }
+
+  // Normalize so smallest col is 0 (some configurations leave gaps).
+  let minCol = Number.POSITIVE_INFINITY;
+  for (const c of cols.values()) minCol = Math.min(minCol, c);
+  if (Number.isFinite(minCol) && minCol > 0) {
+    for (const [k, v] of cols) cols.set(k, v - minCol);
+  }
+
+  return cols;
+}
+
+function bfsDistances(adj: Map<string, Set<string>>, source: string): Map<string, number> {
+  const dist = new Map<string, number>();
+  dist.set(source, 0);
+  const queue: string[] = [source];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    const d = dist.get(cur)!;
+    const neighbors = [...(adj.get(cur) ?? [])].sort();
+    for (const n of neighbors) {
+      if (dist.has(n)) continue;
+      dist.set(n, d + 1);
+      queue.push(n);
+    }
+  }
+  return dist;
+}
+
+// Pick the hub permutation that maximizes the total count of entities
+// equidistant to adjacent hub pairs (i.e., bridge density). Ties broken
+// by lexicographic order on the hub-name tuple for determinism.
+//
+// K up to 3 → 6 permutations, brute-forced. If K grows we'd need a
+// heuristic (barycenter-style), but the cap on hubs keeps us here.
+function orderHubs(hubs: string[], distByHub: Map<string, Map<string, number>>): string[] {
+  if (hubs.length <= 1) return [...hubs];
+  let best: string[] = [...hubs].sort();
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const order of permutations(best)) {
+    let score = 0;
+    for (let i = 0; i < order.length - 1; i++) {
+      const dA = distByHub.get(order[i]!)!;
+      const dB = distByHub.get(order[i + 1]!)!;
+      for (const [entity, da] of dA) {
+        const db = dB.get(entity);
+        if (db !== undefined && da === db && da > 0) score++;
+      }
+    }
+    if (score > bestScore || (score === bestScore && lexLess(order, best))) {
+      best = order;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function permutations<T>(items: T[]): T[][] {
+  if (items.length <= 1) return [items.slice()];
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i++) {
+    const rest = [...items.slice(0, i), ...items.slice(i + 1)];
+    for (const sub of permutations(rest)) {
+      result.push([items[i]!, ...sub]);
+    }
+  }
+  return result;
+}
+
+function lexLess(a: string[], b: string[]): boolean {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    const c = a[i]!.localeCompare(b[i]!);
+    if (c !== 0) return c < 0;
+  }
+  return a.length < b.length;
 }
 
 function buildUndirectedAdj(ir: IR): Map<string, Set<string>> {

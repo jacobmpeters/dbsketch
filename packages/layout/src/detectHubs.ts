@@ -9,10 +9,13 @@ import type { CenterHint, IR } from '@ascii-erd/parser';
 // Metric: total degree (count of one-to-many refs the entity participates in,
 // either as parent or child). Captures fact tables (high FK-out count) and
 // referenced hubs (high in-count) with a single number.
-// Threshold: degree >= max(3, ceil(sqrt(N))) where N = entity count.
+// Threshold: degree >= 3 (absolute floor — anything less isn't a hub by any
+// reasonable definition).
 // Cap: K=3 hubs per IR (top-K by degree). The cap keeps later passes
 // (hub permutation) brute-forceable and prevents low-signal hubs from
-// fragmenting the layout.
+// fragmenting the layout. Combined with the floor, snowflake-style schemas
+// pick up their regional hubs (each dim subtree's anchor) alongside the
+// primary fact table.
 //
 // Returns the merged hints.centers array. If the user provided any
 // @center hints, auto-detection is suppressed entirely — the user
@@ -28,8 +31,7 @@ export function detectHubs(ir: IR): CenterHint[] {
   }
 
   const degree = computeDegree(ir);
-  const n = ir.entities.length;
-  const threshold = Math.max(3, Math.ceil(Math.sqrt(n)));
+  const threshold = 3;
   const cap = 3;
 
   const candidates = ir.entities
