@@ -84,4 +84,18 @@ describe('runCli', () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain('invalid --dialect');
   });
+
+  it('infers relationships from PK-name matches by default', () => {
+    const dbml = `
+      Table dim_user { user_id int [pk] name varchar }
+      Table fact_event { event_id int [pk] user_id int }
+    `;
+    const inferred = runCli([], makeDeps(dbml));
+    const notInferred = runCli(['--no-infer-refs'], makeDeps(dbml));
+    expect(inferred.exitCode).toBe(0);
+    expect(notInferred.exitCode).toBe(0);
+    // With inference the layout connects the two entities, producing more
+    // characters and a wider diagram than two independent boxes.
+    expect(inferred.stdout.length).toBeGreaterThan(notInferred.stdout.length);
+  });
 });

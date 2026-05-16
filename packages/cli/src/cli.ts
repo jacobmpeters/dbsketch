@@ -20,10 +20,12 @@ the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
-  --ascii          Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
-  --sql            Treat input as SQL DDL (forced for stdin)
-  --dialect=NAME   SQL dialect: postgres (default), mysql, mssql, snowflake
-  -h, --help       Show this help
+  --ascii            Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
+  --sql              Treat input as SQL DDL (forced for stdin)
+  --dialect=NAME     SQL dialect: postgres (default), mysql, mssql, snowflake
+  --no-infer-refs    Don't infer relationships from PK-name matches when
+                     the schema declares none (default: infer)
+  -h, --help         Show this help
 `;
 
 const VALID_DIALECTS: SqlDialect[] = ['postgres', 'mysql', 'mssql', 'snowflake'];
@@ -33,6 +35,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     ascii?: boolean | undefined;
     sql?: boolean | undefined;
     dialect?: string | undefined;
+    'no-infer-refs'?: boolean | undefined;
     help?: boolean | undefined;
   };
   let positionals: string[];
@@ -43,6 +46,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
         ascii: { type: 'boolean', default: false },
         sql: { type: 'boolean', default: false },
         dialect: { type: 'string' },
+        'no-infer-refs': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
@@ -86,10 +90,13 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     dialect = values.dialect as SqlDialect;
   }
 
+  const opts = {
+    glyphs: values.ascii ? ('ascii' as const) : ('unicode' as const),
+    inferRefs: values['no-infer-refs'] ? ('never' as const) : ('auto' as const),
+  };
+
   try {
-    const out = isSql
-      ? compileSql(input, dialect, { glyphs: values.ascii ? 'ascii' : 'unicode' })
-      : compile(input, { glyphs: values.ascii ? 'ascii' : 'unicode' });
+    const out = isSql ? compileSql(input, dialect, opts) : compile(input, opts);
     const padded = out.length > 0 && !out.endsWith('\n') ? `${out}\n` : out;
     return { stdout: padded, stderr: '', exitCode: 0 };
   } catch (e) {
