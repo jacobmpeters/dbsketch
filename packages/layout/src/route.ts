@@ -252,19 +252,43 @@ function packColChannels(planned: PlannedEdge[], rowSizing: RowSizing): Map<numb
     });
   }
 
-  // Multi-hop: V1 and V2 (no bundling for v1; each edge keeps its own track).
+  // Multi-hop: V1 (parent-side) bundles by the same rule as single-hop.
+  // V2 (child-side) doesn't bundle in practice — each multi-hop has its
+  // own child column (no shared child port).
+  const multiV1Bundles = new Map<string, MultiHopPlannedEdge[]>();
   for (const edge of planned) {
     if (edge.kind !== 'multi') continue;
-    const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
-    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
-    const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
-    add(edge.parentChannelIndex, {
-      yMin: Math.min(py, dy),
-      yMax: Math.max(py, dy),
+    const key = `${edge.parentChannelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
+    let bucket = multiV1Bundles.get(key);
+    if (!bucket) {
+      bucket = [];
+      multiV1Bundles.set(key, bucket);
+    }
+    bucket.push(edge);
+  }
+  for (const edges of multiV1Bundles.values()) {
+    const channel = edges[0]!.parentChannelIndex;
+    let yMin = Number.POSITIVE_INFINITY;
+    let yMax = Number.NEGATIVE_INFINITY;
+    for (const edge of edges) {
+      const py = absoluteY(edge.parentRowStrip, edge.parentRowOffset, rowSizing);
+      const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
+      yMin = Math.min(yMin, py, dy);
+      yMax = Math.max(yMax, py, dy);
+    }
+    add(channel, {
+      yMin,
+      yMax,
       assign: (t) => {
-        edge.parentTrack = t;
+        for (const edge of edges) edge.parentTrack = t;
       },
     });
+  }
+  // V2 segments are independent per edge.
+  for (const edge of planned) {
+    if (edge.kind !== 'multi') continue;
+    const cy = absoluteY(edge.childRowStrip, edge.childRowOffset, rowSizing);
+    const dy = rowChannelStartY(edge.detourRowChannel, rowSizing) + Math.max(0, edge.detourTrack);
     add(edge.childChannelIndex, {
       yMin: Math.min(dy, cy),
       yMax: Math.max(dy, cy),
