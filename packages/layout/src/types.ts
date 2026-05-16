@@ -1,4 +1,5 @@
 import type { IR, Ref } from '@dbsketch/parser';
+import type { EntityPositions } from './positions.js';
 
 export interface Placement {
   entity: string;
@@ -44,9 +45,9 @@ export interface Layout {
   sizing: StripSizing;
   edges: EdgeRoute[];
   // Per-entity absolute position. Render and route consume this rather than
-  // computing y from strip offsets directly — lets Stage 2 (per-col stacking)
-  // change the y semantics without touching consumers.
-  entityPositions: Map<string, { x: number; y: number; width: number; height: number }>;
+  // computing y from strip offsets directly — lets per-col stacking change
+  // the y semantics without touching consumers.
+  entityPositions: EntityPositions;
   // Refs the v1 router can't handle yet — surfaced so consumers can see them
   // rather than silently swallowing relationships.
   skippedRefs: Ref[];
