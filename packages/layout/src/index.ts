@@ -1,3 +1,4 @@
+export { detectHubs } from './detectHubs.js';
 export { HintConflictError, layout } from './layout.js';
 export { type EntityBox, type EntityPositions, computeEntityPositions } from './positions.js';
 export { place } from './place.js';

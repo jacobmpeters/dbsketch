@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`detectHubs > basic.dbml 1`] = `[]`;
+
+exports[`detectHubs > blog.dbml 1`] = `[]`;
+
+exports[`detectHubs > cardinalities.dbml 1`] = `[]`;
+
+exports[`detectHubs > ecommerce.dbml 1`] = `
+[
+  {
+    "entity": "orders",
+    "source": "auto",
+  },
+  {
+    "entity": "users",
+    "source": "auto",
+  },
+]
+`;
+
+exports[`detectHubs > hr_normalized.dbml 1`] = `
+[
+  {
+    "entity": "employees",
+    "source": "auto",
+  },
+]
+`;
+
+exports[`detectHubs > library.dbml 1`] = `
+[
+  {
+    "entity": "book",
+    "source": "auto",
+  },
+]
+`;
+
+exports[`detectHubs > many-to-many.dbml 1`] = `[]`;
+
+exports[`detectHubs > pure_star.dbml 1`] = `
+[
+  {
+    "entity": "sales_fact",
+    "source": "auto",
+  },
+]
+`;
+
+exports[`detectHubs > sales_star.dbml 1`] = `
+[
+  {
+    "entity": "sales_fact",
+    "source": "auto",
+  },
+]
+`;
+
+exports[`detectHubs > snowflake.dbml 1`] = `
+[
+  {
+    "entity": "sales_fact",
+    "source": "auto",
+  },
+]
+`;

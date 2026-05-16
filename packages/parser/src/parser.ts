@@ -26,7 +26,7 @@ class Parser {
     return {
       entities: this.entities,
       refs: this.refs,
-      hints: { clusters: [], ranks: [], pins: this.pins },
+      hints: { clusters: [], ranks: [], pins: this.pins, centers: [] },
     };
   }
 

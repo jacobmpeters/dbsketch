@@ -192,6 +192,7 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],
@@ -430,6 +431,7 @@ exports[`layout snapshots > branching-children 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],
@@ -721,6 +723,7 @@ exports[`layout snapshots > diamond 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],
@@ -962,6 +965,7 @@ exports[`layout snapshots > junction-table 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],
@@ -1188,6 +1192,7 @@ exports[`layout snapshots > linear-chain 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],
@@ -1283,6 +1288,7 @@ exports[`layout snapshots > single-table 1`] = `
       },
     ],
     "hints": {
+      "centers": [],
       "clusters": [],
       "pins": [],
       "ranks": [],

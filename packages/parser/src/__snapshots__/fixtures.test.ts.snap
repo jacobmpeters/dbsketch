@@ -25,6 +25,7 @@ exports[`fixtures > basic.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -108,6 +109,7 @@ exports[`fixtures > blog.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -215,6 +217,7 @@ exports[`fixtures > cardinalities.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -543,6 +546,7 @@ exports[`fixtures > ecommerce.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -944,6 +948,7 @@ exports[`fixtures > hr_normalized.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -1264,6 +1269,7 @@ exports[`fixtures > library.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -1394,6 +1400,7 @@ exports[`fixtures > many-to-many.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -1615,6 +1622,7 @@ exports[`fixtures > pure_star.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -1922,6 +1930,7 @@ exports[`fixtures > sales_star.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],
@@ -2266,6 +2275,7 @@ exports[`fixtures > snowflake.dbml 1`] = `
     },
   ],
   "hints": {
+    "centers": [],
     "clusters": [],
     "pins": [],
     "ranks": [],

@@ -40,10 +40,24 @@ export interface PinHint {
   row: number | null;
 }
 
+// Mark an entity as a layout hub: rank assignment puts it in a center col
+// with related entities fanning out on both sides. Optional left/right lists
+// bias which side specific neighbors land on.
+//
+// source distinguishes user-provided hints (from @center in @layout block)
+// from synthetic ones emitted by hub auto-detection. User hints always win.
+export interface CenterHint {
+  entity: string;
+  left: string[];
+  right: string[];
+  source: 'user' | 'auto';
+}
+
 export interface LayoutHints {
   clusters: ClusterHint[];
   ranks: RankHint[];
   pins: PinHint[];
+  centers: CenterHint[];
 }
 
 export interface IR {
