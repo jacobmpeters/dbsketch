@@ -352,7 +352,72 @@ To narrow it to four columns, wrap `dim_product` below `dim_date` by pinning it.
 
 Same schema, same algorithm — one hint to encode local intent.
 
-> **Caveat.** Pinning two related entities into the same column drops the edge between them silently (same-column edges aren't routable). Pin into neighboring columns instead; the routing engine handles forward and backward flow when an `@center` is active.
+### Biasing which dimensions land on which side
+
+For a fact-table-style schema, dbsketch auto-centers the highest-degree entity and splits its neighbors alphabetically between left and right. If you'd rather group them yourself, the `@center` hint takes optional `left:` and `right:` lists.
+
+```dbml
+Table fact_orders {
+  order_id int [pk]
+  date_key int [ref: > dim_date.date_key]
+  customer_id int [ref: > dim_customer.customer_id]
+  product_id int [ref: > dim_product.product_id]
+  store_id int [ref: > dim_store.store_id]
+  amount decimal
+}
+Table dim_date     { date_key int [pk] year int month int }
+Table dim_customer { customer_id int [pk] email varchar segment varchar }
+Table dim_product  { product_id int [pk] sku varchar name varchar }
+Table dim_store    { store_id int [pk] name varchar region varchar }
+```
+
+Default centering (alphabetical split — `dim_customer` and `dim_product` end up on the left):
+
+```
+╭─────────────────╮  ╭─────────────────╮  ╭────────────────╮
+│  dim_customer   │  │   fact_orders   │  │    dim_date    │
+├─────────────────┤  ├─────────────────┤  ├────────────────┤
+│·customer_id int ├╮ │·order_id    int │╭─┤·date_key   int │
+│ email   varchar ││ │ date_key    int ├╯ │ year       int │
+│ segment varchar │╰─┤ customer_id int │  │ month      int │
+╰─────────────────╯ ╭┤ product_id  int │  ╰────────────────╯
+                    ││ store_id    int ├─╮
+╭─────────────────╮ ││ amount  decimal │ │╭────────────────╮
+│   dim_product   │ │╰─────────────────╯ ││   dim_store    │
+├─────────────────┤ │                    │├────────────────┤
+│·product_id  int ├─╯                    ╰┤·store_id   int │
+│ sku     varchar │                       │ name   varchar │
+│ name    varchar │                       │ region varchar │
+╰─────────────────╯                       ╰────────────────╯
+```
+
+With an explicit grouping — "who" dimensions on the left, "what/where" on the right:
+
+```dbml
+@layout {
+  center fact_orders { left: dim_date, dim_customer right: dim_product, dim_store }
+}
+```
+
+```
+╭─────────────────╮  ╭─────────────────╮  ╭────────────────╮
+│  dim_customer   │  │   fact_orders   │  │  dim_product   │
+├─────────────────┤  ├─────────────────┤  ├────────────────┤
+│·customer_id int ├╮ │·order_id    int │╭─┤·product_id int │
+│ email   varchar ││╭┤ date_key    int ││ │ sku    varchar │
+│ segment varchar │╰│┤ customer_id int ││ │ name   varchar │
+╰─────────────────╯ ││ product_id  int ├╯ ╰────────────────╯
+                    ││ store_id    int ├─╮
+╭─────────────────╮ ││ amount  decimal │ │╭────────────────╮
+│    dim_date     │ │╰─────────────────╯ ││   dim_store    │
+├─────────────────┤ │                    │├────────────────┤
+│·date_key    int ├─╯                    ╰┤·store_id   int │
+│ year        int │                       │ name   varchar │
+│ month       int │                       │ region varchar │
+╰─────────────────╯                       ╰────────────────╯
+```
+
+`@center` also overrides the auto-detected hub if you want a different entity in the middle.
 
 ## License
 
