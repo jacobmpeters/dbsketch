@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`route stats baseline > blog 1`] = `
+{
+  "bendAdjacent": 0,
+  "portAdjacent": 2,
+}
+`;
+
+exports[`route stats baseline > questionnaire 1`] = `
+{
+  "bendAdjacent": 3,
+  "portAdjacent": 13,
+}
+`;
+
+exports[`route stats baseline > snowflake-pinned 1`] = `
+{
+  "bendAdjacent": 0,
+  "portAdjacent": 2,
+}
+`;
+
+exports[`route stats baseline > star-default 1`] = `
+{
+  "bendAdjacent": 1,
+  "portAdjacent": 4,
+}
+`;

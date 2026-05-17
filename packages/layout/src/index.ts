@@ -5,6 +5,8 @@
 // source files directly if needed but aren't part of the stable surface.
 export { HintConflictError, layout } from './layout.js';
 export type { EntityBox, EntityPositions } from './positions.js';
+export { routeStats } from './stats.js';
+export type { RouteStats } from './stats.js';
 export type {
   EdgeRoute,
   EdgeSegment,
