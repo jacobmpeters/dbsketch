@@ -1,5 +1,14 @@
 import { type Token, type TokenKind, tokenize } from './tokenizer.js';
-import type { CenterHint, Column, Entity, IR, PinHint, Ref, RefEndpoint } from './types.js';
+import type {
+  CenterHint,
+  Column,
+  Entity,
+  IR,
+  PinHint,
+  PreserveOrderHint,
+  Ref,
+  RefEndpoint,
+} from './types.js';
 
 export class ParseError extends Error {
   constructor(
@@ -17,6 +26,7 @@ class Parser {
   private readonly refs: Ref[] = [];
   private readonly pins: PinHint[] = [];
   private readonly centers: CenterHint[] = [];
+  private readonly preserveOrder: PreserveOrderHint = { global: false, entities: [] };
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -27,7 +37,13 @@ class Parser {
     return {
       entities: this.entities,
       refs: this.refs,
-      hints: { clusters: [], ranks: [], pins: this.pins, centers: this.centers },
+      hints: {
+        clusters: [],
+        ranks: [],
+        pins: this.pins,
+        centers: this.centers,
+        preserveOrder: this.preserveOrder,
+      },
     };
   }
 
@@ -174,11 +190,43 @@ class Parser {
       this.parseCenterHint();
       return;
     }
+    if (keyword === 'preserve_order') {
+      this.parsePreserveOrderHint();
+      return;
+    }
     throw new ParseError(
-      `Unknown hint: '${tok.value}' (expected 'pin' or 'center')`,
+      `Unknown hint: '${tok.value}' (expected 'pin', 'center', or 'preserve_order')`,
       tok.line,
       tok.col,
     );
+  }
+
+  // Syntax:
+  //   preserve_order                       → freeze every entity
+  //   preserve_order entity1, entity2      → freeze only the listed entities
+  // Multiple statements accumulate; once `global` is set it stays set.
+  private parsePreserveOrderHint(): void {
+    this.consume('ident'); // 'preserve_order'
+    if (this.at('rbrace') || this.atHintBoundary()) {
+      this.preserveOrder.global = true;
+      return;
+    }
+    while (true) {
+      const entityTok = this.consume('ident');
+      this.preserveOrder.entities.push(entityTok.value);
+      if (this.at('comma')) {
+        this.consume('comma');
+        continue;
+      }
+      break;
+    }
+  }
+
+  private atHintBoundary(): boolean {
+    const tok = this.peek();
+    if (tok.kind !== 'ident') return false;
+    const kw = tok.value.toLowerCase();
+    return kw === 'pin' || kw === 'center' || kw === 'preserve_order';
   }
 
   private parsePinHint(): void {

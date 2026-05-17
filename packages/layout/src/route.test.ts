@@ -231,9 +231,12 @@ describe('layout integration', () => {
   });
 
   it('produces three segments (H, V, H) for a Z-shape edge', () => {
+    // dst has a PK that pins to row 0, so the FK column ends up at row 1
+    // even after column optimization — the Y mismatch with src.a (row 0)
+    // forces a Z-shape.
     const ir = parse(`
       Table src { a int }
-      Table dst { id int x int [ref: > src.a] }
+      Table dst { id int [pk] x int [ref: > src.a] }
     `);
     const result = layout(ir);
     expect(result.edges).toHaveLength(1);

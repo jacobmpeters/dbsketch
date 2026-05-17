@@ -1,10 +1,12 @@
 import type { IR, LayoutHints } from '@dbsketch/parser';
 import { detectHubs } from './detectHubs.js';
+import { optimizeColumns } from './optimizeColumns.js';
 import { place } from './place.js';
 import { computeEntityPositions } from './positions.js';
 import { rank } from './rank.js';
 import { materializeEdges, planRoutes } from './route.js';
 import { size } from './size.js';
+import { routeStats } from './stats.js';
 import type { Layout } from './types.js';
 
 export class HintConflictError extends Error {
@@ -15,6 +17,15 @@ export class HintConflictError extends Error {
 
 export function layout(ir: IR): Layout {
   validateHintCombos(ir);
+  // Search over column orderings for entities with scattered FK columns,
+  // re-running the inner pipeline for each candidate and picking whichever
+  // produces lower crossings (tie-break: lower totalVLength). The search
+  // calls layoutCore directly to avoid recursion.
+  const { ir: optimizedIr } = optimizeColumns(ir, (candidate) => routeStats(layoutCore(candidate)));
+  return layoutCore(optimizedIr);
+}
+
+function layoutCore(ir: IR): Layout {
   const centers = detectHubs(ir);
   const ranks = rank(ir, centers);
   applyColPins(ranks, ir.hints, ir);

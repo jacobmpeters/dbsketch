@@ -28,6 +28,10 @@ exports[`fixtures > basic.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [],
@@ -112,6 +116,10 @@ exports[`fixtures > blog.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -220,6 +228,10 @@ exports[`fixtures > cardinalities.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -549,6 +561,10 @@ exports[`fixtures > ecommerce.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -951,6 +967,10 @@ exports[`fixtures > hr_normalized.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -1272,6 +1292,10 @@ exports[`fixtures > library.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -1403,6 +1427,10 @@ exports[`fixtures > many-to-many.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -1625,6 +1653,10 @@ exports[`fixtures > pure_star.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -1933,6 +1965,10 @@ exports[`fixtures > sales_star.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [
@@ -2278,6 +2314,10 @@ exports[`fixtures > snowflake.dbml 1`] = `
     "centers": [],
     "clusters": [],
     "pins": [],
+    "preserveOrder": {
+      "entities": [],
+      "global": false,
+    },
     "ranks": [],
   },
   "refs": [

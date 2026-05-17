@@ -17,7 +17,7 @@ exports[`route stats baseline > questionnaire 1`] = `
 exports[`route stats baseline > snowflake-pinned 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 32,
+  "totalVLength": 30,
 }
 `;
 
