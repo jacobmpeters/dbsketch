@@ -220,10 +220,11 @@ The canvas is a **strip grid** — alternating node strips (where entities sit) 
 
 - **Layout.** Auto-detected hub (highest-degree entity) goes in the center, with neighbors fanning out left and right by FK distance. Entities pack tightly per column.
 - **Sibling ordering.** Within a column, entities order by barycenter — the mean row position of their FK neighbors — so connected entities cluster together. For star schemas where every dim shares the same fact-table neighbor (and would all tie on raw barycenter), a port-aware tiebreaker sorts each dim by which row of the fact it attaches to. Result: dim_date sits next to fact.date_id, dim_currency sits next to fact.currency_id, edges are short and rarely cross.
+- **Column ordering.** Each entity's columns are searched: declared order vs PK-FK-other. The full layout runs for each candidate, and whichever yields fewer edge crossings (tie-break: shorter total V length) wins. Entities the rule wouldn't change (already conventional) are skipped. Opt out per-entity or globally with `@layout { preserve_order ... }`.
 - **Routing.** Each edge decomposes into horizontal and vertical segments. Segments within a channel pack onto tracks via interval scheduling (greedy, O(n log n)). Multi-hop edges route through a shared top margin above all entities. Edges that share a parent port collapse into a single trunk that branches. Self-FKs and edges between same-column entities route around the adjacent channel rather than silently dropping.
 - **Rendering.** Each cell holds one glyph. Bend cells use direction-set merging so corners upgrade to tees naturally and horizontal-meets-vertical produces the conventional "h passes under v" gap.
 
-The whole pipeline is single-pass and runs in low milliseconds for schemas of dozens of tables. A 100-entity star schema compiles in under 4ms.
+The pipeline runs in low milliseconds for schemas of dozens of tables, including the few extra layout passes the column-ordering search adds for hub-like entities. A 100-entity star schema compiles in under 4ms.
 
 By restricting ourselves to monospace UTF-8 box-drawing characters, the algorithm sidesteps every continuous-space problem: there's no font-metric ambiguity, no kerning, no anti-aliasing, no DPI. Cells align because they're cells. There's no aesthetic knob to fuss with because the medium doesn't offer one.
 

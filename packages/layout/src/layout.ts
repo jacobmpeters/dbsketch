@@ -21,7 +21,7 @@ export function layout(ir: IR): Layout {
   // re-running the inner pipeline for each candidate and picking whichever
   // produces lower crossings (tie-break: lower totalVLength). The search
   // calls layoutCore directly to avoid recursion.
-  const { ir: optimizedIr } = optimizeColumns(ir, (candidate) => routeStats(layoutCore(candidate)));
+  const optimizedIr = optimizeColumns(ir, (candidate) => routeStats(layoutCore(candidate)));
   return layoutCore(optimizedIr);
 }
 

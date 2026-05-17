@@ -3,16 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { layout } from './layout.js';
 import { routeStats } from './stats.js';
 
-// Baseline routing-density measurements. The four scenarios cover the
-// shapes that motivated the metrics:
+// Baseline crossings + totalVLength across four shapes that exercise the
+// layout's routing decisions:
 //   - snowflake-pinned: hand-pinned 4-col layout from the README's worked
-//     example; produces the snowflake `╭│┤` pattern at fact_sales' product_id
-//     port.
+//     example; column optimization picks PK-FK-other for the two dims with
+//     FKs declared after non-FK columns.
 //   - questionnaire: 12-entity instrument-design schema (the wide
-//     `--no-types` diagram in the README); produces the `╮╮` and `├┬╮╮─┤`
-//     bend-fusion clusters around questionnaire_question.
-//   - star-default: auto-centered fact_sales hub with seven dim subtrees.
-//   - blog: 3-table chain (low-density baseline).
+//     `--no-types` diagram in the README); multi-hop V's account for the
+//     residual crossings here.
+//   - star-default: auto-centered fact_sales hub with seven dim subtrees;
+//     column optimization correctly rejects PK-FK-other (would regress).
+//   - blog: 3-table chain (low-density baseline; one crossing from
+//     multi-hop users.id → comments.user_id).
 const SCENARIOS: Record<string, string> = {
   'snowflake-pinned': `
     Table dim_date     { date_key date [pk] year integer month integer }

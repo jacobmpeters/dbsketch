@@ -1,14 +1,6 @@
 import type { Column, IR } from '@dbsketch/parser';
 import type { RouteStats } from './stats.js';
 
-// Result of trying one ordering for one entity, recorded so the caller
-// can iterate without re-running layout for the same candidate twice.
-export interface OrderingTrial {
-  entity: string;
-  ordering: 'declared' | 'pk-fk-other';
-  stats: RouteStats;
-}
-
 // Per-entity greedy search over column orderings. For each entity with
 // scattered FK columns (or just multiple candidates worth trying), we
 // run the layout twice — once with declared order, once with PK-FK-other
@@ -22,40 +14,31 @@ export interface OrderingTrial {
 //
 // Determinism: same input → same chosen orderings. Entities visit in
 // declared order; ties prefer declared.
-export function optimizeColumns(
-  ir: IR,
-  evaluate: (ir: IR) => RouteStats,
-): { ir: IR; trials: OrderingTrial[] } {
-  const trials: OrderingTrial[] = [];
-
+export function optimizeColumns(ir: IR, evaluate: (ir: IR) => RouteStats): IR {
   // Global preserve_order short-circuits the whole pass — every entity
   // stays at declared order.
-  if (ir.hints.preserveOrder.global) {
-    return { ir, trials };
-  }
+  if (ir.hints.preserveOrder.global) return ir;
 
   const preserveSet = new Set(ir.hints.preserveOrder.entities);
   const candidates = ir.entities.filter(
     (e) => !preserveSet.has(e.name) && hasReorderCandidate(e, ir),
   );
-  if (candidates.length === 0) return { ir, trials };
+  if (candidates.length === 0) return ir;
 
   let bestIr = ir;
   let bestStats = evaluate(ir);
-  trials.push({ entity: '<baseline>', ordering: 'declared', stats: bestStats });
 
   for (const entity of candidates) {
     const reordered = pkFkOtherOrdering(entity, ir);
     const altIr = replaceEntity(bestIr, entity.name, reordered);
     const altStats = evaluate(altIr);
-    trials.push({ entity: entity.name, ordering: 'pk-fk-other', stats: altStats });
     if (isBetter(altStats, bestStats)) {
       bestIr = altIr;
       bestStats = altStats;
     }
   }
 
-  return { ir: bestIr, trials };
+  return bestIr;
 }
 
 // "Interesting" candidate: entity has at least one FK column AND at
