@@ -13,9 +13,9 @@
     <tspan x="14" y="142">                 │ │   dim_patient    ││╭┤ procedure_id     INT ││││     dim_payer     │</tspan>
     <tspan x="14" y="155">                 │ ├──────────────────┤│││ quantity         INT │││├───────────────────┤</tspan>
     <tspan x="14" y="168">                 │ │·patient_id   INT ├╯││ charge       DECIMAL ││╰┤·payer_id      INT │</tspan>
-    <tspan x="14" y="181">                 │ │ age_band VARCHAR │ ││ paid         DECIMAL ││ │ plan_name VARCHAR │</tspan>
-    <tspan x="14" y="194">                 │ │ sex      VARCHAR │ │╰──────────────────────╯│ │ plan_type VARCHAR │</tspan>
-    <tspan x="14" y="207">                 ╰─┤ region_id    INT │ │                        │ ╰───────────────────╯</tspan>
+    <tspan x="14" y="181">                 ╰─┤ region_id    INT │ ││ paid         DECIMAL ││ │ plan_name VARCHAR │</tspan>
+    <tspan x="14" y="194">                   │ age_band VARCHAR │ │╰──────────────────────╯│ │ plan_type VARCHAR │</tspan>
+    <tspan x="14" y="207">                   │ sex      VARCHAR │ │                        │ ╰───────────────────╯</tspan>
     <tspan x="14" y="220">                   ╰──────────────────╯ │                        │</tspan>
     <tspan x="14" y="233">                                        │                        │ ╭───────────────────╮</tspan>
     <tspan x="14" y="246">                   ╭──────────────────╮ │                        │ │   dim_diagnosis   │</tspan>
