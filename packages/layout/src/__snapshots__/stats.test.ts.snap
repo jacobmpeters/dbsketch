@@ -3,6 +3,7 @@
 exports[`route stats baseline > blog 1`] = `
 {
   "bendAdjacent": 0,
+  "crossings": 1,
   "portAdjacent": 2,
 }
 `;
@@ -10,6 +11,7 @@ exports[`route stats baseline > blog 1`] = `
 exports[`route stats baseline > questionnaire 1`] = `
 {
   "bendAdjacent": 3,
+  "crossings": 2,
   "portAdjacent": 13,
 }
 `;
@@ -17,6 +19,7 @@ exports[`route stats baseline > questionnaire 1`] = `
 exports[`route stats baseline > snowflake-pinned 1`] = `
 {
   "bendAdjacent": 0,
+  "crossings": 0,
   "portAdjacent": 2,
 }
 `;
@@ -24,6 +27,7 @@ exports[`route stats baseline > snowflake-pinned 1`] = `
 exports[`route stats baseline > star-default 1`] = `
 {
   "bendAdjacent": 0,
+  "crossings": 0,
   "portAdjacent": 4,
 }
 `;

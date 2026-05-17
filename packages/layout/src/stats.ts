@@ -1,11 +1,16 @@
 import type { Layout, StripSizing } from './types.js';
 
-// Routing-density predicates. Each fires when the rendered output puts
-// distinct routing glyphs (bends, passes-through, ports) so close together
-// that they visually fuse — `╮╮`, `╭│┤`, etc. These don't affect
-// correctness; they're regression metrics for proposed channel-padding
-// optimizations.
+// Routing-density predicates plus a direct geometric crossing count.
+// crossings is the load-bearing metric for layout optimization; the
+// adjacency predicates measure visual clustering that lives on top of
+// the structural crossing count.
 export interface RouteStats {
+  // Pairs (H of edge A, V of edge B, A ≠ A's bundle) where A's H runs at
+  // y=Y, B's V passes through y=Y at some x strictly inside A's H range.
+  // Each geometric H×V intersection counts once. Bundled trunks dedupe
+  // by exact endpoints so a single rendered crossing on a shared trunk
+  // isn't counted per bundle member.
+  crossings: number;
   // Two bend cells in the same col-channel at the same y with adjacent
   // x (|∆x| = 1). Produces fused corner clusters like `╮╮`/`╭╯`.
   bendAdjacent: number;
@@ -97,9 +102,77 @@ export function routeStats(layout: Layout): RouteStats {
 
   const trunkList = [...trunks.values()];
   return {
+    crossings: countCrossings(layout),
     bendAdjacent: countBendAdjacent(trunkList),
     portAdjacent: countPortAdjacent(trunkList, ports),
   };
+}
+
+interface HTrunk {
+  y: number;
+  xMin: number;
+  xMax: number;
+  edgeIdxs: Set<number>;
+}
+
+interface VTrunk {
+  x: number;
+  yMin: number;
+  yMax: number;
+  edgeIdxs: Set<number>;
+}
+
+function countCrossings(layout: Layout): number {
+  // Dedupe segments by exact endpoints. Parent-side bundling produces
+  // identical H1's (port → shared trunk) for every member of a bundle, and
+  // a shared V trunk for the bundle is recorded once per member; without
+  // dedup we'd count a single rendered crossing N times where N is the
+  // bundle size.
+  const hTrunks = new Map<string, HTrunk>();
+  const vTrunks = new Map<string, VTrunk>();
+  for (let i = 0; i < layout.edges.length; i++) {
+    for (const s of layout.edges[i]!.segments) {
+      if (s.kind === 'horizontal') {
+        const xMin = Math.min(s.x1, s.x2);
+        const xMax = Math.max(s.x1, s.x2);
+        const key = `${s.y1}|${xMin}|${xMax}`;
+        const existing = hTrunks.get(key);
+        if (existing) existing.edgeIdxs.add(i);
+        else hTrunks.set(key, { y: s.y1, xMin, xMax, edgeIdxs: new Set([i]) });
+      } else {
+        const yMin = Math.min(s.y1, s.y2);
+        const yMax = Math.max(s.y1, s.y2);
+        const key = `${s.x1}|${yMin}|${yMax}`;
+        const existing = vTrunks.get(key);
+        if (existing) existing.edgeIdxs.add(i);
+        else vTrunks.set(key, { x: s.x1, yMin, yMax, edgeIdxs: new Set([i]) });
+      }
+    }
+  }
+
+  let count = 0;
+  for (const h of hTrunks.values()) {
+    for (const v of vTrunks.values()) {
+      // Skip when H and V share any edge — the H is part of the same edge
+      // as the V (its own corner), or part of the same bundle (no rendered
+      // crossing since they share the trunk).
+      let sameBundle = false;
+      for (const idx of h.edgeIdxs) {
+        if (v.edgeIdxs.has(idx)) {
+          sameBundle = true;
+          break;
+        }
+      }
+      if (sameBundle) continue;
+      // Strict interior on both axes. Endpoints of an H sit on corner cells
+      // where a perpendicular V terminates; touching there is a corner, not
+      // a crossing.
+      if (v.x <= h.xMin || v.x >= h.xMax) continue;
+      if (h.y <= v.yMin || h.y >= v.yMax) continue;
+      count++;
+    }
+  }
+  return count;
 }
 
 function countBendAdjacent(trunks: VInfo[]): number {
