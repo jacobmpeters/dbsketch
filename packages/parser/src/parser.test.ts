@@ -6,13 +6,7 @@ describe('parse', () => {
     expect(parse('')).toEqual({
       entities: [],
       refs: [],
-      hints: {
-        clusters: [],
-        ranks: [],
-        pins: [],
-        centers: [],
-        preserveOrder: { global: false, entities: [] },
-      },
+      hints: { clusters: [], ranks: [], pins: [], centers: [] },
     });
   });
 

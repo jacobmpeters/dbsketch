@@ -41,8 +41,8 @@ describe('render', () => {
       "╭───────────────╮  ╭───────────────╮
       │     users     │  │     posts     │
       ├───────────────┤  ├───────────────┤
-      │ id        int ├──┤ user_id   int │
-      │ email varchar │  │ id        int │
+      │ id        int ├╮ │ id        int │
+      │ email varchar │╰─┤ user_id   int │
       ╰───────────────╯  │ title varchar │
                          ╰───────────────╯"
     `);

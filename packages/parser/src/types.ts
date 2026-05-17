@@ -53,20 +53,11 @@ export interface CenterHint {
   source: 'user' | 'auto';
 }
 
-// Opt-out from automatic column reordering inside entities. `global: true`
-// freezes every entity's columns at declared order; otherwise `entities`
-// names the specific entities to leave alone.
-export interface PreserveOrderHint {
-  global: boolean;
-  entities: string[];
-}
-
 export interface LayoutHints {
   clusters: ClusterHint[];
   ranks: RankHint[];
   pins: PinHint[];
   centers: CenterHint[];
-  preserveOrder: PreserveOrderHint;
 }
 
 export interface IR {

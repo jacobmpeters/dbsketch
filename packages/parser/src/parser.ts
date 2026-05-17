@@ -1,14 +1,5 @@
 import { type Token, type TokenKind, tokenize } from './tokenizer.js';
-import type {
-  CenterHint,
-  Column,
-  Entity,
-  IR,
-  PinHint,
-  PreserveOrderHint,
-  Ref,
-  RefEndpoint,
-} from './types.js';
+import type { CenterHint, Column, Entity, IR, PinHint, Ref, RefEndpoint } from './types.js';
 
 export class ParseError extends Error {
   constructor(
@@ -26,7 +17,6 @@ class Parser {
   private readonly refs: Ref[] = [];
   private readonly pins: PinHint[] = [];
   private readonly centers: CenterHint[] = [];
-  private readonly preserveOrder: PreserveOrderHint = { global: false, entities: [] };
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -37,13 +27,7 @@ class Parser {
     return {
       entities: this.entities,
       refs: this.refs,
-      hints: {
-        clusters: [],
-        ranks: [],
-        pins: this.pins,
-        centers: this.centers,
-        preserveOrder: this.preserveOrder,
-      },
+      hints: { clusters: [], ranks: [], pins: this.pins, centers: this.centers },
     };
   }
 
@@ -190,48 +174,11 @@ class Parser {
       this.parseCenterHint();
       return;
     }
-    if (keyword === 'preserve_order') {
-      this.parsePreserveOrderHint();
-      return;
-    }
     throw new ParseError(
-      `Unknown hint: '${tok.value}' (expected 'pin', 'center', or 'preserve_order')`,
+      `Unknown hint: '${tok.value}' (expected 'pin' or 'center')`,
       tok.line,
       tok.col,
     );
-  }
-
-  // Syntax:
-  //   preserve_order                       → freeze every entity
-  //   preserve_order entity1, entity2      → freeze only the listed entities
-  // Multiple statements in the same @layout block accumulate; once `global`
-  // is set it stays set even if later statements name specific entities.
-  private parsePreserveOrderHint(): void {
-    this.consume('ident'); // 'preserve_order'
-    if (this.at('rbrace') || this.atHintBoundary()) {
-      this.preserveOrder.global = true;
-      return;
-    }
-    while (true) {
-      const entityTok = this.consume('ident');
-      this.preserveOrder.entities.push(entityTok.value);
-      if (this.at('comma')) {
-        this.consume('comma');
-        continue;
-      }
-      break;
-    }
-  }
-
-  // True when the next token starts a new top-level hint inside an @layout
-  // block (pin/center/preserve_order or the closing brace). Used by
-  // preserve_order to decide where its argument list ends without requiring
-  // an explicit terminator.
-  private atHintBoundary(): boolean {
-    const tok = this.peek();
-    if (tok.kind !== 'ident') return false;
-    const kw = tok.value.toLowerCase();
-    return kw === 'pin' || kw === 'center' || kw === 'preserve_order';
   }
 
   private parsePinHint(): void {
