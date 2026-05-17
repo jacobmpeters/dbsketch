@@ -4,6 +4,13 @@ ASCII-art ERD diagrams from DBML or SQL, designed to look clean by default and l
 
 A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — all relationships inferred from PK-name matches:
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
+  <img alt="dbsketch hero diagram: claims warehouse ERD with fact_claim_line at the center and seven dimension tables fanning out." src="docs/hero.svg">
+</picture>
+
+<details><summary>Copy as text</summary>
+
 ```
 ╭───────────────╮  ╭──────────────────╮  ╭──────────────────────╮  ╭───────────────────╮
 │  dim_region   │  │     dim_date     │  │   fact_claim_line    │  │   dim_provider    │
@@ -31,7 +38,9 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
                    ╰──────────────────╯
 ```
 
-> **A note on viewing.** Diagrams are monospace text. They look best in a terminal, a code editor, or any markdown renderer that horizontally scrolls fenced code blocks (GitHub and most modern editors do; some viewers will wrap the lines and the box-drawing will fall apart). They also assume **tight line-height** — the vertical box-drawing characters (`│`) are sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1.0 by default; prose-mode markdown sometimes doesn't. For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`. The examples below are all real CLI output.
+</details>
+
+> **A note on viewing.** The hero above is an SVG so it renders cleanly on GitHub; everything below is real monospace text. The text diagrams look best in a terminal, a code editor, or any markdown renderer that horizontally scrolls fenced code blocks (GitHub and most modern editors do; some viewers will wrap the lines and the box-drawing will fall apart). They also assume **tight line-height** — the vertical box-drawing characters (`│`) are sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1.0 by default; prose-mode markdown sometimes doesn't. For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`. The examples below are all real CLI output.
 
 ## Why this exists
 
