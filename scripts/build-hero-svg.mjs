@@ -32,7 +32,11 @@ const diagramLines = blockLines.map((l) => l.replace(/\s+$/, ''));
 
 const fontSize = 13;
 const lineH = 13;
-const charW = 7.8156;
+// Generous upper-bound advance estimate for canvas sizing; we no longer
+// pin per-tspan widths via textLength (iOS Safari distorts glyph positions
+// with lengthAdjust="spacingAndGlyphs"), so the font's natural advance
+// drives character placement and the canvas just has to be wide enough.
+const charW = 8.4;
 const padX = 14;
 const padY = 12;
 
@@ -42,19 +46,18 @@ const h = Math.ceil(diagramLines.length * lineH + 2 * padY);
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const fontFamily =
-  'ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace';
+  "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace";
 
 const svg = ({ bg, fg }) => {
   const tspans = diagramLines
     .map((line, i) => {
       const y = padY + fontSize + i * lineH;
-      const tl = (line.length * charW).toFixed(3);
-      return `    <tspan x="${padX}" y="${y}" textLength="${tl}" lengthAdjust="spacingAndGlyphs">${esc(line)}</tspan>`;
+      return `    <tspan x="${padX}" y="${y}">${esc(line)}</tspan>`;
     })
     .join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="dbsketch hero diagram: claims warehouse ERD">
   <rect width="${w}" height="${h}" fill="${bg}"/>
-  <text font-family='${fontFamily}' font-size="${fontSize}" fill="${fg}" xml:space="preserve">
+  <text font-family="${fontFamily}" font-size="${fontSize}" fill="${fg}" xml:space="preserve">
 ${tspans}
   </text>
 </svg>

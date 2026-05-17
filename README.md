@@ -40,7 +40,7 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
 
 </details>
 
-> **A note on viewing.** The hero above is an SVG so it renders cleanly on GitHub; everything below is real monospace text. The text diagrams look best in a terminal, a code editor, or any markdown renderer that horizontally scrolls fenced code blocks (GitHub and most modern editors do; some viewers will wrap the lines and the box-drawing will fall apart). They also assume **tight line-height** — the vertical box-drawing characters (`│`) are sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1.0 by default; prose-mode markdown sometimes doesn't. For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`. The examples below are all real CLI output.
+> The hero above is an SVG; everything below is real monospace text and assumes **`line-height: 1`**. Terminals and editors do that by default; markdown viewers vary. See [Viewing](#viewing) if a diagram renders with gaps.
 
 ## Why this exists
 
@@ -516,6 +516,28 @@ With an explicit grouping — "who" dimensions on the left, "what/where" on the 
 ```
 
 `@center` also overrides the auto-detected hub if you want a different entity in the middle.
+
+## Viewing
+
+Text diagrams assume **`line-height: 1`** — the vertical box-drawing character (`│`) is sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1 by default; prose-mode markdown sometimes doesn't (notably GitHub's README renderer, which is why this README's hero is an SVG). For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`.
+
+In docs sites where you control the CSS, one line fixes it. With MkDocs + Material (which enables `pymdownx.superfences` by default), tag your diagram fences:
+
+````markdown
+```{.dbsketch}
+╭───╮
+│ … │
+╰───╯
+```
+````
+
+…then in your extra CSS:
+
+```css
+.dbsketch { line-height: 1; }
+```
+
+Regular code blocks keep their comfortable spacing.
 
 ## License
 
