@@ -3,6 +3,7 @@ import { detectHubs } from './detectHubs.js';
 import { place } from './place.js';
 import { computeEntityPositions } from './positions.js';
 import { rank } from './rank.js';
+import { reorderColumns } from './reorderColumns.js';
 import { materializeEdges, planRoutes } from './route.js';
 import { size } from './size.js';
 import type { Layout } from './types.js';
@@ -23,23 +24,29 @@ export function layout(ir: IR): Layout {
   // sides of the hub), so skip that validation when centers exist.
   if (centers.length === 0) validateColPins(ranks, ir);
 
-  const pinnedRows = collectPinnedRows(ir.hints);
-  validatePinPositions(ir.hints);
+  // Reorder columns within each entity (PK → FK → other) before placement
+  // so the port-aware sibling tiebreak in place() sees the optimized port
+  // rows rather than declared-order rows. Hub detection and ranking ran
+  // first because they look at edges, not column positions.
+  const reorderedIr = reorderColumns(ir);
 
-  const placements = place(ir, ranks, pinnedRows);
+  const pinnedRows = collectPinnedRows(reorderedIr.hints);
+  validatePinPositions(reorderedIr.hints);
 
-  const planResult = planRoutes(ir, placements);
+  const placements = place(reorderedIr, ranks, pinnedRows);
+
+  const planResult = planRoutes(reorderedIr, placements);
   const sizing = size(
-    ir,
+    reorderedIr,
     placements,
     planResult.channelTrackCounts,
     planResult.rowChannelTrackCounts,
   );
   const topMarginHeight = planResult.rowChannelTrackCounts.get(-1) ?? 0;
-  const entityPositions = computeEntityPositions(ir, placements, sizing, topMarginHeight);
+  const entityPositions = computeEntityPositions(reorderedIr, placements, sizing, topMarginHeight);
   const edges = materializeEdges(planResult.planned, placements, sizing, entityPositions);
   return {
-    ir,
+    ir: reorderedIr,
     placements,
     sizing,
     edges,

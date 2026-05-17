@@ -231,9 +231,12 @@ describe('layout integration', () => {
   });
 
   it('produces three segments (H, V, H) for a Z-shape edge', () => {
+    // dst's PK occupies row 0, so its FK column slides to row 1 — different
+    // from src.a at row 0. The Y mismatch survives column reorder and forces
+    // a Z-shape.
     const ir = parse(`
       Table src { a int }
-      Table dst { id int x int [ref: > src.a] }
+      Table dst { id int [pk] x int [ref: > src.a] }
     `);
     const result = layout(ir);
     expect(result.edges).toHaveLength(1);
