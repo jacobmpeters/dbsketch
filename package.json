@@ -1,6 +1,15 @@
 {
   "name": "dbsketch",
   "private": true,
+  "description": "Code-first ASCII/Unicode ERD diagrams from DBML or SQL. Monorepo for the @dbsketch/* packages.",
+  "license": "MIT",
+  "author": "Jacob Peters <jcbptrs@gmail.com>",
+  "homepage": "https://github.com/jacobmpeters/dbsketch#readme",
+  "bugs": "https://github.com/jacobmpeters/dbsketch/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobmpeters/dbsketch.git"
+  },
   "type": "module",
   "packageManager": "pnpm@9.12.0",
   "engines": {

@@ -69,4 +69,6 @@ fs.mkdirSync(docsDir, { recursive: true });
 fs.writeFileSync(path.join(docsDir, 'hero.svg'), svg({ bg: '#ffffff', fg: '#1f2328' }));
 fs.writeFileSync(path.join(docsDir, 'hero-dark.svg'), svg({ bg: '#0d1117', fg: '#e6edf3' }));
 
-console.log(`wrote docs/hero.svg, docs/hero-dark.svg (${w}x${h}, ${diagramLines.length} lines, ${maxCols} cols)`);
+console.log(
+  `wrote docs/hero.svg, docs/hero-dark.svg (${w}x${h}, ${diagramLines.length} lines, ${maxCols} cols)`,
+);
