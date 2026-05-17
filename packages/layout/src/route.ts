@@ -232,6 +232,11 @@ function packRowChannel(edges: MultiHopPlannedEdge[]): number {
 interface VEntry {
   yMin: number;
   yMax: number;
+  // Y of the V's source-side endpoint — parent port for single-hop and
+  // multi-hop V1, detour Y for multi-hop V2. null for same-col (no
+  // source/target distinction). Used by the zone analysis to tell apart
+  // source-trapped from target-trapped V's.
+  sourceY: number | null;
   // +1 if the V's edge runs forward (parent west of channel), -1 if backward
   // (parent east), 0 if direction is meaningless (same-col). Used to decide
   // whether to reverse track indices after FFD so that track 0 always lands
@@ -275,72 +280,71 @@ function packColChannels(
     bucket.push(entry);
   };
 
-  // First pass: group single-hop edges by bundle key.
-  const singleBundles = new Map<string, SingleHopPlannedEdge[]>();
-  for (const edge of planned) {
-    if (edge.kind !== 'single') continue;
-    const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
-    const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
-    if (py === cy) continue; // straight: no V segment, no track needed
-    const key = `${edge.channelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
-    let bucket = singleBundles.get(key);
+  // Parent-side bundles: single-hop V's and multi-hop V1's that originate
+  // at the same (channel, direction, parent_entity, parent_column) share
+  // one V trunk. The trunk's y-range is the union of all members'
+  // endpoints: V1 members pull the trunk *up* toward their detour Y,
+  // single-hop members pull it *down* toward their child Y. Both branch
+  // east off the trunk (single-hop at the child row, V1 at the detour
+  // row), so they meet at the parent port without needing separate tracks.
+  // Crucial when a hub entity has both an adjacent and a non-adjacent
+  // child off the same PK — saves a track and removes the H1×V crossing
+  // you'd otherwise get at the parent row.
+  type ParentMember =
+    | { kind: 'single'; edge: SingleHopPlannedEdge }
+    | { kind: 'v1'; edge: MultiHopPlannedEdge };
+  const parentBundles = new Map<string, ParentMember[]>();
+  const pushMember = (key: string, member: ParentMember): void => {
+    let bucket = parentBundles.get(key);
     if (!bucket) {
       bucket = [];
-      singleBundles.set(key, bucket);
+      parentBundles.set(key, bucket);
     }
-    bucket.push(edge);
-  }
-
-  for (const edges of singleBundles.values()) {
-    const channel = edges[0]!.channelIndex;
-    let yMin = Number.POSITIVE_INFINITY;
-    let yMax = Number.NEGATIVE_INFINITY;
-    for (const edge of edges) {
+    bucket.push(member);
+  };
+  for (const edge of planned) {
+    if (edge.kind === 'single') {
       const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
       const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
-      yMin = Math.min(yMin, py, cy);
-      yMax = Math.max(yMax, py, cy);
+      if (py === cy) continue; // straight: no V segment, no track needed
+      const key = `${edge.channelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
+      pushMember(key, { kind: 'single', edge });
+    } else if (edge.kind === 'multi') {
+      const key = `${edge.parentChannelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
+      pushMember(key, { kind: 'v1', edge });
     }
-    add(channel, {
-      yMin,
-      yMax,
-      direction: edges[0]!.direction,
-      assign: (t) => {
-        for (const edge of edges) edge.track = t;
-      },
-    });
   }
-
-  // Multi-hop: V1 (parent-side) bundles by the same rule as single-hop.
-  // V2 (child-side) doesn't bundle in practice — each multi-hop has its
-  // own child column (no shared child port).
-  const multiV1Bundles = new Map<string, MultiHopPlannedEdge[]>();
-  for (const edge of planned) {
-    if (edge.kind !== 'multi') continue;
-    const key = `${edge.parentChannelIndex}|${edge.direction}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
-    let bucket = multiV1Bundles.get(key);
-    if (!bucket) {
-      bucket = [];
-      multiV1Bundles.set(key, bucket);
-    }
-    bucket.push(edge);
-  }
-  for (const edges of multiV1Bundles.values()) {
-    const channel = edges[0]!.parentChannelIndex;
+  for (const members of parentBundles.values()) {
+    const first = members[0]!;
+    const channel =
+      first.kind === 'single' ? first.edge.channelIndex : first.edge.parentChannelIndex;
     let yMin = Number.POSITIVE_INFINITY;
     let yMax = Number.NEGATIVE_INFINITY;
-    for (const edge of edges) {
-      const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
-      const dy = detourY(edge.detourTrack);
-      yMin = Math.min(yMin, py, dy);
-      yMax = Math.max(yMax, py, dy);
+    for (const m of members) {
+      const py = endpointY(m.edge.ref.parent.entity, m.edge.parentRowOffset);
+      yMin = Math.min(yMin, py);
+      yMax = Math.max(yMax, py);
+      if (m.kind === 'single') {
+        const cy = endpointY(m.edge.ref.child.entity, m.edge.childRowOffset);
+        yMin = Math.min(yMin, cy);
+        yMax = Math.max(yMax, cy);
+      } else {
+        const dy = detourY(m.edge.detourTrack);
+        yMin = Math.min(yMin, dy);
+        yMax = Math.max(yMax, dy);
+      }
     }
+    const sourceY = endpointY(first.edge.ref.parent.entity, first.edge.parentRowOffset);
     add(channel, {
       yMin,
       yMax,
-      direction: edges[0]!.direction,
+      sourceY,
+      direction: first.edge.direction,
       assign: (t) => {
-        for (const edge of edges) edge.parentTrack = t;
+        for (const m of members) {
+          if (m.kind === 'single') m.edge.track = t;
+          else m.edge.parentTrack = t;
+        }
       },
     });
   }
@@ -352,6 +356,11 @@ function packColChannels(
     add(edge.childChannelIndex, {
       yMin: Math.min(dy, cy),
       yMax: Math.max(dy, cy),
+      // V2's "source" is the detour Y (top margin); child port is the target.
+      // detourY is negative, so it always sits below any other V's yMin and
+      // won't show up as source-trapped — V2's only meaningful trap is on the
+      // target side.
+      sourceY: dy,
       direction: edge.direction,
       assign: (t) => {
         edge.childTrack = t;
@@ -370,6 +379,7 @@ function packColChannels(
       // Same-col edges live in a side-channel; both ports are on the same
       // side of the entity, so source/target don't map to channel east/west.
       // Mark neutral so they don't pull the channel toward a reversal.
+      sourceY: null,
       direction: 0,
       assign: (t) => {
         edge.track = t;
@@ -384,54 +394,111 @@ function packColChannels(
   return counts;
 }
 
+// Three-zone crossing-aware packing.
+//
+// FFD-by-yMin packs into the minimum track count but is blind to crossings.
+// Two V's that overlap need different tracks; which side each V sits on
+// determines whether their H1/H2 segments cross the other's column. The
+// fix-up: classify each V by *which endpoint is trapped inside another V's
+// range*:
+//
+//   - source-trapped only  → "lower" zone (track 0 = source-adjacent)
+//   - target-trapped only  → "upper" zone (highest track = target-adjacent)
+//   - both trapped         → "middle" zone (its own band between)
+//   - neither              → "neutral", joins lower (any track is fine)
+//
+// Pack each zone independently with FFD; concatenate the track ranges. A V
+// in the middle band can't intercept another V's H by construction (its H1
+// reaches west into the lower zone, where the source-trapped V's H1 is also
+// 0 cells; its H2 reaches east into the upper zone where target-trapped V's
+// H2 is 0 cells). Cost: a middle-zone V adds one track to the channel that
+// FFD-by-yMin would have skipped — that's the explicit trade-off, paying
+// one column to remove unavoidable-otherwise crossings.
+//
+// Backward-dominant channels then reverse the final indices so track 0 is
+// still source-adjacent in absolute (east/west) terms.
 function packVEntries(entries: VEntry[]): number {
-  // yMin asc gives optimal track count (standard interval scheduling).
-  // Within ties on yMin, longer-spanning V's get earlier tracks: their H's
-  // sit at the y-extremes (which other V's are less likely to span across),
-  // so fewer H × V crossings result.
-  entries.sort((a, b) => {
-    const yMinDiff = a.yMin - b.yMin;
-    if (yMinDiff !== 0) return yMinDiff;
-    return b.yMax - b.yMin - (a.yMax - a.yMin);
+  type Zone = 'lower' | 'middle' | 'upper';
+  const zones: Zone[] = entries.map((e, i) => {
+    if (e.sourceY === null) return 'lower';
+    const targetY = e.sourceY === e.yMin ? e.yMax : e.yMin;
+    let sourceTrapped = false;
+    let targetTrapped = false;
+    for (let j = 0; j < entries.length; j++) {
+      if (i === j) continue;
+      const o = entries[j]!;
+      // Touching at a boundary doesn't cross — the cell at the boundary is
+      // a corner glyph, not a V cell. Use strict <> so "overlap" matches
+      // FFD's overlap test below.
+      if (o.yMax <= e.yMin || o.yMin >= e.yMax) continue;
+      if (e.sourceY > o.yMin && e.sourceY < o.yMax) sourceTrapped = true;
+      if (targetY > o.yMin && targetY < o.yMax) targetTrapped = true;
+    }
+    if (sourceTrapped && targetTrapped) return 'middle';
+    if (targetTrapped) return 'upper';
+    // source-trapped or neutral both land here — neutral V's have no
+    // alignment preference so they're harmless on the lower side.
+    return 'lower';
   });
-  const trackEnds: number[] = [];
-  const rawTracks: number[] = [];
-  for (const e of entries) {
-    let assigned = -1;
-    for (let t = 0; t < trackEnds.length; t++) {
-      if (trackEnds[t]! < e.yMin) {
-        trackEnds[t] = e.yMax;
-        assigned = t;
-        break;
-      }
-    }
-    if (assigned === -1) {
-      trackEnds.push(e.yMax);
-      assigned = trackEnds.length - 1;
-    }
-    rawTracks.push(assigned);
-  }
 
-  // Track 0 = west cell of the channel. For forward edges that's the source
-  // (parent) side; for backward edges it's the target (child) side. FFD-by-
-  // yMin tends to place a V's "trapped" endpoint on track 0, which is what
-  // we want for forward channels but the *opposite* of what we want for
-  // backward channels. Flip the index when the channel is backward-dominant
-  // so track 0 consistently means "source-adjacent" — H1 stays 0 cells, H2
-  // crosses the channel, and a longer V on track N-1 doesn't intercept a
-  // shorter V's H2.
+  // FFD-pack one zone's entries (in their original index order, sorted by
+  // yMin for the greedy step). Returns track count for the zone and writes
+  // each entry's track into the shared rawTracks array, offset by base.
+  const rawTracks = new Array<number>(entries.length).fill(0);
+  const packZone = (zone: Zone, base: number): number => {
+    const indices: number[] = [];
+    for (let i = 0; i < entries.length; i++) {
+      if (zones[i] === zone) indices.push(i);
+    }
+    indices.sort((a, b) => {
+      const yMinDiff = entries[a]!.yMin - entries[b]!.yMin;
+      if (yMinDiff !== 0) return yMinDiff;
+      const aLen = entries[a]!.yMax - entries[a]!.yMin;
+      const bLen = entries[b]!.yMax - entries[b]!.yMin;
+      return bLen - aLen;
+    });
+    const trackEnds: number[] = [];
+    for (const i of indices) {
+      const e = entries[i]!;
+      let assigned = -1;
+      for (let t = 0; t < trackEnds.length; t++) {
+        if (trackEnds[t]! < e.yMin) {
+          trackEnds[t] = e.yMax;
+          assigned = t;
+          break;
+        }
+      }
+      if (assigned === -1) {
+        trackEnds.push(e.yMax);
+        assigned = trackEnds.length - 1;
+      }
+      rawTracks[i] = base + assigned;
+    }
+    return trackEnds.length;
+  };
+
+  const lowerCount = packZone('lower', 0);
+  const middleCount = packZone('middle', lowerCount);
+  const upperCount = packZone('upper', lowerCount + middleCount);
+  const totalTracks = lowerCount + middleCount + upperCount;
+
+  // Same reversal rule as before: track 0 = west cell. That's source-side
+  // for forward edges, target-side for backward. Flip backward-dominant
+  // channels so the lower zone (source-adjacent in y-trap terms) maps to
+  // source-adjacent in cell terms too. Mixed-direction channels (only with
+  // @center placement) follow the majority.
   let fwd = 0;
   let bwd = 0;
   for (const e of entries) {
     if (e.direction === 1) fwd++;
     else if (e.direction === -1) bwd++;
   }
-  const reverse = bwd > fwd && trackEnds.length > 1;
+  const reverse = bwd > fwd && totalTracks > 1;
   for (let i = 0; i < entries.length; i++) {
     const raw = rawTracks[i]!;
-    entries[i]!.assign(reverse ? trackEnds.length - 1 - raw : raw);
+    entries[i]!.assign(reverse ? totalTracks - 1 - raw : raw);
   }
-  return trackEnds.length;
+  return totalTracks;
 }
 
 export function materializeEdges(
@@ -470,10 +537,14 @@ function materializeSingleHop(
 
   let segments: EdgeSegment[];
   if (parentPortY === childPortY) {
-    // Straight horizontal segment between the two port columns.
+    // Straight horizontal segment spanning the two port cells. The renderer
+    // skips a segment's endpoint cells (they're either corners or ports,
+    // both filled by separate passes); including parent/child ports here
+    // gives drawPortMarker the cells to overlay, and the interior covers
+    // exactly the gap between the ports.
     const xLo = Math.min(parentPortX, childPortX);
     const xHi = Math.max(parentPortX, childPortX);
-    segments = [{ kind: 'horizontal', x1: xLo + 1, y1: parentPortY, x2: xHi - 1, y2: parentPortY }];
+    segments = [{ kind: 'horizontal', x1: xLo, y1: parentPortY, x2: xHi, y2: parentPortY }];
   } else {
     // V tracks pack from the channel's left edge regardless of edge
     // direction. With mixed forward + backward edges in the same channel,

@@ -12,16 +12,22 @@ export function drawEdge(canvas: Canvas, edge: EdgeRoute, glyphs: Glyphs): void 
 }
 
 function drawSegment(canvas: Canvas, seg: EdgeSegment, glyphs: Glyphs): void {
+  // Skip the segment's endpoints. They're either segment-to-segment
+  // junctions (filled in by drawCorners) or port cells (filled by
+  // drawPortMarker). Painting a body glyph at an endpoint forces the
+  // later corner/port overlay to either overwrite — losing any prior edge's
+  // corner that landed on the same cell — or merge with the stray
+  // body glyph and produce a tee where the corner alone was correct.
   if (seg.kind === 'horizontal') {
     const xMin = Math.min(seg.x1, seg.x2);
     const xMax = Math.max(seg.x1, seg.x2);
-    for (let x = xMin; x <= xMax; x++) {
+    for (let x = xMin + 1; x <= xMax - 1; x++) {
       canvas.set(x, seg.y1, mergeSegment(canvas.get(x, seg.y1), glyphs.horizontal, glyphs));
     }
   } else {
     const yMin = Math.min(seg.y1, seg.y2);
     const yMax = Math.max(seg.y1, seg.y2);
-    for (let y = yMin; y <= yMax; y++) {
+    for (let y = yMin + 1; y <= yMax - 1; y++) {
       canvas.set(seg.x1, y, mergeSegment(canvas.get(seg.x1, y), glyphs.vertical, glyphs));
     }
   }
@@ -119,7 +125,11 @@ function glyphForDirs(dirs: Set<Dir>, glyphs: Glyphs): string {
 // Walk consecutive segment pairs and place a corner glyph at each junction.
 // Direction the previous segment came from + direction the next segment goes
 // determines the corner's two arms — works for any segment count (Z-shape
-// has 2 junctions, multi-hop U-shape has 4, etc.).
+// has 2 junctions, multi-hop U-shape has 4, etc.). mergeSegment composes
+// the corner with whatever's already there so two edges that share a
+// junction (e.g. single-hop and multi-hop V1 from the same parent port)
+// upgrade the cell from `╯` + `╮` to the merged `┤` instead of one
+// clobbering the other.
 function drawCorners(canvas: Canvas, segments: EdgeSegment[], glyphs: Glyphs): void {
   for (let i = 0; i < segments.length - 1; i++) {
     const prev = segments[i]!;
@@ -128,7 +138,7 @@ function drawCorners(canvas: Canvas, segments: EdgeSegment[], glyphs: Glyphs): v
       new Set<Dir>([directionAtEnd(prev), directionAtStart(next)]),
       glyphs,
     );
-    canvas.set(next.x1, next.y1, corner);
+    canvas.set(next.x1, next.y1, mergeSegment(canvas.get(next.x1, next.y1), corner, glyphs));
   }
 }
 
