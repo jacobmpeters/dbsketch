@@ -1,11 +1,20 @@
 {
   "name": "@dbsketch/parser",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "DBML and SQL DDL parser used by dbsketch; produces a normalized IR.",
   "keywords": ["dbml", "sql", "ddl", "parser", "database", "schema", "erd", "data-modeling"],
   "license": "MIT",
   "author": "Jacob Peters <jcbptrs@gmail.com>",
+  "homepage": "https://github.com/jacobmpeters/dbsketch#readme",
+  "bugs": "https://github.com/jacobmpeters/dbsketch/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobmpeters/dbsketch.git",
+    "directory": "packages/parser"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +26,11 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "prepublishOnly": "tsc --build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@dbml/core": "^8.0.0"

@@ -1,7 +1,6 @@
 {
   "name": "@dbsketch/cli",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Command-line tool to render DBML or SQL schemas as ASCII/Unicode ERD diagrams.",
   "keywords": [
     "erd",
@@ -20,6 +19,16 @@
   ],
   "license": "MIT",
   "author": "Jacob Peters <jcbptrs@gmail.com>",
+  "homepage": "https://github.com/jacobmpeters/dbsketch#readme",
+  "bugs": "https://github.com/jacobmpeters/dbsketch/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobmpeters/dbsketch.git",
+    "directory": "packages/cli"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "bin": {
     "dbsketch": "./dist/bin.js"
@@ -27,7 +36,11 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc --build",
-    "dev": "tsx src/bin.ts"
+    "dev": "tsx src/bin.ts",
+    "prepublishOnly": "tsc --build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@dbsketch/core": "workspace:*"

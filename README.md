@@ -42,7 +42,7 @@ dbsketch designs for the integer character grid from cell zero. Output is the al
 ## Quick start
 
 ```sh
-npm install -g dbsketch
+npm install -g @dbsketch/cli
 ```
 
 Given a DBML file:
