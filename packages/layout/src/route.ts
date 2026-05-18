@@ -333,18 +333,44 @@ function assignLocalSpines(
   }
 
   const claimedRanges = new Map<number, Array<{ xMin: number; xMax: number }>>();
+  const claim = (
+    spineY: number,
+    range: { xMin: number; xMax: number },
+    target: MultiHopPlannedEdge[],
+  ): void => {
+    let list = claimedRanges.get(spineY);
+    if (!list) {
+      list = [];
+      claimedRanges.set(spineY, list);
+    }
+    list.push(range);
+    for (const m of target) {
+      m.detourSide = 'local';
+      m.detourSpineY = spineY;
+      m.detourRowChannel = spineY;
+    }
+  };
+
+  // Pass 1 — bundle-level: try to find one spine Y that works across every
+  // member's col-range. When all members share a spine, the H2 renders as
+  // a single trunk with V2's branching south — the cleanest output.
+  const unclaimed: MultiHopPlannedEdge[] = [];
   for (const members of bundles.values()) {
     const first = members[0]!;
     const parent = placementByEntity.get(first.ref.parent.entity);
     const parentEntity = entitiesByName.get(first.ref.parent.entity);
-    if (!parent || !parentEntity) continue;
+    if (!parent || !parentEntity) {
+      unclaimed.push(...members);
+      continue;
+    }
     const parentY = entityYs.get(first.ref.parent.entity);
-    if (parentY === undefined) continue;
+    if (parentY === undefined) {
+      unclaimed.push(...members);
+      continue;
+    }
     const parentHeight = parentEntity.columns.length === 0 ? 3 : 4 + parentEntity.columns.length;
 
-    // H2 spans col-strips from leftmost to rightmost across all members
-    // (parent's col + every child's col + the parent's V1 channel and
-    // each child's V2 channel by extension).
+    // H2 spans col-strips from leftmost to rightmost across all members.
     let minCol = first.parentColStrip;
     let maxCol = first.parentColStrip;
     for (const m of members) {
@@ -352,20 +378,43 @@ function assignLocalSpines(
       maxCol = Math.max(maxCol, m.parentColStrip, m.childColStrip);
     }
 
-    const colRange = { min: minCol, max: maxCol };
-    const spineY = findSpineY(parentY, parentHeight, colRange, occupancy, claimedRanges);
+    const spineY = findSpineY(
+      parentY,
+      parentHeight,
+      { min: minCol, max: maxCol },
+      occupancy,
+      claimedRanges,
+    );
+    if (spineY === null) {
+      unclaimed.push(...members);
+      continue;
+    }
+    claim(spineY, { xMin: minCol, xMax: maxCol }, members);
+  }
+
+  // Pass 2 — per-edge: for multi-hops whose bundle couldn't find a shared
+  // spine (typically because some member's child is far from the bundle's
+  // dominant column range), retry individually with each edge's own narrow
+  // col-range. The bundle's V1 trunk still consolidates on the parent side
+  // — these per-edge spines just exit the trunk at their own Y instead of
+  // detouring all the way to a margin.
+  for (const edge of unclaimed) {
+    const parentEntity = entitiesByName.get(edge.ref.parent.entity);
+    if (!parentEntity) continue;
+    const parentY = entityYs.get(edge.ref.parent.entity);
+    if (parentY === undefined) continue;
+    const parentHeight = parentEntity.columns.length === 0 ? 3 : 4 + parentEntity.columns.length;
+    const minCol = Math.min(edge.parentColStrip, edge.childColStrip);
+    const maxCol = Math.max(edge.parentColStrip, edge.childColStrip);
+    const spineY = findSpineY(
+      parentY,
+      parentHeight,
+      { min: minCol, max: maxCol },
+      occupancy,
+      claimedRanges,
+    );
     if (spineY === null) continue;
-    let list = claimedRanges.get(spineY);
-    if (!list) {
-      list = [];
-      claimedRanges.set(spineY, list);
-    }
-    list.push({ xMin: minCol, xMax: maxCol });
-    for (const m of members) {
-      m.detourSide = 'local';
-      m.detourSpineY = spineY;
-      m.detourRowChannel = spineY; // distinct sentinel keyed by Y
-    }
+    claim(spineY, { xMin: minCol, xMax: maxCol }, [edge]);
   }
 }
 
