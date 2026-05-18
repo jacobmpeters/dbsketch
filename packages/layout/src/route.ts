@@ -1,5 +1,5 @@
 import type { Entity, IR, Ref } from '@dbsketch/parser';
-import { type EntityPositions, relativeEntityYs } from './positions.js';
+import { type EntityPositions, entityYBase, relativeEntityYs } from './positions.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, Side, StripSizing } from './types.js';
 
 interface BasePlannedEdge {
@@ -38,9 +38,14 @@ export interface MultiHopPlannedEdge extends BasePlannedEdge {
   // y-track for H2 in the detour row-channel.
   detourTrack: number;
   // Which margin the H2 routes through. 'top' is the historical default
-  // (above all entities); 'bottom' detours below — picked per-edge based
-  // on which side gives a shorter total V (V1 + V2) for that multi-hop.
-  detourSide: 'top' | 'bottom';
+  // (above all entities); 'bottom' detours below; 'local' uses a spine
+  // row close to the parent (an empty row between entities, found
+  // opportunistically). Picked per-edge to minimize total V length.
+  detourSide: 'top' | 'bottom' | 'local';
+  // When detourSide === 'local', the Y (in relative canvas coordinates,
+  // matching entityYs) where the H2 trunk runs. Materialize adds yBase
+  // to convert to absolute canvas Y.
+  detourSpineY?: number;
 }
 
 // Same-col edges: parent and child sit in the same col-strip (different
@@ -98,6 +103,11 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   // side. Has to come before packRowChannels so each side packs its own
   // tracks independently.
   assignDetourSides(planned, entityYs);
+  // Opportunistically replace margin routing with a local spine row close
+  // to the parent entity when an empty row exists across the bundle's H2
+  // x-range. Bundles that can't find a clear spine keep their assigned
+  // top/bottom margin.
+  assignLocalSpines(planned, placements, ir, entityYs);
   const rowChannelTrackCounts = packRowChannels(planned);
   const channelTrackCounts = packColChannels(planned, entityYs);
 
@@ -212,6 +222,129 @@ function tryPlan(
 // rough proxy for "where the edge's interesting endpoints sit"); the exact
 // midpoint of the diagram is the largest entityY (the bottom-most entity's
 // top). Tied or empty → top.
+// Per-col Y occupancy: for each col-strip index, the set of Y rows occupied
+// by any entity in that column. Used by spine-row search to find empty Ys
+// where an H2 trunk can route close to its parent entity.
+function buildColOccupancy(
+  placements: Placement[],
+  ir: IR,
+  entityYs: Map<string, number>,
+): Map<number, Set<number>> {
+  const entitiesByName = new Map(ir.entities.map((e) => [e.name, e]));
+  const occupancy = new Map<number, Set<number>>();
+  for (const p of placements) {
+    const entity = entitiesByName.get(p.entity);
+    if (!entity) continue;
+    const y = entityYs.get(p.entity);
+    if (y === undefined) continue;
+    const h = entity.columns.length === 0 ? 3 : 4 + entity.columns.length;
+    let set = occupancy.get(p.colStrip);
+    if (!set) {
+      set = new Set();
+      occupancy.set(p.colStrip, set);
+    }
+    for (let row = y; row < y + h; row++) set.add(row);
+  }
+  return occupancy;
+}
+
+// Find a spine Y (an empty row in every col the bundle's H2 spans) close
+// to the parent entity. Tries the row just below the parent's bottom
+// border first, then just above, then expanding outward by a few rows
+// (capped to avoid drifting all the way to a margin). Returns null when
+// no clear Y exists within the search window — the bundle falls back to
+// its already-assigned top/bottom margin in that case.
+const SPINE_SEARCH_RADIUS = 8;
+function findSpineY(
+  parentY: number,
+  parentHeight: number,
+  colRange: { min: number; max: number },
+  occupancy: Map<number, Set<number>>,
+): number | null {
+  const isClear = (y: number): boolean => {
+    if (y < 0) return false;
+    for (let c = colRange.min; c <= colRange.max; c++) {
+      if (occupancy.get(c)?.has(y)) return false;
+    }
+    return true;
+  };
+  // Y values to try, in preference order: just below parent (closest to
+  // parent's bottom port), then just above, then expanding by one each
+  // direction. Below-first prefers the visual "branches descend" idiom
+  // that maps well to a column-strip hub layout.
+  const yBelow = parentY + parentHeight;
+  const yAbove = parentY - 1;
+  for (let d = 0; d < SPINE_SEARCH_RADIUS; d++) {
+    if (isClear(yBelow + d)) return yBelow + d;
+    if (isClear(yAbove - d)) return yAbove - d;
+  }
+  return null;
+}
+
+// For each parent-side bundle of multi-hops, attempt to route the H2 through
+// a local spine row near the parent entity instead of a global top/bottom
+// margin. Bundles whose H2 spans cols where no clear Y exists within the
+// search window stay on their assigned margin.
+//
+// Spine-row tracks aren't currently shared between bundles — each chosen
+// spine Y gets used by exactly the bundle that picked it. Two bundles
+// converging on the same Y would overlap; we conservatively let only the
+// first one claim it.
+function assignLocalSpines(
+  planned: PlannedEdge[],
+  placements: Placement[],
+  ir: IR,
+  entityYs: Map<string, number>,
+): void {
+  const occupancy = buildColOccupancy(placements, ir, entityYs);
+  const placementByEntity = new Map(placements.map((p) => [p.entity, p]));
+  const entitiesByName = new Map(ir.entities.map((e) => [e.name, e]));
+
+  // Group multi-hops by parent-side bundle (same key the parent-side V1
+  // bundling uses).
+  const bundles = new Map<string, MultiHopPlannedEdge[]>();
+  for (const e of planned) {
+    if (e.kind !== 'multi') continue;
+    const key = `${e.parentChannelIndex}|${e.direction}|${e.ref.parent.entity}|${e.ref.parent.column}`;
+    let bucket = bundles.get(key);
+    if (!bucket) {
+      bucket = [];
+      bundles.set(key, bucket);
+    }
+    bucket.push(e);
+  }
+
+  const claimedSpineYs = new Set<number>();
+  for (const members of bundles.values()) {
+    const first = members[0]!;
+    const parent = placementByEntity.get(first.ref.parent.entity);
+    const parentEntity = entitiesByName.get(first.ref.parent.entity);
+    if (!parent || !parentEntity) continue;
+    const parentY = entityYs.get(first.ref.parent.entity);
+    if (parentY === undefined) continue;
+    const parentHeight = parentEntity.columns.length === 0 ? 3 : 4 + parentEntity.columns.length;
+
+    // H2 spans col-strips from leftmost to rightmost across all members
+    // (parent's col + every child's col + the parent's V1 channel and
+    // each child's V2 channel by extension).
+    let minCol = first.parentColStrip;
+    let maxCol = first.parentColStrip;
+    for (const m of members) {
+      minCol = Math.min(minCol, m.parentColStrip, m.childColStrip);
+      maxCol = Math.max(maxCol, m.parentColStrip, m.childColStrip);
+    }
+
+    const spineY = findSpineY(parentY, parentHeight, { min: minCol, max: maxCol }, occupancy);
+    if (spineY === null || claimedSpineYs.has(spineY)) continue;
+    claimedSpineYs.add(spineY);
+    for (const m of members) {
+      m.detourSide = 'local';
+      m.detourSpineY = spineY;
+      m.detourRowChannel = spineY; // distinct sentinel keyed by Y
+    }
+  }
+}
+
 function assignDetourSides(planned: PlannedEdge[], entityYs: Map<string, number>): void {
   let maxY = 0;
   for (const y of entityYs.values()) maxY = Math.max(maxY, y);
@@ -229,13 +362,19 @@ function assignDetourSides(planned: PlannedEdge[], entityYs: Map<string, number>
 }
 
 // Pack multi-hop H2 segments into y-tracks within the chosen margin. Each
-// margin (top, key -1; bottom, key -2) packs independently — assignDetourSides
-// has already split the multi-hops by which side they want.
+// margin (top, key -1; bottom, key -2) packs independently. Multi-hops
+// using a local spine row (detourSide === 'local') already have a specific
+// Y assigned and don't share a margin — their detourTrack stays 0 since
+// only one bundle is allowed per spine Y (assignLocalSpines enforces).
 function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
   const top: MultiHopPlannedEdge[] = [];
   const bottom: MultiHopPlannedEdge[] = [];
   for (const edge of planned) {
     if (edge.kind !== 'multi') continue;
+    if (edge.detourSide === 'local') {
+      edge.detourTrack = 0;
+      continue;
+    }
     (edge.detourSide === 'bottom' ? bottom : top).push(edge);
   }
   const counts = new Map<number, number>();
@@ -348,6 +487,9 @@ function packColChannels(
   // scheduling doesn't care about exact magnitudes for the bottom side.
   const bottomDetourBase = maxRelY + 8;
   const detourY = (edge: MultiHopPlannedEdge): number => {
+    if (edge.detourSide === 'local' && edge.detourSpineY !== undefined) {
+      return edge.detourSpineY;
+    }
     const t = Math.max(0, edge.detourTrack);
     return edge.detourSide === 'bottom' ? bottomDetourBase + t : -1 - t;
   };
@@ -614,6 +756,7 @@ export function materializeEdges(
   placements: Placement[],
   sizing: StripSizing,
   entityPositions: EntityPositions,
+  topMarginHeight: number,
 ): EdgeRoute[] {
   // First cell below every entity. The bottom margin's tracks start here:
   // detour-track 0 sits at bottomMarginBaseY, track 1 at +1, and so on.
@@ -622,10 +765,14 @@ export function materializeEdges(
   for (const box of entityPositions.values()) {
     bottomMarginBaseY = Math.max(bottomMarginBaseY, box.y + box.height);
   }
+  // Offset between relative Y (used during planning, including spine
+  // assignment) and absolute Y (used during rendering). Local-spine
+  // multi-hops store their detour Y in relative coords; add yBase here.
+  const yBase = entityYBase(topMarginHeight);
   return planned.map((p) => {
     if (p.kind === 'single') return materializeSingleHop(p, sizing, entityPositions);
     if (p.kind === 'multi') {
-      return materializeMultiHop(p, sizing, entityPositions, bottomMarginBaseY);
+      return materializeMultiHop(p, sizing, entityPositions, bottomMarginBaseY, yBase);
     }
     return materializeSameCol(p, sizing, entityPositions);
   });
@@ -690,6 +837,7 @@ function materializeMultiHop(
   sizing: StripSizing,
   entityPositions: EntityPositions,
   bottomMarginBaseY: number,
+  yBase: number,
 ): EdgeRoute {
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
   const childBox = entityPositions.get(p.ref.child.entity)!;
@@ -710,11 +858,17 @@ function materializeMultiHop(
   const v2ChannelLeftX = colChannelStartX(sizing, p.childChannelIndex);
   const v2X = v2ChannelLeftX + Math.max(0, p.childTrack);
 
-  // H2 routes through the chosen margin. Top margin sits above all entities
-  // starting at y=0; bottom margin starts at bottomMarginBaseY (first cell
-  // below every entity). detourTrack is the row within that margin.
-  const detourTrack = Math.max(0, p.detourTrack);
-  const detourY = p.detourSide === 'bottom' ? bottomMarginBaseY + detourTrack : detourTrack;
+  // H2 routes through the chosen margin or a local spine row. Top margin
+  // sits above all entities starting at y=0; bottom margin starts at
+  // bottomMarginBaseY (first cell below every entity); local spines store
+  // a relative Y in detourSpineY (add yBase for absolute).
+  let detourY: number;
+  if (p.detourSide === 'local' && p.detourSpineY !== undefined) {
+    detourY = p.detourSpineY + yBase;
+  } else {
+    const detourTrack = Math.max(0, p.detourTrack);
+    detourY = p.detourSide === 'bottom' ? bottomMarginBaseY + detourTrack : detourTrack;
+  }
 
   const parentPort: Port = { x: parentPortX, y: parentPortY, side: parentSide };
   const childPort: Port = { x: childPortX, y: childPortY, side: childSide };

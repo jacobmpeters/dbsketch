@@ -48,7 +48,13 @@ function layoutCore(ir: IR): Layout {
   );
   const topMarginHeight = planResult.rowChannelTrackCounts.get(-1) ?? 0;
   const entityPositions = computeEntityPositions(ir, placements, sizing, topMarginHeight);
-  const edges = materializeEdges(planResult.planned, placements, sizing, entityPositions);
+  const edges = materializeEdges(
+    planResult.planned,
+    placements,
+    sizing,
+    entityPositions,
+    topMarginHeight,
+  );
   return {
     ir,
     placements,

@@ -16,6 +16,14 @@ export type EntityPositions = Map<string, EntityBox>;
 // and the first row of entity boxes.
 const TOP_MARGIN_GAP = 1;
 
+// First absolute Y where entity content starts. Equals topMarginHeight +
+// TOP_MARGIN_GAP when there's a top margin; 0 otherwise. Exposed so the
+// route stage can convert relative spine Y values to absolute Y at
+// materialization time.
+export function entityYBase(topMarginHeight: number): number {
+  return topMarginHeight > 0 ? topMarginHeight + TOP_MARGIN_GAP : 0;
+}
+
 // Per-col vertical stacking: each col independently packs its entities with a
 // single-row gap between them. Canvas height = the tallest column. Shorter
 // columns are vertically centered within that height, so hub-style entities
@@ -93,7 +101,7 @@ export function computeEntityPositions(
 ): EntityPositions {
   const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
   const { ys } = assignColumnYs(ir, placements);
-  const yBase = topMarginHeight > 0 ? topMarginHeight + TOP_MARGIN_GAP : 0;
+  const yBase = entityYBase(topMarginHeight);
 
   const positions: EntityPositions = new Map();
   // Group by col to fetch x/width once per col.

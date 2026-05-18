@@ -2,8 +2,8 @@
 
 exports[`route stats baseline > blog 1`] = `
 {
-  "crossings": 1,
-  "totalVLength": 14,
+  "crossings": 0,
+  "totalVLength": 8,
 }
 `;
 

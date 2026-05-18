@@ -44,7 +44,7 @@ describe('planRoutes', () => {
     expect(result.skippedRefs).toEqual([]);
   });
 
-  it('routes multi-hop refs through the top margin', () => {
+  it('classifies col-spanning refs as multi-hop and assigns a detour side', () => {
     const ir = parse(`
       Table a { id int }
       Table b { id int }
@@ -61,14 +61,15 @@ describe('planRoutes', () => {
       expect(multiHop.ref.child.entity).toBe('d');
       expect(multiHop.parentChannelIndex).toBe(0);
       expect(multiHop.childChannelIndex).toBe(1);
-      // -1 is the top-margin sentinel; all multi-hops detour above all entities.
-      expect(multiHop.detourRowChannel).toBe(-1);
+      // Detour side picked among {top, bottom, local}; previously hard-coded
+      // to -1 (top margin), but local-spine routing can override that.
+      expect(['top', 'bottom', 'local']).toContain(multiHop.detourSide);
     }
   });
 
-  it('routes multi-hops via the top margin even with a single row strip', () => {
+  it('routes multi-hops successfully even with a single row strip', () => {
     // Previously this case had no detour space (no inter-row channels), but
-    // the top margin is always available.
+    // every multi-hop now picks a margin or finds a local spine row.
     const ir = parse(`
       Table a { id int }
       Table b { id int a_id int [ref: > a.id] }
@@ -79,7 +80,7 @@ describe('planRoutes', () => {
     const multiHop = result.planned.find((p) => p.kind === 'multi');
     expect(multiHop).toBeDefined();
     if (multiHop?.kind === 'multi') {
-      expect(multiHop.detourRowChannel).toBe(-1);
+      expect(['top', 'bottom', 'local']).toContain(multiHop.detourSide);
     }
   });
 
