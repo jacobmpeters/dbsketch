@@ -211,35 +211,59 @@ function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
 }
 
 function packRowChannel(edges: MultiHopPlannedEdge[]): number {
-  // xMin asc + span desc tiebreak. With center placement edges can run
-  // either direction, so compare on min/max col rather than parent/child.
+  // Group multi-hops by their parent-side bundle key. All members of a
+  // group will share a V1 trunk at one x (packColChannels enforces this
+  // later via the same key); their H2 segments can therefore share one
+  // top-margin track too, rendering as a single H trunk with south-going
+  // tees where each V2 branches off. Without grouping, N edges from one
+  // parent stack as N rows in the top margin — exactly the OMOP `person`
+  // case where 7 outgoing multi-hops produced 7 stacked H's instead of
+  // one trunk with 7 branches.
+  interface Bundle {
+    members: MultiHopPlannedEdge[];
+    xMin: number;
+    xMax: number;
+  }
   const range = (e: MultiHopPlannedEdge): [number, number] => {
     const a = Math.min(e.parentColStrip, e.childColStrip);
     const b = Math.max(e.parentColStrip, e.childColStrip);
     return [a, b];
   };
-  edges.sort((a, b) => {
-    const [aMin, aMax] = range(a);
-    const [bMin, bMax] = range(b);
-    if (aMin !== bMin) return aMin - bMin;
-    return bMax - bMin - (aMax - aMin);
+  const bundleByKey = new Map<string, Bundle>();
+  for (const e of edges) {
+    const key = `${e.parentChannelIndex}|${e.direction}|${e.ref.parent.entity}|${e.ref.parent.column}`;
+    const [xMin, xMax] = range(e);
+    const existing = bundleByKey.get(key);
+    if (existing) {
+      existing.members.push(e);
+      existing.xMin = Math.min(existing.xMin, xMin);
+      existing.xMax = Math.max(existing.xMax, xMax);
+    } else {
+      bundleByKey.set(key, { members: [e], xMin, xMax });
+    }
+  }
+  const bundles = [...bundleByKey.values()];
+  // xMin asc + span desc tiebreak. With center placement edges can run
+  // either direction, so compare on min/max col rather than parent/child.
+  bundles.sort((a, b) => {
+    if (a.xMin !== b.xMin) return a.xMin - b.xMin;
+    return b.xMax - b.xMin - (a.xMax - a.xMin);
   });
   const trackEnds: number[] = [];
-  for (const edge of edges) {
-    const [xMin, xMax] = range(edge);
+  for (const bundle of bundles) {
     let assigned = -1;
     for (let t = 0; t < trackEnds.length; t++) {
-      if (trackEnds[t]! < xMin) {
-        trackEnds[t] = xMax;
+      if (trackEnds[t]! < bundle.xMin) {
+        trackEnds[t] = bundle.xMax;
         assigned = t;
         break;
       }
     }
     if (assigned === -1) {
-      trackEnds.push(xMax);
+      trackEnds.push(bundle.xMax);
       assigned = trackEnds.length - 1;
     }
-    edge.detourTrack = assigned;
+    for (const m of bundle.members) m.detourTrack = assigned;
   }
   return trackEnds.length;
 }
