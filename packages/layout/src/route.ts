@@ -212,10 +212,7 @@ function tryPlan(
 // rough proxy for "where the edge's interesting endpoints sit"); the exact
 // midpoint of the diagram is the largest entityY (the bottom-most entity's
 // top). Tied or empty → top.
-function assignDetourSides(
-  planned: PlannedEdge[],
-  entityYs: Map<string, number>,
-): void {
+function assignDetourSides(planned: PlannedEdge[], entityYs: Map<string, number>): void {
   let maxY = 0;
   for (const y of entityYs.values()) maxY = Math.max(maxY, y);
   const diagramMid = maxY / 2;
@@ -717,8 +714,7 @@ function materializeMultiHop(
   // starting at y=0; bottom margin starts at bottomMarginBaseY (first cell
   // below every entity). detourTrack is the row within that margin.
   const detourTrack = Math.max(0, p.detourTrack);
-  const detourY =
-    p.detourSide === 'bottom' ? bottomMarginBaseY + detourTrack : detourTrack;
+  const detourY = p.detourSide === 'bottom' ? bottomMarginBaseY + detourTrack : detourTrack;
 
   const parentPort: Port = { x: parentPortX, y: parentPortY, side: parentSide };
   const childPort: Port = { x: childPortX, y: childPortY, side: childSide };
