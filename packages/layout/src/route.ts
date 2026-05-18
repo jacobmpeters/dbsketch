@@ -95,6 +95,18 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   return { planned, skippedRefs, channelTrackCounts, rowChannelTrackCounts };
 }
 
+// Row offset of an FK port within its entity box. Regular entities have
+// per-column rows starting at row 3 (top + name + separator); compact
+// entities (zero columns, via showColumns:false) collapse every FK to the
+// name row (row 1). Returns null if the column name is unknown for a
+// non-compact entity — that's a malformed ref the caller should skip.
+function compactRowOffset(entity: Entity, columnName: string): number | null {
+  if (entity.columns.length === 0) return 1;
+  const idx = entity.columns.findIndex((c) => c.name === columnName);
+  if (idx === -1) return null;
+  return 3 + idx;
+}
+
 function tryPlan(
   ref: Ref,
   placementByEntity: Map<string, Placement>,
@@ -111,9 +123,12 @@ function tryPlan(
   const childEntity = entityByName.get(ref.child.entity);
   if (!parentEntity || !childEntity) return null;
 
-  const parentColIdx = parentEntity.columns.findIndex((c) => c.name === ref.parent.column);
-  const childColIdx = childEntity.columns.findIndex((c) => c.name === ref.child.column);
-  if (parentColIdx === -1 || childColIdx === -1) return null;
+  // Compact entities (zero columns) use a fixed name-row port (row offset 1)
+  // for every FK, since there are no column rows to attach to. Regular
+  // entities look up the column by name and use row offset 3 + colIdx.
+  const parentRowOffset = compactRowOffset(parentEntity, ref.parent.column);
+  const childRowOffset = compactRowOffset(childEntity, ref.child.column);
+  if (parentRowOffset === null || childRowOffset === null) return null;
 
   const colDiff = childP.colStrip - parentP.colStrip;
   const direction: 1 | -1 = colDiff >= 0 ? 1 : -1;
@@ -125,8 +140,8 @@ function tryPlan(
     childColStrip: childP.colStrip,
     parentRowStrip: parentP.rowStrip,
     childRowStrip: childP.rowStrip,
-    parentRowOffset: 3 + parentColIdx,
-    childRowOffset: 3 + childColIdx,
+    parentRowOffset,
+    childRowOffset,
     direction,
   };
 
@@ -135,7 +150,7 @@ function tryPlan(
     // too (parent.entity === child.entity → same Placement). Endpoints must
     // be at different y positions; a ref to the same column of the same
     // entity has nothing to draw.
-    if (parentP.rowStrip === childP.rowStrip && parentColIdx === childColIdx) {
+    if (parentP.rowStrip === childP.rowStrip && parentRowOffset === childRowOffset) {
       return null;
     }
     // Prefer routing through the channel to the right of this col. The

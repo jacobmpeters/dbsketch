@@ -11,12 +11,17 @@ export function drawEntity(
   glyphs: Glyphs,
 ): void {
   const innerWidth = width - 4;
-  const bottomY = y + 3 + entity.columns.length;
-
   hLine(canvas, x, y, width, glyphs.horizontal, glyphs.cornerTL, glyphs.cornerTR);
-  // Title centered; columns left-aligned (left alignment makes columns easier
-  // to scan, centering the title gives the box a clear visual focus).
   textLine(canvas, x, y + 1, width, padCenter(entity.name, innerWidth), glyphs.vertical);
+
+  // Compact entities (columns stripped via showColumns:false) are 3 rows:
+  // top border, name, bottom border. No header separator or body rows since
+  // there are no columns to display.
+  if (entity.columns.length === 0) {
+    hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.cornerBL, glyphs.cornerBR);
+    return;
+  }
+
   hLine(canvas, x, y + 2, width, glyphs.horizontal, glyphs.teeE, glyphs.teeW);
   entity.columns.forEach((col, i) => {
     const rowY = y + 3 + i;
@@ -26,6 +31,7 @@ export function drawEntity(
     // at x and x+width-1).
     if (col.pk) canvas.set(x + 1, rowY, glyphs.pkMarker);
   });
+  const bottomY = y + 3 + entity.columns.length;
   hLine(canvas, x, bottomY, width, glyphs.horizontal, glyphs.cornerBL, glyphs.cornerBR);
 }
 

@@ -27,6 +27,10 @@ Options:
                      the schema declares none (default: infer)
   --no-types         Render column names only, no data types. Entities are
                      correspondingly narrower
+  --no-columns       Collapse entities to 3-row name-only boxes (no columns
+                     shown). Maximally compact; routing still attaches edges
+                     correctly but all FKs to/from an entity share one port
+                     per side. For whole-schema overviews of large schemas
   -h, --help         Show this help
 `;
 
@@ -39,6 +43,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     dialect?: string | undefined;
     'no-infer-refs'?: boolean | undefined;
     'no-types'?: boolean | undefined;
+    'no-columns'?: boolean | undefined;
     help?: boolean | undefined;
   };
   let positionals: string[];
@@ -51,6 +56,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
         dialect: { type: 'string' },
         'no-infer-refs': { type: 'boolean', default: false },
         'no-types': { type: 'boolean', default: false },
+        'no-columns': { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
       },
       allowPositionals: true,
@@ -98,6 +104,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     glyphs: values.ascii ? ('ascii' as const) : ('unicode' as const),
     inferRefs: values['no-infer-refs'] ? ('never' as const) : ('auto' as const),
     showTypes: !values['no-types'],
+    showColumns: !values['no-columns'],
   };
 
   try {

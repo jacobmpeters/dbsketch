@@ -71,7 +71,10 @@ function entityWidth(entity: Entity): number {
   return inner + 4;
 }
 
-// Top border + header + separator + N column rows + bottom border.
+// Compact entities (columns stripped via showColumns:false) are 3 rows:
+// top border, name, bottom border. No header separator since there's no
+// body. Regular entities: top + header + separator + N column rows + bottom.
 function entityHeight(entity: Entity): number {
+  if (entity.columns.length === 0) return 3;
   return 4 + entity.columns.length;
 }
