@@ -9,21 +9,21 @@ exports[`route stats baseline > blog 1`] = `
 
 exports[`route stats baseline > questionnaire 1`] = `
 {
-  "crossings": 2,
-  "totalVLength": 86,
+  "crossings": 4,
+  "totalVLength": 95,
 }
 `;
 
 exports[`route stats baseline > snowflake-pinned 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 30,
+  "totalVLength": 16,
 }
 `;
 
 exports[`route stats baseline > star-default 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 38,
+  "totalVLength": 30,
 }
 `;

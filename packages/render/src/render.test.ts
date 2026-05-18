@@ -62,14 +62,14 @@ describe('render', () => {
       ),
     );
     expect(out).toMatchInlineSnapshot(`
-      "╭────────╮  ╭──────────────╮
-      │ users  │  │ memberships  │
-      ├────────┤  ├──────────────┤
-      │ id int ├──┤ user_id  int │
-      ╰────────╯╭─┤ group_id int │
-                │ ╰──────────────╯
-      ╭────────╮│
-      │ groups ││
+      "╭────────╮
+      │ users  │
+      ├────────┤  ╭──────────────╮
+      │ id int ├╮ │ memberships  │
+      ╰────────╯│ ├──────────────┤
+                ╰─┤ user_id  int │
+      ╭────────╮╭─┤ group_id int │
+      │ groups ││ ╰──────────────╯
       ├────────┤│
       │ id int ├╯
       ╰────────╯"
