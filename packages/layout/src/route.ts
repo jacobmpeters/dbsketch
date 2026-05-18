@@ -254,17 +254,33 @@ function buildColOccupancy(
 // (capped to avoid drifting all the way to a margin). Returns null when
 // no clear Y exists within the search window — the bundle falls back to
 // its already-assigned top/bottom margin in that case.
+//
+// claimedRanges records the H2 x-ranges already placed at each spine Y
+// by earlier bundles. A candidate Y is rejected if a previous bundle's
+// trunk overlaps this bundle's x-range; otherwise the bundle's range is
+// added and the Y is reused. This is interval scheduling across Ys,
+// letting multiple bundles share spine rows when their H2's don't
+// overlap (the symmetric mirror of how margins already pack tracks).
 const SPINE_SEARCH_RADIUS = 8;
 function findSpineY(
   parentY: number,
   parentHeight: number,
   colRange: { min: number; max: number },
   occupancy: Map<number, Set<number>>,
+  claimedRanges: Map<number, Array<{ xMin: number; xMax: number }>>,
 ): number | null {
-  const isClear = (y: number): boolean => {
+  const isClearOfEntities = (y: number): boolean => {
     if (y < 0) return false;
     for (let c = colRange.min; c <= colRange.max; c++) {
       if (occupancy.get(c)?.has(y)) return false;
+    }
+    return true;
+  };
+  const isClearOfOtherTrunks = (y: number): boolean => {
+    const list = claimedRanges.get(y);
+    if (!list) return true;
+    for (const r of list) {
+      if (r.xMin <= colRange.max && r.xMax >= colRange.min) return false;
     }
     return true;
   };
@@ -275,8 +291,10 @@ function findSpineY(
   const yBelow = parentY + parentHeight;
   const yAbove = parentY - 1;
   for (let d = 0; d < SPINE_SEARCH_RADIUS; d++) {
-    if (isClear(yBelow + d)) return yBelow + d;
-    if (isClear(yAbove - d)) return yAbove - d;
+    const below = yBelow + d;
+    if (isClearOfEntities(below) && isClearOfOtherTrunks(below)) return below;
+    const above = yAbove - d;
+    if (isClearOfEntities(above) && isClearOfOtherTrunks(above)) return above;
   }
   return null;
 }
@@ -314,7 +332,7 @@ function assignLocalSpines(
     bucket.push(e);
   }
 
-  const claimedSpineYs = new Set<number>();
+  const claimedRanges = new Map<number, Array<{ xMin: number; xMax: number }>>();
   for (const members of bundles.values()) {
     const first = members[0]!;
     const parent = placementByEntity.get(first.ref.parent.entity);
@@ -334,9 +352,15 @@ function assignLocalSpines(
       maxCol = Math.max(maxCol, m.parentColStrip, m.childColStrip);
     }
 
-    const spineY = findSpineY(parentY, parentHeight, { min: minCol, max: maxCol }, occupancy);
-    if (spineY === null || claimedSpineYs.has(spineY)) continue;
-    claimedSpineYs.add(spineY);
+    const colRange = { min: minCol, max: maxCol };
+    const spineY = findSpineY(parentY, parentHeight, colRange, occupancy, claimedRanges);
+    if (spineY === null) continue;
+    let list = claimedRanges.get(spineY);
+    if (!list) {
+      list = [];
+      claimedRanges.set(spineY, list);
+    }
+    list.push({ xMin: minCol, xMax: maxCol });
     for (const m of members) {
       m.detourSide = 'local';
       m.detourSpineY = spineY;
