@@ -387,22 +387,46 @@ function packColChannels(
       },
     });
   }
-  // V2 segments are independent per edge.
+  // Child-side V2 bundles: multi-hop V2's that terminate at the same
+  // (channel, direction, child_entity, child_column) share one V trunk.
+  // Each member's H2 ends at the bundled V2's x, and the trunk descends
+  // through every member's detour Y down to the child port — symmetric
+  // mirror of the parent-side V1 bundling above. Crucial when many
+  // tables FK to one shared target (OMOP's `concept`, `person`, etc.):
+  // without this, each multi-hop targeting the hub gets its own V2 at a
+  // distinct x in the hub-adjacent channel.
+  const childBundles = new Map<string, MultiHopPlannedEdge[]>();
   for (const edge of planned) {
     if (edge.kind !== 'multi') continue;
-    const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
-    const dy = detourY(edge.detourTrack);
-    add(edge.childChannelIndex, {
-      yMin: Math.min(dy, cy),
-      yMax: Math.max(dy, cy),
-      // V2's "source" is the detour Y (top margin); child port is the target.
-      // detourY is negative, so it always sits below any other V's yMin and
-      // won't show up as source-trapped — V2's only meaningful trap is on the
-      // target side.
-      sourceY: dy,
-      direction: edge.direction,
+    const key = `${edge.childChannelIndex}|${edge.direction}|${edge.ref.child.entity}|${edge.ref.child.column}`;
+    let bucket = childBundles.get(key);
+    if (!bucket) {
+      bucket = [];
+      childBundles.set(key, bucket);
+    }
+    bucket.push(edge);
+  }
+  for (const members of childBundles.values()) {
+    const first = members[0]!;
+    let yMin = Number.POSITIVE_INFINITY;
+    let yMax = Number.NEGATIVE_INFINITY;
+    for (const m of members) {
+      const cy = endpointY(m.ref.child.entity, m.childRowOffset);
+      const dy = detourY(m.detourTrack);
+      yMin = Math.min(yMin, dy, cy);
+      yMax = Math.max(yMax, dy, cy);
+    }
+    // Source side of every V2 is the detour Y (top margin). Any member's
+    // detour Y works — they're all negative and outrank every entity-row
+    // yMin, so the zone classifier won't mark this trunk source-trapped.
+    const sourceY = detourY(first.detourTrack);
+    add(first.childChannelIndex, {
+      yMin,
+      yMax,
+      sourceY,
+      direction: first.direction,
       assign: (t) => {
-        edge.childTrack = t;
+        for (const m of members) m.childTrack = t;
       },
     });
   }
