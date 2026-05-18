@@ -1,4 +1,5 @@
 import type { IR } from '@dbsketch/parser';
+import { entityHeight } from './size.js';
 import type { Placement, StripSizing } from './types.js';
 
 // Absolute position and dimensions of an entity box on the canvas.
@@ -60,7 +61,7 @@ export function computeEntityPositions(
     for (const p of colPlacements) {
       const entity = entityByName.get(p.entity);
       if (!entity) continue;
-      const height = 4 + entity.columns.length;
+      const height = entityHeight(entity);
       positions.set(p.entity, { x, y, width, height });
       y += height + STACK_GAP;
     }
@@ -102,7 +103,7 @@ export function relativeEntityYs(ir: IR, placements: Placement[]): Map<string, n
       const entity = entityByName.get(p.entity);
       if (!entity) continue;
       ys.set(p.entity, y);
-      y += 4 + entity.columns.length + STACK_GAP;
+      y += entityHeight(entity) + STACK_GAP;
     }
   }
   return ys;

@@ -37,6 +37,10 @@ export interface MultiHopPlannedEdge extends BasePlannedEdge {
   childTrack: number;
   // y-track for H2 in the detour row-channel.
   detourTrack: number;
+  // Which margin the H2 routes through. 'top' is the historical default
+  // (above all entities); 'bottom' detours below — picked per-edge based
+  // on which side gives a shorter total V (V1 + V2) for that multi-hop.
+  detourSide: 'top' | 'bottom';
 }
 
 // Same-col edges: parent and child sit in the same col-strip (different
@@ -84,12 +88,17 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
     else skippedRefs.push(ref);
   }
 
-  const rowChannelTrackCounts = packRowChannels(planned);
   // V-interval packing uses per-col-stacked Y positions (matching what the
   // renderer will actually produce) instead of strip-derived Y. The two
   // diverge whenever entities in a col are shorter than the strip is tall;
   // strip-derived intervals inflate, producing wrong track assignments.
   const entityYs = relativeEntityYs(ir, placements);
+  // Per-multi-hop choice of top vs bottom margin. Decision uses relative Y
+  // (entityYs) so it runs before margin sizing — packing then splits by
+  // side. Has to come before packRowChannels so each side packs its own
+  // tracks independently.
+  assignDetourSides(planned, entityYs);
+  const rowChannelTrackCounts = packRowChannels(planned);
   const channelTrackCounts = packColChannels(planned, entityYs);
 
   return { planned, skippedRefs, channelTrackCounts, rowChannelTrackCounts };
@@ -179,7 +188,8 @@ function tryPlan(
   }
 
   // Multi-hop: V1 in the channel adjacent to parent on the child side,
-  // V2 in the channel adjacent to child on the parent side, H2 in top margin.
+  // V2 in the channel adjacent to child on the parent side, H2 in a margin
+  // (top or bottom, picked later by assignDetourSides based on entity Y).
   const parentChannelIndex = direction > 0 ? parentP.colStrip : parentP.colStrip - 1;
   const childChannelIndex = direction > 0 ? childP.colStrip - 1 : childP.colStrip;
   return {
@@ -191,22 +201,49 @@ function tryPlan(
     parentTrack: -1,
     childTrack: -1,
     detourTrack: -1,
+    detourSide: 'top',
   };
 }
 
-// Pack multi-hop H2 segments into y-tracks within the shared top margin.
-// All multi-hops use the same logical channel (the top margin), so they
-// share track allocation via interval scheduling on x-ranges (col-strip
-// indices).
-function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
-  const multiHops: MultiHopPlannedEdge[] = [];
+// For each multi-hop, pick whichever margin (top or bottom) gives a shorter
+// total V (V1 + V2). A multi-hop routes top by default — the historical
+// behavior — but flips to bottom when both endpoints sit in the lower half
+// of the diagram. The midpoint check uses the entity tops in entityYs (a
+// rough proxy for "where the edge's interesting endpoints sit"); the exact
+// midpoint of the diagram is the largest entityY (the bottom-most entity's
+// top). Tied or empty → top.
+function assignDetourSides(
+  planned: PlannedEdge[],
+  entityYs: Map<string, number>,
+): void {
+  let maxY = 0;
+  for (const y of entityYs.values()) maxY = Math.max(maxY, y);
+  const diagramMid = maxY / 2;
   for (const edge of planned) {
-    if (edge.kind === 'multi') multiHops.push(edge);
+    if (edge.kind !== 'multi') continue;
+    const parentY = entityYs.get(edge.ref.parent.entity) ?? 0;
+    const childY = entityYs.get(edge.ref.child.entity) ?? 0;
+    const edgeMid = (parentY + childY) / 2;
+    if (edgeMid > diagramMid) {
+      edge.detourSide = 'bottom';
+      edge.detourRowChannel = -2;
+    }
+  }
+}
+
+// Pack multi-hop H2 segments into y-tracks within the chosen margin. Each
+// margin (top, key -1; bottom, key -2) packs independently — assignDetourSides
+// has already split the multi-hops by which side they want.
+function packRowChannels(planned: PlannedEdge[]): Map<number, number> {
+  const top: MultiHopPlannedEdge[] = [];
+  const bottom: MultiHopPlannedEdge[] = [];
+  for (const edge of planned) {
+    if (edge.kind !== 'multi') continue;
+    (edge.detourSide === 'bottom' ? bottom : top).push(edge);
   }
   const counts = new Map<number, number>();
-  if (multiHops.length > 0) {
-    counts.set(-1, packRowChannel(multiHops));
-  }
+  if (top.length > 0) counts.set(-1, packRowChannel(top));
+  if (bottom.length > 0) counts.set(-2, packRowChannel(bottom));
   return counts;
 }
 
@@ -302,12 +339,21 @@ function packColChannels(
 ): Map<number, number> {
   // Y coordinate of an edge endpoint in the relative space used for V-
   // interval packing. The top margin sits at y < 0 from the entity-space
-  // perspective; we model it with negative coordinates here so detour Y
-  // values are smaller than any entity-row Y, which is what the renderer
-  // does too.
+  // perspective; the bottom margin sits beyond any entity's Y. We pick
+  // sentinel values on either side of the entity Y range so V intervals
+  // pack correctly regardless of which margin a multi-hop chose.
   const endpointY = (entity: string, rowOffset: number): number =>
     (entityYs.get(entity) ?? 0) + rowOffset;
-  const detourY = (detourTrack: number): number => -1 - Math.max(0, detourTrack);
+  let maxRelY = 0;
+  for (const y of entityYs.values()) maxRelY = Math.max(maxRelY, y);
+  // 8 = a comfortable overshoot past the tallest entity's bottom; the value
+  // only needs to be greater than any entityY + entityHeight, and interval
+  // scheduling doesn't care about exact magnitudes for the bottom side.
+  const bottomDetourBase = maxRelY + 8;
+  const detourY = (edge: MultiHopPlannedEdge): number => {
+    const t = Math.max(0, edge.detourTrack);
+    return edge.detourSide === 'bottom' ? bottomDetourBase + t : -1 - t;
+  };
 
   const byChannel = new Map<number, VEntry[]>();
   const add = (channel: number, entry: VEntry): void => {
@@ -368,7 +414,7 @@ function packColChannels(
         yMin = Math.min(yMin, cy);
         yMax = Math.max(yMax, cy);
       } else {
-        const dy = detourY(m.edge.detourTrack);
+        const dy = detourY(m.edge);
         yMin = Math.min(yMin, dy);
         yMax = Math.max(yMax, dy);
       }
@@ -412,14 +458,16 @@ function packColChannels(
     let yMax = Number.NEGATIVE_INFINITY;
     for (const m of members) {
       const cy = endpointY(m.ref.child.entity, m.childRowOffset);
-      const dy = detourY(m.detourTrack);
+      const dy = detourY(m);
       yMin = Math.min(yMin, dy, cy);
       yMax = Math.max(yMax, dy, cy);
     }
-    // Source side of every V2 is the detour Y (top margin). Any member's
-    // detour Y works — they're all negative and outrank every entity-row
-    // yMin, so the zone classifier won't mark this trunk source-trapped.
-    const sourceY = detourY(first.detourTrack);
+    // Source side of every V2 is the detour Y (its margin). Any member's
+    // detour Y works as a representative — top-margin members' Y outranks
+    // every entity Y from below, bottom-margin members' from above, so
+    // the zone classifier treats the bundle consistently with where it
+    // actually sits.
+    const sourceY = detourY(first);
     add(first.childChannelIndex, {
       yMin,
       yMax,
@@ -570,9 +618,18 @@ export function materializeEdges(
   sizing: StripSizing,
   entityPositions: EntityPositions,
 ): EdgeRoute[] {
+  // First cell below every entity. The bottom margin's tracks start here:
+  // detour-track 0 sits at bottomMarginBaseY, track 1 at +1, and so on.
+  // 0 if there are no entities (nothing to size against).
+  let bottomMarginBaseY = 0;
+  for (const box of entityPositions.values()) {
+    bottomMarginBaseY = Math.max(bottomMarginBaseY, box.y + box.height);
+  }
   return planned.map((p) => {
     if (p.kind === 'single') return materializeSingleHop(p, sizing, entityPositions);
-    if (p.kind === 'multi') return materializeMultiHop(p, sizing, entityPositions);
+    if (p.kind === 'multi') {
+      return materializeMultiHop(p, sizing, entityPositions, bottomMarginBaseY);
+    }
     return materializeSameCol(p, sizing, entityPositions);
   });
 }
@@ -635,6 +692,7 @@ function materializeMultiHop(
   p: MultiHopPlannedEdge,
   sizing: StripSizing,
   entityPositions: EntityPositions,
+  bottomMarginBaseY: number,
 ): EdgeRoute {
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
   const childBox = entityPositions.get(p.ref.child.entity)!;
@@ -655,9 +713,12 @@ function materializeMultiHop(
   const v2ChannelLeftX = colChannelStartX(sizing, p.childChannelIndex);
   const v2X = v2ChannelLeftX + Math.max(0, p.childTrack);
 
-  // H2 routes through the top margin (compact-layout mode). detourTrack is
-  // the y-position within the margin (0 = topmost row).
-  const detourY = Math.max(0, p.detourTrack);
+  // H2 routes through the chosen margin. Top margin sits above all entities
+  // starting at y=0; bottom margin starts at bottomMarginBaseY (first cell
+  // below every entity). detourTrack is the row within that margin.
+  const detourTrack = Math.max(0, p.detourTrack);
+  const detourY =
+    p.detourSide === 'bottom' ? bottomMarginBaseY + detourTrack : detourTrack;
 
   const parentPort: Port = { x: parentPortX, y: parentPortY, side: parentSide };
   const childPort: Port = { x: childPortX, y: childPortY, side: childSide };
