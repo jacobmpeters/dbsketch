@@ -12,9 +12,10 @@ interface BasePlannedEdge {
   parentRowOffset: number;
   childRowOffset: number;
   // +1 if child is to the right of parent (standard left-to-right flow),
-  // -1 if to the left (only possible with center placement). All routing
-  // mirrors based on this sign.
-  direction: 1 | -1;
+  // -1 if to the left (only possible with center placement),
+  // 0 for same-col edges (parent and child in the same col-strip).
+  // Routing mirrors based on the sign; materializeSameCol ignores direction.
+  direction: 1 | -1 | 0;
 }
 
 export interface SingleHopPlannedEdge extends BasePlannedEdge {
@@ -150,7 +151,7 @@ function tryPlan(
   if (parentRowOffset === null || childRowOffset === null) return null;
 
   const colDiff = childP.colStrip - parentP.colStrip;
-  const direction: 1 | -1 = colDiff >= 0 ? 1 : -1;
+  const direction: 1 | -1 | 0 = colDiff > 0 ? 1 : colDiff < 0 ? -1 : 0;
   const absDiff = Math.abs(colDiff);
 
   const base: BasePlannedEdge = {
@@ -355,7 +356,7 @@ function assignLocalSpines(
   // member's col-range. When all members share a spine, the H2 renders as
   // a single trunk with V2's branching south — the cleanest output.
   const unclaimed: MultiHopPlannedEdge[] = [];
-  for (const members of bundles.values()) {
+  for (const [, members] of [...bundles.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const first = members[0]!;
     const parent = placementByEntity.get(first.ref.parent.entity);
     const parentEntity = entitiesByName.get(first.ref.parent.entity);
@@ -611,7 +612,7 @@ function packColChannels(
       pushMember(key, { kind: 'v1', edge });
     }
   }
-  for (const members of parentBundles.values()) {
+  for (const [, members] of [...parentBundles.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const first = members[0]!;
     const channel =
       first.kind === 'single' ? first.edge.channelIndex : first.edge.parentChannelIndex;
@@ -664,7 +665,7 @@ function packColChannels(
     }
     bucket.push(edge);
   }
-  for (const members of childBundles.values()) {
+  for (const [, members] of [...childBundles.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const first = members[0]!;
     let yMin = Number.POSITIVE_INFINITY;
     let yMax = Number.NEGATIVE_INFINITY;

@@ -1,4 +1,4 @@
-import { layout } from '@dbsketch/layout';
+import { HintConflictError, layout } from '@dbsketch/layout';
 import {
   type ClusterHint,
   type Column,
@@ -119,9 +119,15 @@ function renderClustered(ir: IR, options?: CompileOptions): string {
 // Avoids silently dropping entities when the user's clusters don't cover
 // the whole schema.
 function withDefaultCluster(ir: IR): ClusterHint[] {
+  const entityNames = new Set(ir.entities.map((e) => e.name));
   const assigned = new Set<string>();
   for (const cluster of ir.hints.clusters) {
-    for (const entity of cluster.entities) assigned.add(entity);
+    for (const entity of cluster.entities) {
+      if (!entityNames.has(entity)) {
+        throw new HintConflictError(`cluster '${cluster.name}' references unknown entity '${entity}'`);
+      }
+      assigned.add(entity);
+    }
   }
   const leftover = ir.entities.map((e) => e.name).filter((n) => !assigned.has(n));
   if (leftover.length === 0) return ir.hints.clusters;

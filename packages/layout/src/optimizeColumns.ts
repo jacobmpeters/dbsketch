@@ -29,6 +29,7 @@ export function optimizeColumns(ir: IR, evaluate: (ir: IR) => RouteStats): IR {
   let bestStats = evaluate(ir);
 
   for (const entity of candidates) {
+    if (bestStats.crossings === 0) break;
     const reordered = pkFkOtherOrdering(entity, ir);
     const altIr = replaceEntity(bestIr, entity.name, reordered);
     const altStats = evaluate(altIr);
