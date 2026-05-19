@@ -1,32 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="675" height="375" viewBox="0 0 675 375" role="img" aria-label="dbsketch hero diagram: claims warehouse ERD">
-  <rect width="675" height="375" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="336" viewBox="0 0 768 336" role="img" aria-label="dbsketch hero diagram: claims warehouse ERD">
+  <rect width="768" height="336" fill="#ffffff"/>
   <text font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" fill="#1f2328" xml:space="preserve">
-    <tspan x="14" y="25">╭───────────────────────╮</tspan>
-    <tspan x="14" y="38">│       diagnosis       │</tspan>
-    <tspan x="14" y="51">├───────────────────────┤</tspan>
-    <tspan x="14" y="64">│·id                int │</tspan>
-    <tspan x="14" y="77">│ encounter_id      int ├╮                              ╭───────────────────╮</tspan>
-    <tspan x="14" y="90">│ icd_code      varchar ││                              │    medication     │</tspan>
-    <tspan x="14" y="103">│ description   varchar ││                              ├───────────────────┤</tspan>
-    <tspan x="14" y="116">╰───────────────────────╯│                              │·id            int │</tspan>
-    <tspan x="14" y="129">                         │ ╭────────────────────────╮╭──┤ encounter_id  int │</tspan>
-    <tspan x="14" y="142">╭───────────────────────╮│ │       encounter        ││╭─┤ prescriber_id int │</tspan>
-    <tspan x="14" y="155">│         vital         ││ ├────────────────────────┤││ │ name      varchar │</tspan>
-    <tspan x="14" y="168">├───────────────────────┤├─┤·id                 int ├╯│ │ dose      varchar │</tspan>
-    <tspan x="14" y="181">│·id                int ││╭┤ patient_id         int │ │ ╰───────────────────╯</tspan>
-    <tspan x="14" y="194">│ encounter_id      int ├╯││ provider_id        int ├─│╮</tspan>
-    <tspan x="14" y="207">│ measure       varchar │ ││ encounter_type varchar │ ││╭───────────────────╮</tspan>
-    <tspan x="14" y="220">│ value         decimal │ ││ started_at   timestamp │ │││     provider      │</tspan>
-    <tspan x="14" y="233">│ recorded_at timestamp │ ││ ended_at     timestamp │ ││├───────────────────┤</tspan>
-    <tspan x="14" y="246">╰───────────────────────╯ │╰────────────────────────╯ ╰┴┤·id            int │</tspan>
-    <tspan x="14" y="259">                          │                             │ npi       varchar │</tspan>
-    <tspan x="14" y="272">╭───────────────────────╮ │                             │ name      varchar │</tspan>
-    <tspan x="14" y="285">│        patient        │ │                             │ specialty varchar │</tspan>
-    <tspan x="14" y="298">├───────────────────────┤ │                             ╰───────────────────╯</tspan>
-    <tspan x="14" y="311">│·id                int ├─╯</tspan>
-    <tspan x="14" y="324">│ mrn           varchar │</tspan>
-    <tspan x="14" y="337">│ name          varchar │</tspan>
-    <tspan x="14" y="350">│ dob              date │</tspan>
-    <tspan x="14" y="363">╰───────────────────────╯</tspan>
+    <tspan x="14" y="25">                   ╭──────────────────╮                            ╭───────────────────╮</tspan>
+    <tspan x="14" y="38">                   │     dim_date     │                            │   dim_provider    │</tspan>
+    <tspan x="14" y="51">                   ├──────────────────┤                            ├───────────────────┤</tspan>
+    <tspan x="14" y="64">                   │·date_key    DATE ├╮                          ╭┤·provider_id   INT │</tspan>
+    <tspan x="14" y="77">                   │ year         INT ││                          ││ specialty VARCHAR │</tspan>
+    <tspan x="14" y="90">                   │ quarter      INT ││ ╭──────────────────────╮ ││ tier      VARCHAR │</tspan>
+    <tspan x="14" y="103">                   ╰──────────────────╯│ │   fact_claim_line    │ │╰───────────────────╯</tspan>
+    <tspan x="14" y="116">                                       │ ├──────────────────────┤ │</tspan>
+    <tspan x="14" y="129">                   ╭──────────────────╮│ │·claim_line_id BIGINT │ │╭───────────────────╮</tspan>
+    <tspan x="14" y="142">╭───────────────╮  │   dim_patient    │╰─┤ date_key        DATE │ ││     dim_payer     │</tspan>
+    <tspan x="14" y="155">│  dim_region   │  ├──────────────────┤╭─┤ patient_id       INT │ │├───────────────────┤</tspan>
+    <tspan x="14" y="168">├───────────────┤  │·patient_id   INT ├╯ │ provider_id      INT ├┬┴┤·payer_id      INT │</tspan>
+    <tspan x="14" y="181">│·region_id INT ├──┤ region_id    INT │  │ payer_id         INT ├╯ │ plan_name VARCHAR │</tspan>
+    <tspan x="14" y="194">│ name  VARCHAR │  │ age_band VARCHAR │  │ diagnosis_id     INT ├─╮│ plan_type VARCHAR │</tspan>
+    <tspan x="14" y="207">╰───────────────╯  │ sex      VARCHAR │╭─┤ procedure_id     INT │ │╰───────────────────╯</tspan>
+    <tspan x="14" y="220">                   ╰──────────────────╯│ │ quantity         INT │ │</tspan>
+    <tspan x="14" y="233">                                       │ │ charge       DECIMAL │ │╭───────────────────╮</tspan>
+    <tspan x="14" y="246">                   ╭──────────────────╮│ │ paid         DECIMAL │ ││   dim_diagnosis   │</tspan>
+    <tspan x="14" y="259">                   │  dim_procedure   ││ ╰──────────────────────╯ │├───────────────────┤</tspan>
+    <tspan x="14" y="272">                   ├──────────────────┤│                          ╰┤·diagnosis_id  INT │</tspan>
+    <tspan x="14" y="285">                   │·procedure_id INT ├╯                           │ icd_code  VARCHAR │</tspan>
+    <tspan x="14" y="298">                   │ cpt_code VARCHAR │                            │ category  VARCHAR │</tspan>
+    <tspan x="14" y="311">                   │ category VARCHAR │                            ╰───────────────────╯</tspan>
+    <tspan x="14" y="324">                   ╰──────────────────╯</tspan>
   </text>
 </svg>

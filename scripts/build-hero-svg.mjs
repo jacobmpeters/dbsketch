@@ -21,7 +21,10 @@ for (let i = 0; i < lines.length && !blockLines; i++) {
   for (let j = i + 1; j < lines.length; j++) {
     if (lines[j].trim() !== fence) continue;
     const candidate = lines.slice(i + 1, j);
-    if (candidate[0]?.startsWith('╭')) blockLines = candidate;
+    // Match the hero diagram by first non-empty line containing a box-
+    // drawing corner. Leading whitespace is allowed — entities in the
+    // claims-warehouse hero aren't all anchored to column 0.
+    if (candidate[0]?.match(/^\s*╭/)) blockLines = candidate;
     i = j;
     break;
   }
