@@ -6,41 +6,41 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
-  <img alt="dbsketch hero diagram: claims warehouse ERD with fact_claim_line at the center and seven dimension tables fanning out." src="docs/hero.svg">
+  <img alt="dbsketch example diagram: claims warehouse ERD with fact_claim_line at the center and seven dimension tables fanning out." src="docs/hero.svg">
 </picture>
 
 <details><summary>Copy as text</summary>
 
 ```
-                   ╭──────────────────╮                            ╭───────────────────╮
-                   │     dim_date     │                            │   dim_provider    │
-                   ├──────────────────┤                            ├───────────────────┤
-                   │·date_key    DATE ├╮                          ╭┤·provider_id   INT │
-                   │ year         INT ││                          ││ specialty VARCHAR │
-                   │ quarter      INT ││ ╭──────────────────────╮ ││ tier      VARCHAR │
-                   ╰──────────────────╯│ │   fact_claim_line    │ │╰───────────────────╯
-                                       │ ├──────────────────────┤ │
-                   ╭──────────────────╮│ │·claim_line_id BIGINT │ │╭───────────────────╮
-╭───────────────╮  │   dim_patient    │╰─┤ date_key        DATE │ ││     dim_payer     │
-│  dim_region   │  ├──────────────────┤╭─┤ patient_id       INT │ │├───────────────────┤
-├───────────────┤  │·patient_id   INT ├╯ │ provider_id      INT ├┬┴┤·payer_id      INT │
-│·region_id INT ├──┤ region_id    INT │  │ payer_id         INT ├╯ │ plan_name VARCHAR │
-│ name  VARCHAR │  │ age_band VARCHAR │  │ diagnosis_id     INT ├─╮│ plan_type VARCHAR │
-╰───────────────╯  │ sex      VARCHAR │╭─┤ procedure_id     INT │ │╰───────────────────╯
-                   ╰──────────────────╯│ │ quantity         INT │ │
-                                       │ │ charge       DECIMAL │ │╭───────────────────╮
-                   ╭──────────────────╮│ │ paid         DECIMAL │ ││   dim_diagnosis   │
-                   │  dim_procedure   ││ ╰──────────────────────╯ │├───────────────────┤
-                   ├──────────────────┤│                          ╰┤·diagnosis_id  INT │
-                   │·procedure_id INT ├╯                           │ icd_code  VARCHAR │
-                   │ cpt_code VARCHAR │                            │ category  VARCHAR │
-                   │ category VARCHAR │                            ╰───────────────────╯
-                   ╰──────────────────╯
+                   ╭──────────────────╮
+                   │     dim_date     │                            ╭───────────────────╮
+                   ├──────────────────┤                            │   dim_provider    │
+                   │·date_key    DATE ├╮                           ├───────────────────┤
+                   │ year         INT ││                         ╭─┤·provider_id   INT │
+                   │ quarter      INT ││ ╭──────────────────────╮│ │ specialty VARCHAR │
+                   ╰──────────────────╯│ │   fact_claim_line    ││ │ tier      VARCHAR │
+                                       │ ├──────────────────────┤│ ╰───────────────────╯
+                   ╭──────────────────╮│ │·claim_line_id BIGINT ││
+╭───────────────╮  │   dim_patient    │╰─┤ date_key        DATE ││ ╭───────────────────╮
+│  dim_region   │  ├──────────────────┤╭─┤ patient_id       INT ││ │     dim_payer     │
+├───────────────┤  │·patient_id   INT ├╯ │ provider_id      INT ├╯ ├───────────────────┤
+│·region_id INT ├──┤ region_id    INT │  │ payer_id         INT ├──┤·payer_id      INT │
+│ name  VARCHAR │  │ age_band VARCHAR │  │ diagnosis_id     INT ├╮ │ plan_name VARCHAR │
+╰───────────────╯  │ sex      VARCHAR │╭─┤ procedure_id     INT ││ │ plan_type VARCHAR │
+                   ╰──────────────────╯│ │ quantity         INT ││ ╰───────────────────╯
+                                       │ │ charge       DECIMAL ││
+                   ╭──────────────────╮│ │ paid         DECIMAL ││ ╭───────────────────╮
+                   │  dim_procedure   ││ ╰──────────────────────╯│ │   dim_diagnosis   │
+                   ├──────────────────┤│                         │ ├───────────────────┤
+                   │·procedure_id INT ├╯                         ╰─┤·diagnosis_id  INT │
+                   │ cpt_code VARCHAR │                            │ icd_code  VARCHAR │
+                   │ category VARCHAR │                            │ category  VARCHAR │
+                   ╰──────────────────╯                            ╰───────────────────╯
 ```
 
 </details>
 
-> The hero above is an SVG; everything below is real monospace text and assumes **`line-height: 1`**. Terminals and editors do that by default; markdown viewers vary. See [Viewing](#viewing) if a diagram renders with gaps.
+> The diagram above is an SVG; everything below is real monospace text and assumes **`line-height: 1`**. Terminals and editors do that by default; markdown viewers vary. See [Viewing](#viewing) if a diagram renders with gaps.
 
 ## Why this exists
 
@@ -551,7 +551,7 @@ With an explicit grouping — "who" dimensions on the left, "what/where" on the 
 
 ## Viewing
 
-Text diagrams assume **`line-height: 1`** — the vertical box-drawing character (`│`) is sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1 by default; prose-mode markdown sometimes doesn't (notably GitHub's README renderer, which is why this README's hero is an SVG). For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`.
+Text diagrams assume **`line-height: 1`** — the vertical box-drawing character (`│`) is sized to touch between rows, so any extra leading produces visible gaps. Terminals, editors, and code blocks render with line-height 1 by default; prose-mode markdown sometimes doesn't (notably GitHub's README renderer, which is why the example above is an SVG). For the cleanest experience, view a diagram in your terminal: `dbsketch schema.dbml`.
 
 In docs sites where you control the CSS, one line fixes it. With MkDocs + Material (which enables `pymdownx.superfences` by default), tag your diagram fences:
 
