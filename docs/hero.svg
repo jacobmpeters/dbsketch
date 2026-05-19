@@ -1,29 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="768" height="336" viewBox="0 0 768 336" role="img" aria-label="dbsketch hero diagram: claims warehouse ERD">
   <rect width="768" height="336" fill="#ffffff"/>
   <text font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" fill="#1f2328" xml:space="preserve">
-    <tspan x="14" y="25">                   ╭──────────────────╮                            ╭───────────────────╮</tspan>
-    <tspan x="14" y="38">                   │     dim_date     │                            │   dim_provider    │</tspan>
-    <tspan x="14" y="51">                   ├──────────────────┤                            ├───────────────────┤</tspan>
-    <tspan x="14" y="64">                   │·date_key    DATE ├╮                          ╭┤·provider_id   INT │</tspan>
-    <tspan x="14" y="77">                   │ year         INT ││                          ││ specialty VARCHAR │</tspan>
-    <tspan x="14" y="90">                   │ quarter      INT ││ ╭──────────────────────╮ ││ tier      VARCHAR │</tspan>
-    <tspan x="14" y="103">                   ╰──────────────────╯│ │   fact_claim_line    │ │╰───────────────────╯</tspan>
-    <tspan x="14" y="116">                                       │ ├──────────────────────┤ │</tspan>
-    <tspan x="14" y="129">                   ╭──────────────────╮│ │·claim_line_id BIGINT │ │╭───────────────────╮</tspan>
-    <tspan x="14" y="142">╭───────────────╮  │   dim_patient    │╰─┤ date_key        DATE │ ││     dim_payer     │</tspan>
-    <tspan x="14" y="155">│  dim_region   │  ├──────────────────┤╭─┤ patient_id       INT │ │├───────────────────┤</tspan>
-    <tspan x="14" y="168">├───────────────┤  │·patient_id   INT ├╯ │ provider_id      INT ├┬┴┤·payer_id      INT │</tspan>
-    <tspan x="14" y="181">│·region_id INT ├──┤ region_id    INT │  │ payer_id         INT ├╯ │ plan_name VARCHAR │</tspan>
-    <tspan x="14" y="194">│ name  VARCHAR │  │ age_band VARCHAR │  │ diagnosis_id     INT ├─╮│ plan_type VARCHAR │</tspan>
-    <tspan x="14" y="207">╰───────────────╯  │ sex      VARCHAR │╭─┤ procedure_id     INT │ │╰───────────────────╯</tspan>
-    <tspan x="14" y="220">                   ╰──────────────────╯│ │ quantity         INT │ │</tspan>
-    <tspan x="14" y="233">                                       │ │ charge       DECIMAL │ │╭───────────────────╮</tspan>
-    <tspan x="14" y="246">                   ╭──────────────────╮│ │ paid         DECIMAL │ ││   dim_diagnosis   │</tspan>
-    <tspan x="14" y="259">                   │  dim_procedure   ││ ╰──────────────────────╯ │├───────────────────┤</tspan>
-    <tspan x="14" y="272">                   ├──────────────────┤│                          ╰┤·diagnosis_id  INT │</tspan>
-    <tspan x="14" y="285">                   │·procedure_id INT ├╯                           │ icd_code  VARCHAR │</tspan>
-    <tspan x="14" y="298">                   │ cpt_code VARCHAR │                            │ category  VARCHAR │</tspan>
-    <tspan x="14" y="311">                   │ category VARCHAR │                            ╰───────────────────╯</tspan>
-    <tspan x="14" y="324">                   ╰──────────────────╯</tspan>
+    <tspan x="14" y="25">                   ╭──────────────────╮</tspan>
+    <tspan x="14" y="38">                   │     dim_date     │                            ╭───────────────────╮</tspan>
+    <tspan x="14" y="51">                   ├──────────────────┤                            │   dim_provider    │</tspan>
+    <tspan x="14" y="64">                   │·date_key    DATE ├╮                           ├───────────────────┤</tspan>
+    <tspan x="14" y="77">                   │ year         INT ││                         ╭─┤·provider_id   INT │</tspan>
+    <tspan x="14" y="90">                   │ quarter      INT ││ ╭──────────────────────╮│ │ specialty VARCHAR │</tspan>
+    <tspan x="14" y="103">                   ╰──────────────────╯│ │   fact_claim_line    ││ │ tier      VARCHAR │</tspan>
+    <tspan x="14" y="116">                                       │ ├──────────────────────┤│ ╰───────────────────╯</tspan>
+    <tspan x="14" y="129">                   ╭──────────────────╮│ │·claim_line_id BIGINT ││</tspan>
+    <tspan x="14" y="142">╭───────────────╮  │   dim_patient    │╰─┤ date_key        DATE ││ ╭───────────────────╮</tspan>
+    <tspan x="14" y="155">│  dim_region   │  ├──────────────────┤╭─┤ patient_id       INT ││ │     dim_payer     │</tspan>
+    <tspan x="14" y="168">├───────────────┤  │·patient_id   INT ├╯ │ provider_id      INT ├╯ ├───────────────────┤</tspan>
+    <tspan x="14" y="181">│·region_id INT ├──┤ region_id    INT │  │ payer_id         INT ├──┤·payer_id      INT │</tspan>
+    <tspan x="14" y="194">│ name  VARCHAR │  │ age_band VARCHAR │  │ diagnosis_id     INT ├╮ │ plan_name VARCHAR │</tspan>
+    <tspan x="14" y="207">╰───────────────╯  │ sex      VARCHAR │╭─┤ procedure_id     INT ││ │ plan_type VARCHAR │</tspan>
+    <tspan x="14" y="220">                   ╰──────────────────╯│ │ quantity         INT ││ ╰───────────────────╯</tspan>
+    <tspan x="14" y="233">                                       │ │ charge       DECIMAL ││</tspan>
+    <tspan x="14" y="246">                   ╭──────────────────╮│ │ paid         DECIMAL ││ ╭───────────────────╮</tspan>
+    <tspan x="14" y="259">                   │  dim_procedure   ││ ╰──────────────────────╯│ │   dim_diagnosis   │</tspan>
+    <tspan x="14" y="272">                   ├──────────────────┤│                         │ ├───────────────────┤</tspan>
+    <tspan x="14" y="285">                   │·procedure_id INT ├╯                         ╰─┤·diagnosis_id  INT │</tspan>
+    <tspan x="14" y="298">                   │ cpt_code VARCHAR │                            │ icd_code  VARCHAR │</tspan>
+    <tspan x="14" y="311">                   │ category VARCHAR │                            │ category  VARCHAR │</tspan>
+    <tspan x="14" y="324">                   ╰──────────────────╯                            ╰───────────────────╯</tspan>
   </text>
 </svg>
