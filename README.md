@@ -312,6 +312,10 @@ Same schema with `--no-types` — about 165 characters wide (17% narrower), and 
                                               ╰───────────────────╯
 ```
 
+### `--no-columns` (whole-schema overview)
+
+Collapse every entity to a 3-row name-only box. Edges still route correctly — every FK to/from an entity converges on a single port per side. Use this for high-level "what tables exist and how are they connected" overviews of large schemas, where column-level detail would make the diagram unreadable. Combines well with [clustering](docs/large-schemas.md). For OMOP-scale schemas (~40 tables, ~180 refs), this is often the only way to fit the whole-schema view on a page.
+
 ### `--no-infer-refs` (skip relationship inference)
 
 When a SQL schema declares no `FOREIGN KEY`s (common in warehouses), dbsketch infers relationships from PK-name matches: a non-PK column named `respondent_id` in one table that matches a PK column named `respondent_id` in another becomes a one-to-many ref. Pass `--no-infer-refs` to skip this and render only declared relationships.
@@ -351,6 +355,15 @@ Opt out of automatic column ordering — by default, dbsketch tries reordering c
 }
 ```
 
+Split a large schema into focused sub-diagrams. Each cluster renders as its own diagram with a header; cross-cluster FKs become `↳ target.col (Cluster)` annotation rows on the source column. See [docs/large-schemas.md](docs/large-schemas.md) for a full walkthrough.
+
+```dbml
+@layout {
+  cluster "Clinical Events" { person, visit_occurrence, condition_occurrence }
+  cluster "Vocabularies"   { concept, vocabulary, domain }
+}
+```
+
 These hints are local to one pipeline stage each. They don't cascade and don't surprise.
 
 ## CLI reference
@@ -370,6 +383,8 @@ Options:
                      the schema declares none (default: infer)
   --no-types         Render column names only, no data types. Entities are
                      correspondingly narrower
+  --no-columns       Collapse entities to 3-row name-only boxes (no columns
+                     shown). For whole-schema overviews of large schemas
   -h, --help         Show this help
 ```
 
@@ -383,9 +398,10 @@ compileSql(sqlSource, dialect?, options?)
 
 // Options:
 // {
-//   glyphs?:     'unicode' | 'ascii'   // default 'unicode'
-//   inferRefs?:  'auto' | 'never'      // default 'auto'
-//   showTypes?:  boolean               // default true
+//   glyphs?:      'unicode' | 'ascii'   // default 'unicode'
+//   inferRefs?:   'auto' | 'never'      // default 'auto'
+//   showTypes?:   boolean               // default true
+//   showColumns?: boolean               // default true; false → name-only boxes
 // }
 ```
 
