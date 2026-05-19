@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { USAGE, runCli } from './cli.js';
 
-function makeDeps(input: string, isTty = false) {
+function makeDeps(
+  input: string,
+  isTty = false,
+  files: Record<string, string> = {},
+): {
+  readFile: (path: string) => string;
+  readStdin: () => string;
+  stdinIsTty: boolean;
+  writeFile: (path: string, content: string) => void;
+  written: Map<string, string>;
+} {
+  const written = new Map<string, string>();
   return {
-    readFile: (_path: string) => input,
+    readFile: (path: string) => {
+      if (path in files) return files[path]!;
+      return input;
+    },
     readStdin: () => input,
     stdinIsTty: isTty,
+    writeFile: (path: string, content: string) => {
+      written.set(path, content);
+    },
+    written,
   };
 }
 
@@ -83,6 +101,61 @@ describe('runCli', () => {
     const result = runCli(['--sql', '--dialect=bogus'], makeDeps('CREATE TABLE x (id INT);'));
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain('invalid --dialect');
+  });
+
+  describe('--render-markdown', () => {
+    const mdWithInline = [
+      '# My doc',
+      '',
+      '<!-- dbsketch',
+      'Table users { id int }',
+      '-->',
+      '',
+      'Some text',
+    ].join('\n');
+
+    it('inserts a rendered block after an inline comment', () => {
+      const deps = makeDeps('', false);
+      deps.readFile = (_p) => mdWithInline;
+      const result = runCli(['--render-markdown', 'README.md'], deps);
+      expect(result.exitCode).toBe(0);
+      const written = deps.written.get('README.md')!;
+      expect(written).toContain('```dbsketch-rendered\n');
+      expect(written).toContain('users');
+      expect(written).toContain('Some text');
+    });
+
+    it('updates an existing rendered block on re-run (idempotent structure)', () => {
+      const deps = makeDeps('', false);
+      deps.readFile = (_p) => mdWithInline;
+      runCli(['--render-markdown', 'README.md'], deps);
+      const first = deps.written.get('README.md')!;
+      deps.readFile = (_p) => first;
+      runCli(['--render-markdown', 'README.md'], deps);
+      const second = deps.written.get('README.md')!;
+      expect(second).toBe(first);
+    });
+
+    it('renders a src="..." file reference', () => {
+      const md = '<!-- dbsketch src="schema.dbml" -->\n';
+      // readFile is called with the resolved absolute path; endsWith handles
+      // any path prefix the CLI adds via dirname/resolve.
+      const deps = makeDeps('', false);
+      deps.readFile = (p) => {
+        if (p === 'README.md') return md;
+        if (p.endsWith('schema.dbml')) return 'Table products { id int }';
+        throw new Error(`unexpected readFile: ${p}`);
+      };
+      const result = runCli(['--render-markdown', 'README.md'], deps);
+      expect(result.exitCode).toBe(0);
+      expect(deps.written.get('README.md')).toContain('products');
+    });
+
+    it('requires a file path', () => {
+      const result = runCli(['--render-markdown'], makeDeps(''));
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('requires a markdown file path');
+    });
   });
 
   it('infers relationships from PK-name matches by default', () => {

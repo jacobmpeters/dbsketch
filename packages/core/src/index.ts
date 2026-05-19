@@ -189,6 +189,78 @@ function buildClusterIR(
   };
 }
 
+// ── Markdown processing ───────────────────────────────────────────────────────
+
+export interface ProcessMarkdownOptions extends CompileOptions {
+  // Resolves a src="..." path to its raw file content. The callback receives
+  // the path string exactly as written in the comment; the caller is responsible
+  // for resolving it relative to the markdown file's directory. When omitted,
+  // src="..." references are skipped (left in place, no rendered block inserted).
+  resolveFile?: (src: string) => string;
+  // SQL dialect used when a src="..." path ends in .sql. Defaults to 'postgres'.
+  dialect?: SqlDialect;
+}
+
+const FENCE = '```';
+// Matches either:
+//   <!-- dbsketch\n<DBML>\n-->       (inline block — group 2 captures DBML)
+//   <!-- dbsketch src="path" -->     (file ref — group 1 captures path)
+const COMMENT_RE =
+  /<!--\s*dbsketch(?:[ \t]+src="([^"]+)"[^-]*|[ \t]*\n([\s\S]*?)\n)-->/g;
+// After a comment: optional blank lines then an existing rendered block.
+const RENDERED_RE = new RegExp(`^(\\n+)(${FENCE}dbsketch-rendered\\n[\\s\\S]*?${FENCE})`);
+
+export function processMarkdown(source: string, options?: ProcessMarkdownOptions): string {
+  const { resolveFile, dialect = 'postgres', ...compileOpts } = options ?? {};
+
+  let result = '';
+  let cursor = 0;
+
+  for (const match of source.matchAll(COMMENT_RE)) {
+    const srcPath = match[1];
+    const inlineDbml = match[2];
+    const commentEnd = match.index! + match[0].length;
+
+    result += source.slice(cursor, commentEnd);
+    cursor = commentEnd;
+
+    let dbml: string;
+    if (srcPath !== undefined) {
+      if (!resolveFile) continue;
+      try {
+        dbml = resolveFile(srcPath);
+      } catch {
+        continue;
+      }
+    } else {
+      dbml = inlineDbml!.trim();
+    }
+
+    let rendered: string;
+    try {
+      const isSql = srcPath !== undefined && /\.sql$/i.test(srcPath);
+      rendered = isSql ? compileSql(dbml, dialect, compileOpts) : compile(dbml, compileOpts);
+    } catch {
+      continue;
+    }
+
+    const trailingNewline = rendered.endsWith('\n') ? '' : '\n';
+    const newBlock = `${FENCE}dbsketch-rendered\n${rendered}${trailingNewline}${FENCE}`;
+
+    const tail = source.slice(cursor);
+    const existing = tail.match(RENDERED_RE);
+    if (existing) {
+      result += existing[1] + newBlock;
+      cursor += existing[0].length;
+    } else {
+      result += '\n\n' + newBlock;
+    }
+  }
+
+  result += source.slice(cursor);
+  return result;
+}
+
 export { ParseError, TokenizerError } from '@dbsketch/parser';
 export type * from '@dbsketch/parser';
 export type * from '@dbsketch/layout';
