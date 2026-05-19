@@ -142,7 +142,7 @@ function reorderRank(
   const nonPinned = inRank.filter((n) => !pinnedRows.has(n));
   if (nonPinned.length === 0) return;
 
-  const barys = computeBarycenters(nonPinned, positions, adjacency, { usePort: false });
+  const barys = computeBarycenters(nonPinned, positions, adjacency);
   // Port-row mean: which row of the neighbor each sibling attaches to,
   // averaged across edges. Used as a tiebreaker when raw barys collide
   // (the star-schema case where N dims all share one fact neighbor at
@@ -199,7 +199,7 @@ function floatPositions(
     if (pinnedRows.has(name)) continue;
     // Port-row contribution is omitted here — float wants the unbiased
     // integer position, not the sibling-ordering tiebreaker.
-    const bary = computeBarycenters([name], positions, adjacency, { usePort: false }).get(name)!;
+    const bary = computeBarycenters([name], positions, adjacency).get(name)!;
     positions.set(name, Math.max(0, Math.round(bary)));
   }
 }
@@ -208,7 +208,6 @@ function computeBarycenters(
   entities: string[],
   positions: Map<string, number>,
   adjacency: Map<string, NeighborLink[]>,
-  options: { usePort: boolean },
 ): Map<string, number> {
   const barys = new Map<string, number>();
   for (const name of entities) {
@@ -218,8 +217,7 @@ function computeBarycenters(
     for (const link of links) {
       const pos = positions.get(link.neighbor);
       if (pos === undefined) continue;
-      const portContribution = options.usePort ? link.portRowOnNeighbor / link.neighborHeight : 0;
-      sum += pos + portContribution;
+      sum += pos;
       count++;
     }
     // Isolated entities keep their current position so they don't drift.

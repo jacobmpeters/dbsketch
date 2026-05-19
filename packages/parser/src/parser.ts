@@ -493,15 +493,16 @@ class Parser {
           this.advance();
           this.consume('colon');
           const op = this.consumeCardinality();
-          const targetEntity = this.consumeName();
+          let targetEntity = this.consumeName();
           let targetColumn = targetEntity;
           if (this.at('dot')) {
             this.consume('dot');
             targetColumn = this.consumeName();
           }
-          // Schema-qualified target: schema.table.column → use last two parts.
+          // Schema-qualified: schema.table.column → advance entity to table, column to column.
           if (this.at('dot')) {
             this.consume('dot');
+            targetEntity = targetColumn;
             targetColumn = this.consumeName();
           }
           ref = { op, target: { entity: targetEntity, column: targetColumn } };

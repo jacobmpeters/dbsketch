@@ -27,6 +27,8 @@ export interface ClusterHint {
   entities: string[];
 }
 
+// Not yet wired: the parser accepts `rank N { ... }` syntax but never
+// populates this — `LayoutHints.ranks` is always an empty array at runtime.
 export interface RankHint {
   rank: number;
   entities: string[];

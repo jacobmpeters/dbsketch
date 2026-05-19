@@ -204,7 +204,7 @@ function multiHubRank(ir: IR, centers: CenterHint[]): Map<string, number> {
   const rightDepth = new Array<number>(K).fill(0); // exclusive depth on a hub's RIGHT
   const bridgeDepth = new Array<number>(Math.max(0, K - 1)).fill(0);
 
-  for (const [name, a] of assignments) {
+  for (const [, a] of assignments) {
     if (a.depth === 0) continue;
     if (a.isBridge) {
       bridgeDepth[a.hubIdx] = Math.max(bridgeDepth[a.hubIdx]!, a.depth);
@@ -213,7 +213,6 @@ function multiHubRank(ir: IR, centers: CenterHint[]): Map<string, number> {
     if (a.hubIdx === 0) leftDepth[0] = Math.max(leftDepth[0]!, a.depth);
     else if (a.hubIdx === K - 1) rightDepth[K - 1] = Math.max(rightDepth[K - 1]!, a.depth);
     else leftDepth[a.hubIdx] = Math.max(leftDepth[a.hubIdx]!, a.depth);
-    void name;
   }
 
   const hubCol = new Array<number>(K).fill(0);

@@ -842,18 +842,19 @@ export function materializeEdges(
   // assignment) and absolute Y (used during rendering). Local-spine
   // multi-hops store their detour Y in relative coords; add yBase here.
   const yBase = entityYBase(topMarginHeight);
+  const channelLeftXs = buildChannelLeftXs(sizing);
   return planned.map((p) => {
-    if (p.kind === 'single') return materializeSingleHop(p, sizing, entityPositions);
+    if (p.kind === 'single') return materializeSingleHop(p, channelLeftXs, entityPositions);
     if (p.kind === 'multi') {
-      return materializeMultiHop(p, sizing, entityPositions, bottomMarginBaseY, yBase);
+      return materializeMultiHop(p, channelLeftXs, entityPositions, bottomMarginBaseY, yBase);
     }
-    return materializeSameCol(p, sizing, entityPositions);
+    return materializeSameCol(p, channelLeftXs, entityPositions);
   });
 }
 
 function materializeSingleHop(
   p: SingleHopPlannedEdge,
-  sizing: StripSizing,
+  channelLeftXs: number[],
   entityPositions: EntityPositions,
 ): EdgeRoute {
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
@@ -890,7 +891,7 @@ function materializeSingleHop(
     // Forward edges keep their original "flush to parent" placement;
     // backward edges land further from their parent than ideal but never
     // overlap a forward edge.
-    const channelLeftX = colChannelStartX(sizing, p.channelIndex);
+    const channelLeftX = channelLeftXs[p.channelIndex] ?? 0;
     const bendX = channelLeftX + Math.max(0, p.track);
     // H1/H2 include the port cells. drawPortMarker repaints those cells
     // at the end, so the horizontal glyph there is invisible. The benefit:
@@ -907,7 +908,7 @@ function materializeSingleHop(
 
 function materializeMultiHop(
   p: MultiHopPlannedEdge,
-  sizing: StripSizing,
+  channelLeftXs: number[],
   entityPositions: EntityPositions,
   bottomMarginBaseY: number,
   yBase: number,
@@ -926,9 +927,9 @@ function materializeMultiHop(
   // regardless of edge direction. See materializeSingleHop for the rationale:
   // mixed forward/backward edges in one channel must use a single anchor
   // side to avoid track-index collisions.
-  const v1ChannelLeftX = colChannelStartX(sizing, p.parentChannelIndex);
+  const v1ChannelLeftX = channelLeftXs[p.parentChannelIndex] ?? 0;
   const v1X = v1ChannelLeftX + Math.max(0, p.parentTrack);
-  const v2ChannelLeftX = colChannelStartX(sizing, p.childChannelIndex);
+  const v2ChannelLeftX = channelLeftXs[p.childChannelIndex] ?? 0;
   const v2X = v2ChannelLeftX + Math.max(0, p.childTrack);
 
   // H2 routes through the chosen margin or a local spine row. Top margin
@@ -961,7 +962,7 @@ function materializeMultiHop(
 
 function materializeSameCol(
   p: SameColPlannedEdge,
-  sizing: StripSizing,
+  channelLeftXs: number[],
   entityPositions: EntityPositions,
 ): EdgeRoute {
   const parentBox = entityPositions.get(p.ref.parent.entity)!;
@@ -974,7 +975,7 @@ function materializeSameCol(
   const childPortY = childBox.y + p.childRowOffset;
   const portSide: Side = p.side;
 
-  const channelLeftX = colChannelStartX(sizing, p.channelIndex);
+  const channelLeftX = channelLeftXs[p.channelIndex] ?? 0;
   const bendX = channelLeftX + Math.max(0, p.track);
 
   const parentPort: Port = { x: portX, y: parentPortY, side: portSide };
@@ -992,11 +993,14 @@ function materializeSameCol(
   return { ref: p.ref, parentPort, childPort, segments };
 }
 
-function colChannelStartX(sizing: StripSizing, channelIndex: number): number {
+function buildChannelLeftXs(sizing: StripSizing): number[] {
+  const xs: number[] = [];
   let x = 0;
-  for (let i = 0; i <= channelIndex; i++) {
+  const n = sizing.channelColWidths.length + 1;
+  for (let i = 0; i < n; i++) {
     x += sizing.colStripWidths[i] ?? 0;
-    if (i < channelIndex) x += sizing.channelColWidths[i] ?? 0;
+    xs.push(x);
+    x += sizing.channelColWidths[i] ?? 0;
   }
-  return x;
+  return xs;
 }
