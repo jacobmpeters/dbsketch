@@ -375,26 +375,115 @@ Split a large schema into focused sub-diagrams. Each cluster renders as its own 
 
 These hints are local to one pipeline stage each. They don't cascade and don't surprise.
 
+## Diagrams in Markdown
+
+Keep your ERD source and rendered output in the same markdown file. The source is hidden from GitHub's renderer; only the ASCII diagram is visible.
+
+**Write an HTML comment with your DBML:**
+
+````markdown
+<!-- dbsketch
+Table users { id int [pk] email varchar }
+Table posts { id int [pk] user_id int [ref: > users.id] title varchar }
+-->
+````
+
+**Run the CLI to insert the rendered block:**
+
+```sh
+dbsketch --render-markdown README.md
+```
+
+The file is updated in place:
+
+````markdown
+<!-- dbsketch
+Table users { id int [pk] email varchar }
+Table posts { id int [pk] user_id int [ref: > users.id] title varchar }
+-->
+
+```dbsketch-rendered
+                   ╭───────────────╮
+╭───────────────╮  │     posts     │
+│     users     │  ├───────────────┤
+├───────────────┤  │·id        int │
+│·id        int ├──┤ user_id   int │
+│ email varchar │  │ title varchar │
+╰───────────────╯  ╰───────────────╯
+```
+````
+
+On GitHub, the `<!-- dbsketch -->` comment is invisible — readers see only the diagram. Re-running `--render-markdown` updates the rendered block in place; it's idempotent.
+
+All render flags work: `--ascii`, `--no-types`, `--no-columns`, `--dialect`, etc.
+
+**Reference an external file instead of inline DBML:**
+
+````markdown
+<!-- dbsketch src="./schema.dbml" -->
+<!-- dbsketch src="./schema.sql" -->
+````
+
+The path is resolved relative to the markdown file. `.sql` extensions auto-route through the SQL parser.
+
+### Pre-commit hook
+
+Run `--render-markdown` automatically on every commit so the diagram stays in sync with the schema.
+
+**Plain git hook** (no dependencies) — add to `.git/hooks/pre-commit` and `chmod +x` it:
+
+```sh
+#!/bin/sh
+git diff --cached --name-only | grep '\.md$' | xargs -I{} dbsketch --render-markdown {}
+git add -u
+```
+
+**Husky:**
+
+```sh
+npx husky add .husky/pre-commit \
+  "git diff --cached --name-only | grep '\.md\$' | xargs -I{} dbsketch --render-markdown {}"
+echo "" >> .husky/pre-commit
+echo "git add -u" >> .husky/pre-commit
+```
+
+**lint-staged** (if you're already using it):
+
+```json
+{
+  "lint-staged": {
+    "*.md": "dbsketch --render-markdown"
+  }
+}
+```
+
+> **Note:** The hook must re-stage files after rendering (`git add -u`) so the updated diagram is included in the commit, not just the source edit.
+
 ## CLI reference
 
 ```
 Usage: dbsketch [options] [file.dbml|file.sql]
+       dbsketch --render-markdown <file.md>
 
 Reads DBML or SQL DDL from a file (or stdin if omitted) and writes
 the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
-  --ascii            Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
-  --sql              Treat input as SQL DDL (forced for stdin)
-  --dialect=NAME     SQL dialect: postgres (default), mysql, mssql, snowflake
-  --no-infer-refs    Don't infer relationships from PK-name matches when
-                     the schema declares none (default: infer)
-  --no-types         Render column names only, no data types. Entities are
-                     correspondingly narrower
-  --no-columns       Collapse entities to 3-row name-only boxes (no columns
-                     shown). For whole-schema overviews of large schemas
-  -h, --help         Show this help
+  --ascii              Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
+  --sql                Treat input as SQL DDL (forced for stdin)
+  --dialect=NAME       SQL dialect: postgres (default), mysql, mssql, snowflake
+  --no-infer-refs      Don't infer relationships from PK-name matches when
+                       the schema declares none (default: infer)
+  --no-types           Render column names only, no data types. Entities are
+                       correspondingly narrower
+  --no-columns         Collapse entities to 3-row name-only boxes (no columns
+                       shown). For whole-schema overviews of large schemas
+  --render-markdown    Process a Markdown file in place: find <!-- dbsketch -->
+                       comment blocks (inline DBML or src="path" file refs)
+                       and insert or update the ```dbsketch-rendered``` block
+                       that follows each one
+  -h, --help           Show this help
 ```
 
 ## Library API
