@@ -40,20 +40,20 @@ jobs:
       # version ranges automatically during publish.
       - run: pnpm publish --filter @dbsketch/parser --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DBSKETCH }}
 
       - run: pnpm publish --filter @dbsketch/layout --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DBSKETCH }}
 
       - run: pnpm publish --filter @dbsketch/render --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DBSKETCH }}
 
       - run: pnpm publish --filter @dbsketch/core --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DBSKETCH }}
 
       - run: pnpm publish --filter @dbsketch/cli --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DBSKETCH }}
