@@ -528,6 +528,11 @@ interface VEntry {
   // whether to reverse track indices after FFD so that track 0 always lands
   // on the source side of the channel.
   direction: 1 | -1 | 0;
+  // true for a standalone same-col edge whose entity is to the RIGHT of the
+  // channel (channelIndex < parentColStrip). The H segments approach from the
+  // right, so the V trunk should sit in the upper zone (flush against the
+  // entity's left border) rather than blocking forward-edge H1 segments.
+  approachRight?: true;
   assign: (track: number) => void;
 }
 
@@ -637,26 +642,74 @@ function packColChannels(
       }
     }
     const sourceY = endpointY(first.edge.ref.parent.entity, first.edge.parentRowOffset);
-    const vEntry: VEntry = {
-      yMin,
-      yMax,
-      sourceY,
-      direction: first.edge.direction,
-      assign: (t) => {
-        for (const m of members) {
-          if (m.kind === 'single') m.edge.track = t;
-          else m.edge.parentTrack = t;
-        }
-      },
-    };
-    add(channel, vEntry);
-    // Register backward single-hop bundles so same-col edges sharing the same
-    // parent port can merge into this trunk instead of getting a separate track.
-    if (first.edge.direction === -1 && members.every((m) => m.kind === 'single')) {
-      backwardBundleVEntries.set(
-        `${channel}|${first.edge.ref.parent.entity}|${first.edge.ref.parent.column}`,
-        vEntry,
+
+    // When a single-hop bundle has members on BOTH sides of sourceY (some
+    // childY < sourceY and some childY > sourceY), the combined VEntry's V
+    // trunk passes through the parent port row as an interior cell. Any
+    // straight H edge at sourceY (another edge whose two ports align at that
+    // absolute y) then produces an unavoidable ┼ crossing. Fix: split the
+    // bundle into a north arm (childY < sourceY) and a south arm
+    // (childY > sourceY). The north arm's yMax = sourceY and the south arm's
+    // yMin = sourceY — they touch but don't strictly overlap, so FFD assigns
+    // them to separate tracks. The straight H then combines with a T-corner
+    // (┴ or ┬) rather than a full crossing.
+    const allSingle = members.every((m) => m.kind === 'single');
+    if (allSingle && yMin < sourceY && sourceY < yMax) {
+      type SingleMember = { kind: 'single'; edge: SingleHopPlannedEdge };
+      const northMembers = (members as SingleMember[]).filter(
+        (m) => endpointY(m.edge.ref.child.entity, m.edge.childRowOffset) < sourceY,
       );
+      const southMembers = (members as SingleMember[]).filter(
+        (m) => endpointY(m.edge.ref.child.entity, m.edge.childRowOffset) > sourceY,
+      );
+      if (northMembers.length > 0) {
+        let northYMin = Number.POSITIVE_INFINITY;
+        for (const m of northMembers)
+          northYMin = Math.min(northYMin, endpointY(m.edge.ref.child.entity, m.edge.childRowOffset));
+        add(channel, {
+          yMin: northYMin,
+          yMax: sourceY,
+          sourceY,
+          direction: first.edge.direction,
+          assign: (t) => { for (const m of northMembers) m.edge.track = t; },
+        });
+      }
+      if (southMembers.length > 0) {
+        let southYMax = Number.NEGATIVE_INFINITY;
+        for (const m of southMembers)
+          southYMax = Math.max(southYMax, endpointY(m.edge.ref.child.entity, m.edge.childRowOffset));
+        add(channel, {
+          yMin: sourceY,
+          yMax: southYMax,
+          sourceY,
+          direction: first.edge.direction,
+          assign: (t) => { for (const m of southMembers) m.edge.track = t; },
+        });
+      }
+      // Split bundles are not registered in backwardBundleVEntries; same-col
+      // edges at this parent port will get standalone VEntries instead.
+    } else {
+      const vEntry: VEntry = {
+        yMin,
+        yMax,
+        sourceY,
+        direction: first.edge.direction,
+        assign: (t) => {
+          for (const m of members) {
+            if (m.kind === 'single') m.edge.track = t;
+            else m.edge.parentTrack = t;
+          }
+        },
+      };
+      add(channel, vEntry);
+      // Register backward single-hop bundles so same-col edges sharing the same
+      // parent port can merge into this trunk instead of getting a separate track.
+      if (first.edge.direction === -1 && members.every((m) => m.kind === 'single')) {
+        backwardBundleVEntries.set(
+          `${channel}|${first.edge.ref.parent.entity}|${first.edge.ref.parent.column}`,
+          vEntry,
+        );
+      }
     }
   }
   // Child-side V2 bundles: multi-hop V2's that terminate at the same
@@ -727,14 +780,17 @@ function packColChannels(
         edge.track = t;
       };
     } else {
+      // channelIndex < parentColStrip means the channel is to the LEFT of the
+      // entity. The H segments approach from the right (entity's left border),
+      // so the V trunk should sit in the upper zone to avoid crossing forward
+      // edges whose H1 arrives from the left.
+      const approachRight = edge.channelIndex < edge.parentColStrip;
       add(edge.channelIndex, {
         yMin: Math.min(py, cy),
         yMax: Math.max(py, cy),
-        // Same-col edges live in a side-channel; both ports are on the same
-        // side of the entity, so source/target don't map to channel east/west.
-        // Mark neutral so they don't pull the channel toward a reversal.
         sourceY: null,
         direction: 0,
+        ...(approachRight ? { approachRight: true as const } : {}),
         assign: (t) => {
           edge.track = t;
         },
@@ -775,6 +831,7 @@ function packColChannels(
 function packVEntries(entries: VEntry[]): number {
   type Zone = 'lower' | 'middle' | 'upper';
   const zones: Zone[] = entries.map((e, i) => {
+    if (e.approachRight) return 'upper';
     if (e.sourceY === null) return 'lower';
     const targetY = e.sourceY === e.yMin ? e.yMax : e.yMin;
     let sourceTrapped = false;
