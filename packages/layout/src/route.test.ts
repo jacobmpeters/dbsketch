@@ -191,15 +191,13 @@ describe('planRoutes', () => {
     expect(result.channelTrackCounts.get(0)).toBe(1);
   });
 
-  it('bundles edges sharing a parent port into a compact set of V tracks', () => {
+  it('bundles edges sharing a parent port into a single V track', () => {
     // Three children of the same parent column. Without bundling each
     // would get its own track (channel width = 3); bundled, they share
-    // a trunk. The barycenter pass may straighten one of the three (the
-    // middle one, aligned with parent's port), skipping it from the bundle.
-    // When the remaining bent edges land on both sides of the parent port
-    // row the bundle splits into a north arm and south arm (to avoid the
-    // straight-H×V crossing that a unified trunk would produce), so the
-    // channel uses ≤ 2 tracks rather than 3.
+    // a trunk (channel width = 1). The barycenter pass may straighten
+    // one of the three (the middle one, aligned with parent's port),
+    // skipping it from the bundle — but the remaining bent edges still
+    // share a single track.
     const ir = parse(`
       Table parent { id int }
       Table a { id int parent_id int [ref: > parent.id] }
@@ -208,16 +206,15 @@ describe('planRoutes', () => {
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(3);
-    // ≤ 2 tracks: much better than the 3 tracks without any bundling.
-    expect(result.channelTrackCounts.get(0)).toBeLessThanOrEqual(2);
+    expect(result.channelTrackCounts.get(0)).toBe(1);
+    // Edges with a real V track land on the same track via parent-side
+    // bundling. Straightened edges (track = -1) are excluded.
     const bentTracks = result.planned
       .filter((p): p is import('./route.js').SingleHopPlannedEdge => p.kind === 'single')
       .map((p) => p.track)
       .filter((t) => t >= 0);
     expect(bentTracks.length).toBeGreaterThanOrEqual(2);
-    // With the split, each arm gets its own track; without split (if all
-    // children land on the same side) they still share one track.
-    expect(new Set(bentTracks).size).toBeLessThanOrEqual(2);
+    expect(new Set(bentTracks).size).toBe(1);
   });
 
   it('does not bundle edges from different parent PKs even in the same channel', () => {
