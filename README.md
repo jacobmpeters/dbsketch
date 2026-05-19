@@ -42,6 +42,21 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
 
 > The diagram above is an SVG; everything below is real monospace text and assumes **`line-height: 1`**. Terminals and editors do that by default; markdown viewers vary. See [Viewing](#viewing) if a diagram renders with gaps.
 
+---
+
+- [Why this exists](#why-this-exists)
+- [Quick start](#quick-start)
+- [What it's for](#what-its-for)
+- [Examples](#examples)
+- [When defaults don't fit](#when-defaults-dont-fit)
+- [Diagrams in Markdown](#diagrams-in-markdown) — keep ERD source in your docs, render on commit
+- [CLI reference](#cli-reference)
+- [Library API](#library-api)
+- [Worked examples](#worked-example-narrowing-a-wide-diagram-with-a-hint)
+- [Viewing](#viewing)
+
+---
+
 ## Why this exists
 
 Existing ERD tools — Mermaid, dbdiagram, GraphViz — lay out in continuous 2D space and project onto a grid. The projection is where things break: variable-width entities don't snap cleanly, edges meet boxes off-center, dense schemas need manual repositioning to be readable. Most of them produce SVG/PNG output that you can't paste into a README, a CHANGELOG entry, or a prompt.
