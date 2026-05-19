@@ -1,6 +1,7 @@
 import { type Token, type TokenKind, tokenize } from './tokenizer.js';
 import type {
   CenterHint,
+  ClusterHint,
   Column,
   Entity,
   IR,
@@ -27,6 +28,7 @@ class Parser {
   private readonly pins: PinHint[] = [];
   private readonly centers: CenterHint[] = [];
   private readonly preserveOrder: PreserveOrderHint = { global: false, entities: [] };
+  private readonly clusters: ClusterHint[] = [];
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -38,7 +40,7 @@ class Parser {
       entities: this.entities,
       refs: this.refs,
       hints: {
-        clusters: [],
+        clusters: this.clusters,
         ranks: [],
         pins: this.pins,
         centers: this.centers,
@@ -194,11 +196,46 @@ class Parser {
       this.parsePreserveOrderHint();
       return;
     }
+    if (keyword === 'cluster') {
+      this.parseClusterHint();
+      return;
+    }
     throw new ParseError(
-      `Unknown hint: '${tok.value}' (expected 'pin', 'center', or 'preserve_order')`,
+      `Unknown hint: '${tok.value}' (expected 'pin', 'center', 'preserve_order', or 'cluster')`,
       tok.line,
       tok.col,
     );
+  }
+
+  // Syntax:
+  //   cluster "Display Name" { entity1, entity2, ... }
+  //   cluster bareName { entity1, entity2 }
+  // The label can be a quoted string (preserves spaces and casing for the
+  // section header at render time) or a bare identifier. Members are
+  // a comma-separated list of entity names.
+  private parseClusterHint(): void {
+    this.consume('ident'); // 'cluster'
+    const labelTok = this.peek();
+    let name: string;
+    if (labelTok.kind === 'string' || labelTok.kind === 'ident') {
+      this.advance();
+      name = labelTok.value;
+    } else {
+      throw new ParseError(
+        `Expected cluster label (identifier or string), got '${labelTok.value || labelTok.kind}'`,
+        labelTok.line,
+        labelTok.col,
+      );
+    }
+    this.consume('lbrace');
+    const entities: string[] = [];
+    while (!this.at('rbrace')) {
+      const eTok = this.consume('ident');
+      entities.push(eTok.value);
+      if (this.at('comma')) this.consume('comma');
+    }
+    this.consume('rbrace');
+    this.clusters.push({ name, entities });
   }
 
   // Syntax:
@@ -226,7 +263,7 @@ class Parser {
     const tok = this.peek();
     if (tok.kind !== 'ident') return false;
     const kw = tok.value.toLowerCase();
-    return kw === 'pin' || kw === 'center' || kw === 'preserve_order';
+    return kw === 'pin' || kw === 'center' || kw === 'preserve_order' || kw === 'cluster';
   }
 
   private parsePinHint(): void {

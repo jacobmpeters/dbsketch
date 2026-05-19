@@ -145,7 +145,7 @@ describe('parse', () => {
     expect(() =>
       parse(`
         Table users { id int }
-        @layout { cluster auth { users } }
+        @layout { unknownhint users }
       `),
     ).toThrow(/Unknown hint/);
   });
