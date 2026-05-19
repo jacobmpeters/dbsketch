@@ -1,5 +1,6 @@
 import { type IR, parse } from '@dbsketch/parser';
 import { describe, expect, it } from 'vitest';
+import { detectHubs } from './detectHubs.js';
 import { layout } from './layout.js';
 import { place } from './place.js';
 import { rank } from './rank.js';
@@ -169,11 +170,21 @@ describe('planRoutes', () => {
   });
 
   it('shares a track across non-overlapping cross-row-strip bends', () => {
+    // c shares two FK columns to two stacked parents — the barycenter
+    // pass can only align one pair at a time, so both edges keep their
+    // bends (and they go in opposite directions, so their V intervals
+    // don't overlap). Interval scheduling shares them on one track.
     const ir = parse(`
       Table p1 { id int }
       Table p2 { id int }
-      Table c1 { id int p1_id int [ref: > p1.id] }
-      Table c2 { id int p2_id int [ref: > p2.id] }
+      Table c {
+        id int
+        p1_id int [ref: > p1.id]
+        x int
+        y int
+        z int
+        p2_id int [ref: > p2.id]
+      }
     `);
     const result = plan(ir);
     expect(result.planned).toHaveLength(2);
@@ -183,7 +194,10 @@ describe('planRoutes', () => {
   it('bundles edges sharing a parent port into a single V track', () => {
     // Three children of the same parent column. Without bundling each
     // would get its own track (channel width = 3); bundled, they share
-    // a trunk (channel width = 1).
+    // a trunk (channel width = 1). The barycenter pass may straighten
+    // one of the three (the middle one, aligned with parent's port),
+    // skipping it from the bundle — but the remaining bent edges still
+    // share a single track.
     const ir = parse(`
       Table parent { id int }
       Table a { id int parent_id int [ref: > parent.id] }
@@ -193,11 +207,14 @@ describe('planRoutes', () => {
     const result = plan(ir);
     expect(result.planned).toHaveLength(3);
     expect(result.channelTrackCounts.get(0)).toBe(1);
-    // All three edges land on the same track since they share the trunk.
-    const tracks = result.planned
+    // Edges with a real V track land on the same track via parent-side
+    // bundling. Straightened edges (track = -1) are excluded.
+    const bentTracks = result.planned
       .filter((p): p is import('./route.js').SingleHopPlannedEdge => p.kind === 'single')
-      .map((p) => p.track);
-    expect(new Set(tracks).size).toBe(1);
+      .map((p) => p.track)
+      .filter((t) => t >= 0);
+    expect(bentTracks.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(bentTracks).size).toBe(1);
   });
 
   it('does not bundle edges from different parent PKs even in the same channel', () => {
@@ -217,6 +234,62 @@ describe('planRoutes', () => {
     expect(result.planned).toHaveLength(2);
     expect(result.channelTrackCounts.get(0)).toBeGreaterThanOrEqual(1);
   });
+
+  it('merges a same-col edge into a backward single-hop bundle sharing the same parent port', () => {
+    // encounter (center, col 1) has a backward FK to provider (col 2).
+    // medication (col 2, same col as provider) has a same-col FK to provider.
+    // Both attach to provider.id and route through channel 1. Before the fix
+    // these got separate VEntries → 3 tracks. After the fix they share one
+    // VEntry → channel 1 needs at most 2 tracks.
+    const ir = parse(`
+      Table patient { id int }
+      Table provider { id int }
+      Table medication {
+        id int
+        encounter_id int [ref: > encounter.id]
+        prescriber_id int [ref: > provider.id]
+      }
+      Table encounter {
+        id int
+        patient_id int [ref: > patient.id]
+        provider_id int [ref: > provider.id]
+      }
+
+      @layout {
+        center encounter { left: patient right: provider, medication }
+      }
+    `);
+    // Must pass centers to rank() so the @center hint is honored and
+    // provider/medication land in the right col (col 2) next to encounter.
+    const centers = detectHubs(ir);
+    const result = planRoutes(ir, place(ir, rank(ir, centers)));
+
+    // Channel 1 (between col 1 and col 2) carries the backward edge
+    // (encounter→provider), the forward edge (medication→encounter), and
+    // the same-col edge (medication→provider). The backward + same-col pair
+    // share a parent port so they merge to one track; total must be ≤ 2.
+    expect(result.channelTrackCounts.get(1)).toBeLessThanOrEqual(2);
+
+    const backwardEdge = result.planned.find(
+      (p): p is import('./route.js').SingleHopPlannedEdge =>
+        p.kind === 'single' &&
+        p.ref.child.entity === 'encounter' &&
+        p.ref.parent.entity === 'provider',
+    );
+    const sameColEdge = result.planned.find(
+      (p): p is import('./route.js').SameColPlannedEdge =>
+        p.kind === 'same-col' &&
+        p.ref.child.entity === 'medication' &&
+        p.ref.parent.entity === 'provider',
+    );
+    expect(backwardEdge).toBeDefined();
+    expect(sameColEdge).toBeDefined();
+    // When the backward edge has a real V segment (not straight), it must
+    // share the same track as the same-col edge.
+    if (backwardEdge!.track >= 0) {
+      expect(backwardEdge!.track).toBe(sameColEdge!.track);
+    }
+  });
 });
 
 describe('layout integration', () => {
@@ -232,20 +305,22 @@ describe('layout integration', () => {
   });
 
   it('produces three segments (H, V, H) for a Z-shape edge', () => {
-    // dst has a PK that pins to row 0, so the FK column ends up at row 1
-    // even after column optimization — the Y mismatch with src.a (row 0)
-    // forces a Z-shape.
+    // Two sources stacked in col 0 with a dst in col 1 that references
+    // both — the barycenter pass can only align one pair (and the
+    // optimizer picks dst's column order to favor neither), so the
+    // edge from src2 keeps its Z-shape across the column boundary.
     const ir = parse(`
-      Table src { a int }
-      Table dst { id int [pk] x int [ref: > src.a] }
+      Table src1 { a int }
+      Table src2 { b int }
+      Table dst {
+        id int [pk]
+        x int [ref: > src1.a]
+        y int [ref: > src2.b]
+      }
     `);
     const result = layout(ir);
-    expect(result.edges).toHaveLength(1);
-    expect(result.edges[0]?.segments.map((s) => s.kind)).toEqual([
-      'horizontal',
-      'vertical',
-      'horizontal',
-    ]);
+    const zEdge = result.edges.find((e) => e.segments.length === 3);
+    expect(zEdge?.segments.map((s) => s.kind)).toEqual(['horizontal', 'vertical', 'horizontal']);
   });
 
   it('produces five segments (H, V, H, V, H) for a multi-hop edge', () => {

@@ -38,13 +38,13 @@ describe('render', () => {
       ),
     );
     expect(out).toMatchInlineSnapshot(`
-      "╭───────────────╮  ╭───────────────╮
-      │     users     │  │     posts     │
-      ├───────────────┤  ├───────────────┤
+      "                   ╭───────────────╮
+      ╭───────────────╮  │     posts     │
+      │     users     │  ├───────────────┤
+      ├───────────────┤  │ id        int │
       │ id        int ├──┤ user_id   int │
-      │ email varchar │  │ id        int │
-      ╰───────────────╯  │ title varchar │
-                         ╰───────────────╯"
+      │ email varchar │  │ title varchar │
+      ╰───────────────╯  ╰───────────────╯"
     `);
   });
 

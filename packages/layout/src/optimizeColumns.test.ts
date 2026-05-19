@@ -7,15 +7,19 @@ const colNames = (l: ReturnType<typeof layout>, entityName: string): string[] =>
   l.ir.entities.find((e) => e.name === entityName)?.columns.map((c) => c.name) ?? [];
 
 describe('optimizeColumns', () => {
-  it('reorders an entity when an FK sits below a non-FK column', () => {
-    // dim_region in this shape needs country_id (FK) pulled above name
-    // (non-FK) to straighten the edge to dim_country.
+  it('leaves declared order when barycenter alignment renders reorder unhelpful', () => {
+    // Simple 2-entity case: the optimizer used to reorder `dim_region`
+    // as `[region_id, country_id, name]` to straighten the FK edge.
+    // The barycenter Y-offset pass now shifts dim_country's Y so its
+    // PK port aligns with dim_region.country_id's row regardless of
+    // column position — so reorder gives no metric improvement and
+    // the declared order wins. Same outcome as `preserve_order` below.
     const ir = parse(`
       Table dim_country { country_id int [pk] name varchar }
       Table dim_region  { region_id int [pk] name varchar country_id int [ref: > dim_country.country_id] }
     `);
     const l = layout(ir);
-    expect(colNames(l, 'dim_region')).toEqual(['region_id', 'country_id', 'name']);
+    expect(colNames(l, 'dim_region')).toEqual(['region_id', 'name', 'country_id']);
   });
 
   it('leaves declared order alone when reorder would regress the metric', () => {

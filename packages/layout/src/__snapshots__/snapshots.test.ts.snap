@@ -7,12 +7,12 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       "childPort": {
         "side": "left",
         "x": 12,
-        "y": 5,
+        "y": 4,
       },
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 3,
+        "y": 4,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -29,23 +29,9 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
         {
           "kind": "horizontal",
           "x1": 9,
-          "x2": 10,
-          "y1": 3,
-          "y2": 3,
-        },
-        {
-          "kind": "vertical",
-          "x1": 10,
-          "x2": 10,
-          "y1": 3,
-          "y2": 5,
-        },
-        {
-          "kind": "horizontal",
-          "x1": 10,
           "x2": 12,
-          "y1": 5,
-          "y2": 5,
+          "y1": 4,
+          "y2": 4,
         },
       ],
     },
@@ -53,12 +39,12 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       "childPort": {
         "side": "left",
         "x": 12,
-        "y": 12,
+        "y": 11,
       },
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 9,
+        "y": 11,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -75,23 +61,9 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
         {
           "kind": "horizontal",
           "x1": 9,
-          "x2": 10,
-          "y1": 9,
-          "y2": 9,
-        },
-        {
-          "kind": "vertical",
-          "x1": 10,
-          "x2": 10,
-          "y1": 9,
-          "y2": 12,
-        },
-        {
-          "kind": "horizontal",
-          "x1": 10,
           "x2": 12,
-          "y1": 12,
-          "y2": 12,
+          "y1": 11,
+          "y2": 11,
         },
       ],
     },
@@ -101,31 +73,31 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 0,
+      "y": 1,
     },
     "bot" => {
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 6,
+      "y": 8,
     },
     "mid" => {
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 12,
+      "y": 14,
     },
     "x" => {
       "height": 6,
       "width": 14,
       "x": 12,
-      "y": 2,
+      "y": 0,
     },
     "y" => {
       "height": 6,
       "width": 14,
       "x": 12,
-      "y": 9,
+      "y": 7,
     },
   },
   "ir": {
@@ -163,12 +135,12 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       {
         "columns": [
           {
-            "name": "top_id",
+            "name": "id",
             "pk": false,
             "type": "int",
           },
           {
-            "name": "id",
+            "name": "top_id",
             "pk": false,
             "type": "int",
           },
@@ -178,12 +150,12 @@ exports[`layout snapshots > barycenter-reorder 1`] = `
       {
         "columns": [
           {
-            "name": "bot_id",
+            "name": "id",
             "pk": false,
             "type": "int",
           },
           {
-            "name": "id",
+            "name": "bot_id",
             "pk": false,
             "type": "int",
           },
@@ -287,7 +259,7 @@ exports[`layout snapshots > branching-children 1`] = `
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 7,
+        "y": 8,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -305,14 +277,14 @@ exports[`layout snapshots > branching-children 1`] = `
           "kind": "horizontal",
           "x1": 9,
           "x2": 10,
-          "y1": 7,
-          "y2": 7,
+          "y1": 8,
+          "y2": 8,
         },
         {
           "kind": "vertical",
           "x1": 10,
           "x2": 10,
-          "y1": 7,
+          "y1": 8,
           "y2": 4,
         },
         {
@@ -333,7 +305,7 @@ exports[`layout snapshots > branching-children 1`] = `
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 7,
+        "y": 8,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -351,14 +323,14 @@ exports[`layout snapshots > branching-children 1`] = `
           "kind": "horizontal",
           "x1": 9,
           "x2": 10,
-          "y1": 7,
-          "y2": 7,
+          "y1": 8,
+          "y2": 8,
         },
         {
           "kind": "vertical",
           "x1": 10,
           "x2": 10,
-          "y1": 7,
+          "y1": 8,
           "y2": 11,
         },
         {
@@ -376,7 +348,7 @@ exports[`layout snapshots > branching-children 1`] = `
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 4,
+      "y": 5,
     },
     "posts" => {
       "height": 6,
@@ -513,12 +485,12 @@ exports[`layout snapshots > diamond 1`] = `
       "childPort": {
         "side": "left",
         "x": 12,
-        "y": 4,
+        "y": 5,
       },
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 4,
+        "y": 5,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -536,8 +508,8 @@ exports[`layout snapshots > diamond 1`] = `
           "kind": "horizontal",
           "x1": 9,
           "x2": 12,
-          "y1": 4,
-          "y2": 4,
+          "y1": 5,
+          "y2": 5,
         },
       ],
     },
@@ -550,7 +522,7 @@ exports[`layout snapshots > diamond 1`] = `
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 4,
+        "y": 5,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -568,33 +540,33 @@ exports[`layout snapshots > diamond 1`] = `
           "kind": "horizontal",
           "x1": 9,
           "x2": 10,
-          "y1": 4,
-          "y2": 4,
+          "y1": 5,
+          "y2": 5,
         },
         {
           "kind": "vertical",
           "x1": 10,
           "x2": 10,
-          "y1": 4,
+          "y1": 5,
           "y2": 7,
         },
         {
           "kind": "horizontal",
           "x1": 10,
-          "x2": 25,
+          "x2": 24,
           "y1": 7,
           "y2": 7,
         },
         {
           "kind": "vertical",
-          "x1": 25,
-          "x2": 25,
+          "x1": 24,
+          "x2": 24,
           "y1": 7,
           "y2": 4,
         },
         {
           "kind": "horizontal",
-          "x1": 25,
+          "x1": 24,
           "x2": 26,
           "y1": 4,
           "y2": 4,
@@ -610,7 +582,7 @@ exports[`layout snapshots > diamond 1`] = `
       "parentPort": {
         "side": "right",
         "x": 23,
-        "y": 3,
+        "y": 4,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -627,20 +599,20 @@ exports[`layout snapshots > diamond 1`] = `
         {
           "kind": "horizontal",
           "x1": 23,
-          "x2": 24,
-          "y1": 3,
-          "y2": 3,
+          "x2": 25,
+          "y1": 4,
+          "y2": 4,
         },
         {
           "kind": "vertical",
-          "x1": 24,
-          "x2": 24,
-          "y1": 3,
+          "x1": 25,
+          "x2": 25,
+          "y1": 4,
           "y2": 5,
         },
         {
           "kind": "horizontal",
-          "x1": 24,
+          "x1": 25,
           "x2": 26,
           "y1": 5,
           "y2": 5,
@@ -653,13 +625,13 @@ exports[`layout snapshots > diamond 1`] = `
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 1,
+      "y": 2,
     },
     "b" => {
       "height": 6,
       "width": 12,
       "x": 12,
-      "y": 0,
+      "y": 1,
     },
     "c" => {
       "height": 7,
@@ -1041,12 +1013,12 @@ exports[`layout snapshots > linear-chain 1`] = `
       "childPort": {
         "side": "left",
         "x": 12,
-        "y": 4,
+        "y": 5,
       },
       "parentPort": {
         "side": "right",
         "x": 9,
-        "y": 3,
+        "y": 5,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -1063,23 +1035,9 @@ exports[`layout snapshots > linear-chain 1`] = `
         {
           "kind": "horizontal",
           "x1": 9,
-          "x2": 10,
-          "y1": 3,
-          "y2": 3,
-        },
-        {
-          "kind": "vertical",
-          "x1": 10,
-          "x2": 10,
-          "y1": 3,
-          "y2": 4,
-        },
-        {
-          "kind": "horizontal",
-          "x1": 10,
           "x2": 12,
-          "y1": 4,
-          "y2": 4,
+          "y1": 5,
+          "y2": 5,
         },
       ],
     },
@@ -1092,7 +1050,7 @@ exports[`layout snapshots > linear-chain 1`] = `
       "parentPort": {
         "side": "right",
         "x": 26,
-        "y": 3,
+        "y": 4,
       },
       "ref": {
         "cardinality": "one-to-many",
@@ -1109,20 +1067,6 @@ exports[`layout snapshots > linear-chain 1`] = `
         {
           "kind": "horizontal",
           "x1": 26,
-          "x2": 27,
-          "y1": 3,
-          "y2": 3,
-        },
-        {
-          "kind": "vertical",
-          "x1": 27,
-          "x2": 27,
-          "y1": 3,
-          "y2": 4,
-        },
-        {
-          "kind": "horizontal",
-          "x1": 27,
           "x2": 29,
           "y1": 4,
           "y2": 4,
@@ -1135,13 +1079,13 @@ exports[`layout snapshots > linear-chain 1`] = `
       "height": 5,
       "width": 10,
       "x": 0,
-      "y": 0,
+      "y": 2,
     },
     "posts" => {
       "height": 6,
       "width": 15,
       "x": 12,
-      "y": 0,
+      "y": 1,
     },
     "comments" => {
       "height": 6,

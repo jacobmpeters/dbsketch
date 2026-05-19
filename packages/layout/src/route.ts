@@ -612,6 +612,10 @@ function packColChannels(
       pushMember(key, { kind: 'v1', edge });
     }
   }
+  // Backward single-hop parent bundles that a same-col edge can merge into.
+  // Key: `${channelIndex}|${parentEntity}|${parentColumn}`.
+  const backwardBundleVEntries = new Map<string, VEntry>();
+
   for (const [, members] of [...parentBundles.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const first = members[0]!;
     const channel =
@@ -633,7 +637,7 @@ function packColChannels(
       }
     }
     const sourceY = endpointY(first.edge.ref.parent.entity, first.edge.parentRowOffset);
-    add(channel, {
+    const vEntry: VEntry = {
       yMin,
       yMax,
       sourceY,
@@ -644,7 +648,16 @@ function packColChannels(
           else m.edge.parentTrack = t;
         }
       },
-    });
+    };
+    add(channel, vEntry);
+    // Register backward single-hop bundles so same-col edges sharing the same
+    // parent port can merge into this trunk instead of getting a separate track.
+    if (first.edge.direction === -1 && members.every((m) => m.kind === 'single')) {
+      backwardBundleVEntries.set(
+        `${channel}|${first.edge.ref.parent.entity}|${first.edge.ref.parent.column}`,
+        vEntry,
+      );
+    }
   }
   // Child-side V2 bundles: multi-hop V2's that terminate at the same
   // (channel, direction, child_entity, child_column) share one V trunk.
@@ -692,23 +705,41 @@ function packColChannels(
     });
   }
 
-  // Same-col edges: independent V per edge in the chosen side-channel.
+  // Same-col edges: independent V per edge in the chosen side-channel, unless
+  // the edge shares its parent port with a backward single-hop bundle in the
+  // same channel (e.g. both encounter.provider_id and medication.prescriber_id
+  // reference provider.id through the same channel). In that case, merge into
+  // the backward bundle's trunk: extend the trunk's y-range and add this
+  // edge's track assignment to the bundle's assign callback. The shared V
+  // trunk eliminates the crossing the separate track would cause.
   for (const edge of planned) {
     if (edge.kind !== 'same-col') continue;
     const py = endpointY(edge.ref.parent.entity, edge.parentRowOffset);
     const cy = endpointY(edge.ref.child.entity, edge.childRowOffset);
-    add(edge.channelIndex, {
-      yMin: Math.min(py, cy),
-      yMax: Math.max(py, cy),
-      // Same-col edges live in a side-channel; both ports are on the same
-      // side of the entity, so source/target don't map to channel east/west.
-      // Mark neutral so they don't pull the channel toward a reversal.
-      sourceY: null,
-      direction: 0,
-      assign: (t) => {
+    const mergeKey = `${edge.channelIndex}|${edge.ref.parent.entity}|${edge.ref.parent.column}`;
+    const existing = backwardBundleVEntries.get(mergeKey);
+    if (existing) {
+      existing.yMin = Math.min(existing.yMin, py, cy);
+      existing.yMax = Math.max(existing.yMax, py, cy);
+      const prevAssign = existing.assign;
+      existing.assign = (t) => {
+        prevAssign(t);
         edge.track = t;
-      },
-    });
+      };
+    } else {
+      add(edge.channelIndex, {
+        yMin: Math.min(py, cy),
+        yMax: Math.max(py, cy),
+        // Same-col edges live in a side-channel; both ports are on the same
+        // side of the entity, so source/target don't map to channel east/west.
+        // Mark neutral so they don't pull the channel toward a reversal.
+        sourceY: null,
+        direction: 0,
+        assign: (t) => {
+          edge.track = t;
+        },
+      });
+    }
   }
 
   const counts = new Map<number, number>();

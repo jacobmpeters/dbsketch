@@ -79,14 +79,14 @@ dbsketch blog.dbml
 ```
 
 ```
-                   ╭───────────────╮  ╭──────────────╮
-╭───────────────╮  │     posts     │  │   comments   │
-│     users     │  ├───────────────┤  ├──────────────┤
-├───────────────┤  │·id        int ├╮ │·id       int │
-│·id        int ├┬─┤ user_id   int │╰─┤ post_id  int │
-│ email varchar ││ │ title varchar │╭─┤ user_id  int │
-╰───────────────╯│ ╰───────────────╯│ │ body varchar │
-                 │                  │ ╰──────────────╯
+                                      ╭──────────────╮
+                   ╭───────────────╮  │   comments   │
+╭───────────────╮  │     posts     │  ├──────────────┤
+│     users     │  ├───────────────┤  │·id       int │
+├───────────────┤  │·id        int ├──┤ post_id  int │
+│·id        int ├┬─┤ user_id   int │╭─┤ user_id  int │
+│ email varchar ││ │ title varchar ││ │ body varchar │
+╰───────────────╯│ ╰───────────────╯│ ╰──────────────╯
                  ╰──────────────────╯
 ```
 
@@ -130,31 +130,33 @@ If you want to manually route an edge or change a font, this isn't the tool.
 For a fact table with many dimensions, dbsketch detects the hub and places it in the center:
 
 ```
-╭───────────────╮
-│   store_dim   │
-├───────────────┤
-│·id        int ├─╮                      ╭──────────────╮
-│ name  varchar │ │                      │   date_dim   │
-╰───────────────╯ │╭──────────────────╮  ├──────────────┤
-                  ││    sales_fact    │╭─┤·id       int │
-╭───────────────╮ │├──────────────────┤│ │ date    date │
-│ customer_dim  │ ││·id           int ││ ╰──────────────╯
-├───────────────┤ ││ date_id      int ├╯
-│·id        int ├╮││ product_id   int ├╮ ╭──────────────╮
-│ email varchar ││╰┤ store_id     int ││ │ product_dim  │
-╰───────────────╯╰─┤ customer_id  int ││ ├──────────────┤
-                   │ promotion_id int │╰─┤·id       int │
-╭───────────────╮╭─┤ channel_id   int │  │ sku  varchar │
-│  channel_dim  ││ │ currency_id  int ├╮ ╰──────────────╯
-├───────────────┤│╭┤ employee_id  int ││
-│·id        int ├╯││ quantity     int ││ ╭──────────────╮
-│ name  varchar │ ││ unit_price   int ││ │ currency_dim │
-╰───────────────╯ ││ total        int ││ ├──────────────┤
-                  │╰──────────────────╯╰─┤·id       int │
-╭───────────────╮ │                      │ code varchar │
-│ employee_dim  │ │                      ╰──────────────╯
-├───────────────┤ │
-│·id        int ├─╯
+                                          ╭──────────────╮
+                                          │   date_dim   │
+                                          ├──────────────┤
+╭───────────────╮                      ╭──┤·id       int │
+│ customer_dim  │                      │  │ date    date │
+├───────────────┤                      │  ╰──────────────╯
+│·id        int ├─╮                    │
+│ email varchar │ │╭──────────────────╮│  ╭──────────────╮
+╰───────────────╯ ││    sales_fact    ││  │ product_dim  │
+                  │├──────────────────┤│  ├──────────────┤
+╭───────────────╮ ││·id           int ││ ╭┤·id       int │
+│ promotion_dim │ ││ date_id      int ├╯ ││ sku  varchar │
+├───────────────┤ ││ product_id   int ├──╯╰──────────────╯
+│·id        int ├╮││ store_id     int ├──╮
+╰───────────────╯│╰┤ customer_id  int │  │╭──────────────╮
+                 ╰─┤ promotion_id int │  ││  store_dim   │
+╭───────────────╮╭─┤ channel_id   int │  │├──────────────┤
+│  channel_dim  ││ │ currency_id  int ├─╮╰┤·id       int │
+├───────────────┤│╭┤ employee_id  int │ │ │ name varchar │
+│·id        int ├╯││ quantity     int │ │ ╰──────────────╯
+│ name  varchar │ ││ unit_price   int │ │
+╰───────────────╯ ││ total        int │ │ ╭──────────────╮
+                  │╰──────────────────╯ │ │ currency_dim │
+╭───────────────╮ │                     │ ├──────────────┤
+│ employee_dim  │ │                     ╰─┤·id       int │
+├───────────────┤ │                       │ code varchar │
+│·id        int ├─╯                       ╰──────────────╯
 │ name  varchar │
 ╰───────────────╯
 ```
@@ -186,24 +188,24 @@ Table vital      { id int [pk] encounter_id int [ref: > encounter.id] measure va
 │       diagnosis       │
 ├───────────────────────┤
 │·id                int │
-│ encounter_id      int ├╮                              ╭───────────────────╮
-│ icd_code      varchar ││                              │    medication     │
-│ description   varchar ││                              ├───────────────────┤
-╰───────────────────────╯│                              │·id            int │
-                         │ ╭────────────────────────╮╭──┤ encounter_id  int │
-╭───────────────────────╮│ │       encounter        ││╭─┤ prescriber_id int │
-│         vital         ││ ├────────────────────────┤││ │ name      varchar │
-├───────────────────────┤├─┤·id                 int ├╯│ │ dose      varchar │
-│·id                int ││╭┤ patient_id         int │ │ ╰───────────────────╯
-│ encounter_id      int ├╯││ provider_id        int ├─│╮
-│ measure       varchar │ ││ encounter_type varchar │ ││╭───────────────────╮
-│ value         decimal │ ││ started_at   timestamp │ │││     provider      │
-│ recorded_at timestamp │ ││ ended_at     timestamp │ ││├───────────────────┤
-╰───────────────────────╯ │╰────────────────────────╯ ╰┴┤·id            int │
-                          │                             │ npi       varchar │
-╭───────────────────────╮ │                             │ name      varchar │
-│        patient        │ │                             │ specialty varchar │
-├───────────────────────┤ │                             ╰───────────────────╯
+│ encounter_id      int ├╮                             ╭───────────────────╮
+│ icd_code      varchar ││                             │    medication     │
+│ description   varchar ││                             ├───────────────────┤
+╰───────────────────────╯│                             │·id            int │
+                         │                           ╭─┤ encounter_id  int │
+╭───────────────────────╮│ ╭────────────────────────╮│╭┤ prescriber_id int │
+│         vital         ││ │       encounter        ││││ name      varchar │
+├───────────────────────┤│ ├────────────────────────┤│││ dose      varchar │
+│·id                int │├─┤·id                 int ├╯│╰───────────────────╯
+│ encounter_id      int ├╯╭┤ patient_id         int │ │
+│ measure       varchar │ ││ provider_id        int ├─┤╭───────────────────╮
+│ value         decimal │ ││ encounter_type varchar │ ││     provider      │
+│ recorded_at timestamp │ ││ started_at   timestamp │ │├───────────────────┤
+╰───────────────────────╯ ││ ended_at     timestamp │ ╰┤·id            int │
+                          │╰────────────────────────╯  │ npi       varchar │
+╭───────────────────────╮ │                            │ name      varchar │
+│        patient        │ │                            │ specialty varchar │
+├───────────────────────┤ │                            ╰───────────────────╯
 │·id                int ├─╯
 │ mrn           varchar │
 │ name          varchar │
@@ -238,77 +240,85 @@ Useful when types are noise — high-level structural overviews where you care a
 A real 12-entity schema (instrument design for a survey platform), with types — about 200 characters wide:
 
 ```
-                                                                                 ╭───────────────────────────────────────────────────────────╮
-                                                                                 │                                                           │
-                                                      ╭─────────────────────────╮│                                                           │
-                           ╭───────────────────────╮  │    scoring_rule_item    ││                                                           │
-                           │    response_option    │  ├─────────────────────────┤│                                                           │
-                           ├───────────────────────┤  │ scoring_rule_id integer ├╯                                                           │
-                           │·option_id     integer │  │ qq_id           integer ├╮                                                           │
-                           │ question_id   integer ├╮ │ weight             real ││                                                           │
-                         ╭─┤ option_set_id integer ││ │ reverse_score   boolean ││                               ╭──────────────────────────╮│
-                         │ │ option_text      text ││ ╰─────────────────────────╯│                               │      questionnaire       ││
-                         │ │ option_value     text ││                            │                               ├──────────────────────────┤│
-                         │ │ concept_id    integer ││ ╭─────────────────────────╮│ ╭──────────────────────────╮╭─┤·questionnaire_id integer ├│┬╮
-                         │ ╰───────────────────────╯│ │        skip_rule        ││ │  questionnaire_question  ││ │ study_id         integer ││││
-                         │                          │ ├─────────────────────────┤│ ├──────────────────────────┤│ │ name                text ││││╭──────────────────────────╮  ╭─────────────────────────╮
-╭───────────────────────╮│ ╭───────────────────────╮│ │·skip_rule_id    integer │├─┤·qq_id            integer ││ │ version             text │││││       scoring_rule       │  │    scoring_category     │
-│  response_option_set  ││ │      grid_column      ││ │ qq_id           integer ├╯ │ questionnaire_id integer ├╯ │ canonical_url       text ││││├──────────────────────────┤  ├─────────────────────────┤
-├───────────────────────┤│ ├───────────────────────┤│ │ trigger_qq_id   integer │╭─┤ question_id      integer │  ╰──────────────────────────╯╰││┤·scoring_rule_id  integer ├╮ │·category_id     integer │
-│·option_set_id integer ├╯ │·column_id     integer ││ │ operator           text ││ │ section_id       integer ├╮                              │╰┤ questionnaire_id integer │╰─┤ scoring_rule_id integer │
-│ name             text │  │ question_id   integer ├┤ │ trigger_value      text ││ │ parent_qq_id     integer ││ ╭──────────────────────────╮ │ │ name                text │  │ label              text │
-│ canonical_url    text │  │ column_text      text ││ │ action             text ││ │ count_qq_id      integer ││ │         section          │ │ │ formula             text │  │ min_score          real │
-╰───────────────────────╯  │ column_value     text ││ │ enable_behavior    text ││ │ display_order    integer ││ ├──────────────────────────┤ │ ╰──────────────────────────╯  │ max_score          real │
-                           ╰───────────────────────╯│ ╰─────────────────────────╯│ │ required         boolean │╰─┤·section_id       integer │ │                               ╰─────────────────────────╯
-                                                    │                            │ ╰──────────────────────────╯  │ questionnaire_id integer ├─╯
-                           ╭───────────────────────╮│ ╭─────────────────────────╮│                               │ name                text │
-                           │       grid_row        ││ │        question         ││                               │ display_order    integer │
-                           ├───────────────────────┤│ ├─────────────────────────┤│                               ╰──────────────────────────╯
-                           │·row_id        integer │├─┤·question_id     integer ├╯
-                           │ question_id   integer ├╯ │ link_id            text │
-                           │ row_text         text │  │ question_type      text │
-                           │ display_order integer │  │ question_text      text │
-                           ╰───────────────────────╯  │ concept_id      integer │
-                                                      │ version            text │
-                                                      ╰─────────────────────────╯
+                                                                                 ╭────────────────────────────────────────────────────────────╮
+                                                                                 │                                                            │
+                                                      ╭─────────────────────────╮│                                                            │                               ╭─────────────────────────╮
+                                                      │    scoring_rule_item    ││                                                            │ ╭──────────────────────────╮  │    scoring_category     │
+                                                      ├─────────────────────────┤│                                                            │ │       scoring_rule       │  ├─────────────────────────┤
+                                                      │ scoring_rule_id integer ├╯                                ╭──────────────────────────╮│ ├──────────────────────────┤  │·category_id     integer │
+                                                      │ qq_id           integer ├╮                                │      questionnaire       │╰─┤·scoring_rule_id  integer ├──┤ scoring_rule_id integer │
+                                                      │ weight             real ││                                ├──────────────────────────┤╭─┤ questionnaire_id integer │  │ label              text │
+                                                      │ reverse_score   boolean ││                             ╭──┤·questionnaire_id integer ├┴╮│ name                text │  │ min_score          real │
+                           ╭───────────────────────╮  ╰─────────────────────────╯│                             │  │ study_id         integer │ ││ formula             text │  │ max_score          real │
+                           │    response_option    │                             │                             │  │ name                text │ │╰──────────────────────────╯  ╰─────────────────────────╯
+╭───────────────────────╮  ├───────────────────────┤  ╭─────────────────────────╮│                             │  │ version             text │ │
+│  response_option_set  │  │·option_id     integer │  │        skip_rule        ││ ╭──────────────────────────╮│  │ canonical_url       text │ │
+├───────────────────────┤  │ question_id   integer ├╮ ├─────────────────────────┤│ │  questionnaire_question  ││  ╰──────────────────────────╯ │
+│·option_set_id integer ├──┤ option_set_id integer ││ │·skip_rule_id    integer ││ ├──────────────────────────┤│                               │
+│ name             text │  │ option_text      text ││ │ qq_id           integer ├┼─┤·qq_id            integer ├│┬╮╭──────────────────────────╮ │
+│ canonical_url    text │  │ option_value     text ││ │ trigger_qq_id   integer ├╯ │ questionnaire_id integer ├╯│││         section          │ │
+╰───────────────────────╯  │ concept_id    integer ││ │ operator           text │╭─┤ question_id      integer │ ││├──────────────────────────┤ │
+                           ╰───────────────────────╯│ │ trigger_value      text ││ │ section_id       integer ├─││┤·section_id       integer │ │
+                                                    │ │ action             text ││ │ parent_qq_id     integer ├─╯││ questionnaire_id integer ├─╯
+                           ╭───────────────────────╮│ │ enable_behavior    text ││ │ count_qq_id      integer ├──╯│ name                text │
+                           │      grid_column      ││ ╰─────────────────────────╯│ │ display_order    integer │   │ display_order    integer │
+                           ├───────────────────────┤│                            │ │ required         boolean │   ╰──────────────────────────╯
+                           │·column_id     integer ││ ╭─────────────────────────╮│ ╰──────────────────────────╯
+                           │ question_id   integer ├┤ │        question         ││
+                           │ column_text      text ││ ├─────────────────────────┤│
+                           │ column_value     text │├─┤·question_id     integer ├╯
+                           ╰───────────────────────╯│ │ link_id            text │
+                                                    │ │ question_type      text │
+                           ╭───────────────────────╮│ │ question_text      text │
+                           │       grid_row        ││ │ concept_id      integer │
+                           ├───────────────────────┤│ │ version            text │
+                           │·row_id        integer ││ ╰─────────────────────────╯
+                           │ question_id   integer ├╯
+                           │ row_text         text │
+                           │ display_order integer │
+                           ╰───────────────────────╯
 ```
 
 Same schema with `--no-types` — about 165 characters wide (17% narrower), and the relationship structure is what your eye lands on first:
 
 ```
-                                                                   ╭─────────────────────────────────────────────────╮
-                                                                   │                                                 │
-                                              ╭───────────────────╮│                                                 │
-                         ╭─────────────────╮  │ scoring_rule_item ││                                                 │
-                         │ response_option │  ├───────────────────┤│                                                 │
-                         ├─────────────────┤  │ scoring_rule_id   ├╯                                                 │
-                         │·option_id       │  │ qq_id             ├╮                                                 │
-                         │ question_id     ├╮ │ weight            ││                                                 │
-                       ╭─┤ option_set_id   ││ │ reverse_score     ││                             ╭──────────────────╮│
-                       │ │ option_text     ││ ╰───────────────────╯│                             │  questionnaire   ││
-                       │ │ option_value    ││                      │                             ├──────────────────┤│
-                       │ │ concept_id      ││ ╭───────────────────╮│ ╭────────────────────────╮╭─┤·questionnaire_id ├│┬╮
-                       │ ╰─────────────────╯│ │     skip_rule     ││ │ questionnaire_question ││ │ study_id         ││││
-                       │                    │ ├───────────────────┤│ ├────────────────────────┤│ │ name             ││││╭──────────────────╮  ╭──────────────────╮
-╭─────────────────────╮│ ╭─────────────────╮│ │·skip_rule_id      │├─┤·qq_id                  ││ │ version          │││││   scoring_rule   │  │ scoring_category │
-│ response_option_set ││ │   grid_column   ││ │ qq_id             ├╯ │ questionnaire_id       ├╯ │ canonical_url    ││││├──────────────────┤  ├──────────────────┤
-├─────────────────────┤│ ├─────────────────┤│ │ trigger_qq_id     │╭─┤ question_id            │  ╰──────────────────╯╰││┤·scoring_rule_id  ├╮ │·category_id      │
-│·option_set_id       ├╯ │·column_id       ││ │ operator          ││ │ section_id             ├╮                      │╰┤ questionnaire_id │╰─┤ scoring_rule_id  │
-│ name                │  │ question_id     ├┤ │ trigger_value     ││ │ parent_qq_id           ││ ╭──────────────────╮ │ │ name             │  │ label            │
-│ canonical_url       │  │ column_text     ││ │ action            ││ │ count_qq_id            ││ │     section      │ │ │ formula          │  │ min_score        │
-╰─────────────────────╯  │ column_value    ││ │ enable_behavior   ││ │ display_order          ││ ├──────────────────┤ │ ╰──────────────────╯  │ max_score        │
-                         ╰─────────────────╯│ ╰───────────────────╯│ │ required               │╰─┤·section_id       │ │                       ╰──────────────────╯
-                                            │                      │ ╰────────────────────────╯  │ questionnaire_id ├─╯
-                         ╭─────────────────╮│ ╭───────────────────╮│                             │ name             │
-                         │    grid_row     ││ │     question      ││                             │ display_order    │
-                         ├─────────────────┤│ ├───────────────────┤│                             ╰──────────────────╯
-                         │·row_id          │├─┤·question_id       ├╯
-                         │ question_id     ├╯ │ link_id           │
-                         │ row_text        │  │ question_type     │
-                         │ display_order   │  │ question_text     │
-                         ╰─────────────────╯  │ concept_id        │
-                                              │ version           │
-                                              ╰───────────────────╯
+                                                                   ╭──────────────────────────────────────────────────╮
+                                                                   │                                                  │
+                                              ╭───────────────────╮│                                                  │                       ╭──────────────────╮
+                                              │ scoring_rule_item ││                                                  │ ╭──────────────────╮  │ scoring_category │
+                                              ├───────────────────┤│                                                  │ │   scoring_rule   │  ├──────────────────┤
+                                              │ scoring_rule_id   ├╯                              ╭──────────────────╮│ ├──────────────────┤  │·category_id      │
+                                              │ qq_id             ├╮                              │  questionnaire   │╰─┤·scoring_rule_id  ├──┤ scoring_rule_id  │
+                                              │ weight            ││                              ├──────────────────┤╭─┤ questionnaire_id │  │ label            │
+                                              │ reverse_score     ││                           ╭──┤·questionnaire_id ├┴╮│ name             │  │ min_score        │
+                         ╭─────────────────╮  ╰───────────────────╯│                           │  │ study_id         │ ││ formula          │  │ max_score        │
+                         │ response_option │                       │                           │  │ name             │ │╰──────────────────╯  ╰──────────────────╯
+╭─────────────────────╮  ├─────────────────┤  ╭───────────────────╮│                           │  │ version          │ │
+│ response_option_set │  │·option_id       │  │     skip_rule     ││ ╭────────────────────────╮│  │ canonical_url    │ │
+├─────────────────────┤  │ question_id     ├╮ ├───────────────────┤│ │ questionnaire_question ││  ╰──────────────────╯ │
+│·option_set_id       ├──┤ option_set_id   ││ │·skip_rule_id      ││ ├────────────────────────┤│                       │
+│ name                │  │ option_text     ││ │ qq_id             ├┼─┤·qq_id                  ├│┬╮╭──────────────────╮ │
+│ canonical_url       │  │ option_value    ││ │ trigger_qq_id     ├╯ │ questionnaire_id       ├╯│││     section      │ │
+╰─────────────────────╯  │ concept_id      ││ │ operator          │╭─┤ question_id            │ ││├──────────────────┤ │
+                         ╰─────────────────╯│ │ trigger_value     ││ │ section_id             ├─││┤·section_id       │ │
+                                            │ │ action            ││ │ parent_qq_id           ├─╯││ questionnaire_id ├─╯
+                         ╭─────────────────╮│ │ enable_behavior   ││ │ count_qq_id            ├──╯│ name             │
+                         │   grid_column   ││ ╰───────────────────╯│ │ display_order          │   │ display_order    │
+                         ├─────────────────┤│                      │ │ required               │   ╰──────────────────╯
+                         │·column_id       ││ ╭───────────────────╮│ ╰────────────────────────╯
+                         │ question_id     ├┤ │     question      ││
+                         │ column_text     ││ ├───────────────────┤│
+                         │ column_value    │├─┤·question_id       ├╯
+                         ╰─────────────────╯│ │ link_id           │
+                                            │ │ question_type     │
+                         ╭─────────────────╮│ │ question_text     │
+                         │    grid_row     ││ │ concept_id        │
+                         ├─────────────────┤│ │ version           │
+                         │·row_id          ││ ╰───────────────────╯
+                         │ question_id     ├╯
+                         │ row_text        │
+                         │ display_order   │
+                         ╰─────────────────╯
 ```
 
 ### `--no-columns` (whole-schema overview)
@@ -433,17 +443,19 @@ Default rendering puts `fact_sales` in the center with dim subtrees fanning out 
                                                 │     dim_date      │
                                                 ├───────────────────┤  ╭────────────────────╮
                                                 │·date_key     date ├╮ │     fact_sales     │
-╭────────────────────╮  ╭────────────────────╮  │ year      integer ││ ├────────────────────┤  ╭────────────────────╮
-│    dim_country     │  │     dim_region     │  │ month     integer ││ │·sale_id     bigint │  │    dim_product     │
-├────────────────────┤  ├────────────────────┤  ╰───────────────────╯╰─┤ date_key      date │  ├────────────────────┤
-│·country_id integer ├╮ │·region_id  integer ├╮                      ╭─┤ store_id   integer │╭─┤·product_id integer │
-│ name       varchar │╰─┤ country_id integer ││ ╭───────────────────╮│ │ product_id integer ├╯ │ sku        varchar │
-╰────────────────────╯  │ name       varchar ││ │     dim_store     ││ │ quantity   integer │  │ name       varchar │
-                        ╰────────────────────╯│ ├───────────────────┤│ │ revenue    decimal │  ╰────────────────────╯
-                                              │ │·store_id  integer ├╯ ╰────────────────────╯
-                                              ╰─┤ region_id integer │
-                                                │ name      varchar │
-                                                ╰───────────────────╯
+                                                │ year      integer ││ ├────────────────────┤
+                                                │ month     integer ││ │·sale_id     bigint │  ╭────────────────────╮
+                                                ╰───────────────────╯╰─┤ date_key      date │  │    dim_product     │
+                                                                     ╭─┤ store_id   integer │  ├────────────────────┤
+                                                ╭───────────────────╮│ │ product_id integer ├──┤·product_id integer │
+                        ╭────────────────────╮  │     dim_store     ││ │ quantity   integer │  │ sku        varchar │
+                        │     dim_region     │  ├───────────────────┤│ │ revenue    decimal │  │ name       varchar │
+╭────────────────────╮  ├────────────────────┤  │·store_id  integer ├╯ ╰────────────────────╯  ╰────────────────────╯
+│    dim_country     │  │·region_id  integer ├╮ │ name      varchar │
+├────────────────────┤  │ name       varchar │╰─┤ region_id integer │
+│·country_id integer ├──┤ country_id integer │  ╰───────────────────╯
+│ name       varchar │  ╰────────────────────╯
+╰────────────────────╯
 ```
 
 To narrow it to four columns, wrap `dim_product` below `dim_date` by pinning it. Append this to the DBML:
@@ -504,21 +516,22 @@ Table dim_store    { store_id int [pk] name varchar region varchar }
 Default centering (alphabetical split — `dim_customer` and `dim_product` end up on the left):
 
 ```
-╭─────────────────╮                       ╭────────────────╮
-│  dim_customer   │                       │    dim_date    │
-├─────────────────┤  ╭─────────────────╮  ├────────────────┤
-│·customer_id int ├╮ │   fact_orders   │╭─┤·date_key   int │
-│ email   varchar ││ ├─────────────────┤│ │ year       int │
-│ segment varchar ││ │·order_id    int ││ │ month      int │
-╰─────────────────╯│ │ date_key    int ├╯ ╰────────────────╯
-                   ╰─┤ customer_id int │
-╭─────────────────╮╭─┤ product_id  int │  ╭────────────────╮
-│   dim_product   ││ │ store_id    int ├╮ │   dim_store    │
-├─────────────────┤│ │ amount  decimal ││ ├────────────────┤
-│·product_id  int ├╯ ╰─────────────────╯╰─┤·store_id   int │
-│ sku     varchar │                       │ name   varchar │
-│ name    varchar │                       │ region varchar │
-╰─────────────────╯                       ╰────────────────╯
+                                          ╭────────────────╮
+╭─────────────────╮                       │    dim_date    │
+│  dim_customer   │  ╭─────────────────╮  ├────────────────┤
+├─────────────────┤  │   fact_orders   │╭─┤·date_key   int │
+│·customer_id int ├╮ ├─────────────────┤│ │ year       int │
+│ email   varchar ││ │·order_id    int ││ │ month      int │
+│ segment varchar ││ │ date_key    int ├╯ ╰────────────────╯
+╰─────────────────╯╰─┤ customer_id int │
+                   ╭─┤ product_id  int │  ╭────────────────╮
+╭─────────────────╮│ │ store_id    int ├╮ │   dim_store    │
+│   dim_product   ││ │ amount  decimal ││ ├────────────────┤
+├─────────────────┤│ ╰─────────────────╯╰─┤·store_id   int │
+│·product_id  int ├╯                      │ name   varchar │
+│ sku     varchar │                       │ region varchar │
+│ name    varchar │                       ╰────────────────╯
+╰─────────────────╯
 ```
 
 With an explicit grouping — "who" dimensions on the left, "what/where" on the right:
@@ -530,21 +543,22 @@ With an explicit grouping — "who" dimensions on the left, "what/where" on the 
 ```
 
 ```
-╭─────────────────╮                       ╭────────────────╮
-│    dim_date     │                       │  dim_product   │
-├─────────────────┤  ╭─────────────────╮  ├────────────────┤
-│·date_key    int ├╮ │   fact_orders   │╭─┤·product_id int │
-│ year        int ││ ├─────────────────┤│ │ sku    varchar │
-│ month       int ││ │·order_id    int ││ │ name   varchar │
-╰─────────────────╯╰─┤ date_key    int ││ ╰────────────────╯
-                   ╭─┤ customer_id int ││
-╭─────────────────╮│ │ product_id  int ├╯ ╭────────────────╮
-│  dim_customer   ││ │ store_id    int ├╮ │   dim_store    │
-├─────────────────┤│ │ amount  decimal ││ ├────────────────┤
-│·customer_id int ├╯ ╰─────────────────╯╰─┤·store_id   int │
-│ email   varchar │                       │ name   varchar │
-│ segment varchar │                       │ region varchar │
-╰─────────────────╯                       ╰────────────────╯
+╭─────────────────╮
+│    dim_date     │                       ╭────────────────╮
+├─────────────────┤  ╭─────────────────╮  │  dim_product   │
+│·date_key    int ├╮ │   fact_orders   │  ├────────────────┤
+│ year        int ││ ├─────────────────┤╭─┤·product_id int │
+│ month       int ││ │·order_id    int ││ │ sku    varchar │
+╰─────────────────╯╰─┤ date_key    int ││ │ name   varchar │
+                   ╭─┤ customer_id int ││ ╰────────────────╯
+╭─────────────────╮│ │ product_id  int ├╯
+│  dim_customer   ││ │ store_id    int ├╮ ╭────────────────╮
+├─────────────────┤│ │ amount  decimal ││ │   dim_store    │
+│·customer_id int ├╯ ╰─────────────────╯│ ├────────────────┤
+│ email   varchar │                     ╰─┤·store_id   int │
+│ segment varchar │                       │ name   varchar │
+╰─────────────────╯                       │ region varchar │
+                                          ╰────────────────╯
 ```
 
 `@center` also overrides the auto-detected hub if you want a different entity in the middle.

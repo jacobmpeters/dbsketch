@@ -3,27 +3,27 @@
 exports[`route stats baseline > blog 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 8,
+  "totalVLength": 6,
 }
 `;
 
 exports[`route stats baseline > questionnaire 1`] = `
 {
-  "crossings": 4,
-  "totalVLength": 95,
+  "crossings": 0,
+  "totalVLength": 69,
 }
 `;
 
 exports[`route stats baseline > snowflake-pinned 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 16,
+  "totalVLength": 14,
 }
 `;
 
 exports[`route stats baseline > star-default 1`] = `
 {
   "crossings": 0,
-  "totalVLength": 30,
+  "totalVLength": 29,
 }
 `;
