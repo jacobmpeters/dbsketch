@@ -501,10 +501,69 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
         transition: 'all 0.1s',
         lineHeight: 1.4,
         userSelect: 'none',
+        whiteSpace: 'nowrap',
       }}
     >
       {label}
     </button>
+  );
+}
+
+function DownloadMenu({ mode, onSource, onMarkdown, onSvgLight, onSvgDark }: {
+  mode: Mode;
+  onSource: () => void; onMarkdown: () => void;
+  onSvgLight: () => void; onSvgDark: () => void;
+}) {
+  const { BG, BG2, BORDER, FG, FG_DIM } = useContext(ThemeCtx);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const items: { label: string; action: () => void }[] = [
+    { label: `.${mode === 'sql' ? 'sql' : 'dbml'}`, action: onSource },
+    { label: 'Markdown',    action: onMarkdown },
+    { label: 'SVG · light', action: onSvgLight },
+    { label: 'SVG · dark',  action: onSvgDark },
+  ];
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <Btn onClick={() => setOpen(v => !v)} active={open}>Export ↓</Btn>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+          background: BG, border: `1px solid ${BORDER}`, borderRadius: 8,
+          padding: '4px 0', minWidth: 140, zIndex: 100,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+        }}>
+          {items.map(({ label, action }) => (
+            <button
+              key={label}
+              onClick={() => { action(); setOpen(false); }}
+              onMouseEnter={e => (e.currentTarget.style.background = BG2)}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              style={{
+                display: 'block', width: '100%', padding: '7px 14px',
+                fontFamily: SANS, fontSize: 12,
+                background: 'transparent', color: FG,
+                border: 'none', cursor: 'pointer', textAlign: 'left',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ color: FG_DIM, marginRight: 6 }}>↓</span>{label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -824,12 +883,15 @@ export default function App() {
 
         <div style={{ flex: 1 }} />
 
-        <Btn onClick={copyDiagram}              title="Copy rendered diagram">{copyLabel}</Btn>
-        <Btn onClick={downloadSource}           title={`Download .${mode === 'sql' ? 'sql' : 'dbml'} file`}>↓ {mode.toUpperCase()}</Btn>
-        <Btn onClick={downloadMarkdown}         title="Download as Markdown">↓ Markdown</Btn>
-        <Btn onClick={() => downloadSvg('light')} title="Download SVG (light)">↓ SVG</Btn>
-        <Btn onClick={() => downloadSvg('dark')}  title="Download SVG (dark)">↓ SVG dark</Btn>
-        <Btn onClick={copyLink}                 title="Copy shareable link">{linkLabel}</Btn>
+        <Btn onClick={copyDiagram} title="Copy rendered diagram">{copyLabel}</Btn>
+        <DownloadMenu
+          mode={mode}
+          onSource={downloadSource}
+          onMarkdown={downloadMarkdown}
+          onSvgLight={() => downloadSvg('light')}
+          onSvgDark={() => downloadSvg('dark')}
+        />
+        <Btn onClick={copyLink} title="Copy shareable link">{linkLabel}</Btn>
 
         <div style={{ width: 1, height: 16, background: BORDER }} />
 
