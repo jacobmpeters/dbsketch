@@ -429,12 +429,20 @@ const LIGHT: Theme = {
 const ThemeCtx = createContext<Theme>(LIGHT);
 
 function encodeSchema(value: string): string {
-  return btoa(unescape(encodeURIComponent(value)));
+  // URL-safe base64: replace +→- /→_ and strip = padding so the hash
+  // survives LinkedIn, SMS, and other platforms that mangle those chars.
+  return btoa(unescape(encodeURIComponent(value)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 function decodeSchema(encoded: string): string {
   try {
-    return decodeURIComponent(escape(atob(encoded)));
+    // Accept both URL-safe (-_) and standard (+/) base64 for old links.
+    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+    return decodeURIComponent(escape(atob(padded)));
   } catch {
     return '';
   }
