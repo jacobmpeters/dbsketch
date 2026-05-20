@@ -40,6 +40,8 @@ A claims warehouse, compiled from raw SQL with no `FOREIGN KEY`s declared — al
 
 </details>
 
+**Try it in the browser → [dbsketch.dev](https://dbsketch.dev)**
+
 > The diagram above is an SVG; everything below is real monospace text and assumes **`line-height: 1`**. Terminals and editors do that by default; markdown viewers vary. See [Viewing](#viewing) if a diagram renders with gaps.
 
 ---
