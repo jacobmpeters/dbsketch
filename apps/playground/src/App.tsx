@@ -1,6 +1,7 @@
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
 import { compile, compileSql } from '@dbsketch/core';
+import { renderSvg } from '@dbsketch/render';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView } from '@codemirror/view';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
@@ -682,6 +683,11 @@ export default function App() {
     downloadFile(source, mode === 'sql' ? 'schema.sql' : 'schema.dbml');
   }, [source, mode, downloadFile]);
 
+  const downloadSvg = useCallback((svgTheme: 'light' | 'dark') => {
+    if (!diagram) return;
+    downloadFile(renderSvg(diagram, { theme: svgTheme }), 'diagram.svg');
+  }, [diagram, downloadFile]);
+
   const downloadMarkdown = useCallback(() => {
     const ext = mode === 'sql' ? 'sql' : 'dbml';
     const md = [
@@ -783,6 +789,8 @@ export default function App() {
           <BoxBtn onClick={copyDiagram}    title="Copy rendered diagram">[{copyLabel}]</BoxBtn>
           <BoxBtn onClick={downloadSource} title={`Download .${mode === 'sql' ? 'sql' : 'dbml'} file`}>[↓ {mode.toUpperCase()}]</BoxBtn>
           <BoxBtn onClick={downloadMarkdown} title="Download as .md with rendered block">[↓ .md]</BoxBtn>
+          <BoxBtn onClick={() => downloadSvg('light')} title="Download SVG (light theme)">[↓ .svg]</BoxBtn>
+          <BoxBtn onClick={() => downloadSvg('dark')}  title="Download SVG (dark theme)">[↓ .svg dark]</BoxBtn>
           <BoxBtn onClick={copyLink}       title="Copy shareable link">[{linkLabel}]</BoxBtn>
         </div>
       </div>

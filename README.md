@@ -350,6 +350,17 @@ Collapse every entity to a 3-row name-only box. Edges still route correctly — 
 
 When a SQL schema declares no `FOREIGN KEY`s (common in warehouses), dbsketch infers relationships from PK-name matches: a non-PK column named `respondent_id` in one table that matches a PK column named `respondent_id` in another becomes a one-to-many ref. Pass `--no-infer-refs` to skip this and render only declared relationships.
 
+### `--svg` (vector output for documents and presentations)
+
+Outputs an SVG file instead of plain text. The SVG embeds a monospace font and sizes itself to the diagram, so it renders correctly in Keynote, Pages, Google Slides, and any image viewer — no line-height or font worries.
+
+```sh
+dbsketch schema.dbml --svg > diagram.svg
+dbsketch schema.dbml --svg --theme=dark > diagram-dark.svg
+```
+
+`--theme` accepts `light` (default, white background) or `dark` (GitHub dark background).
+
 ### `--sql` and `--dialect=NAME`
 
 SQL DDL input. Dialect defaults to `postgres` (which also reads SQLite cleanly). Other supported dialects: `mysql`, `mssql`, `snowflake`.
@@ -487,6 +498,8 @@ the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
+  --svg                Output SVG instead of plain text
+  --theme=THEME        SVG color theme: light (default) or dark
   --sql                Treat input as SQL DDL (forced for stdin)
   --dialect=NAME       SQL dialect: postgres (default), mysql, mssql, snowflake
   --no-infer-refs      Don't infer relationships from PK-name matches when
@@ -505,16 +518,22 @@ Options:
 ## Library API
 
 ```ts
-import { compile, compileSql } from '@dbsketch/core';
+import { compile, compileSql, compileSvg, compileSqlSvg } from '@dbsketch/core';
 
-compile(dbmlSource, options?)
+compile(dbmlSource, options?)         // → plain text
 compileSql(sqlSource, dialect?, options?)
+compileSvg(dbmlSource, options?)      // → SVG string
+compileSqlSvg(sqlSource, dialect?, options?)
 
-// Options:
+// Options (text):
 // {
 //   inferRefs?:   'auto' | 'never'      // default 'auto'
 //   showTypes?:   boolean               // default true
 //   showColumns?: boolean               // default true; false → name-only boxes
+// }
+// Options (SVG, extends above):
+// {
+//   theme?:       'light' | 'dark'      // default 'light'
 // }
 ```
 

@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { type SqlDialect, compile, compileSql, processMarkdown } from '@dbsketch/core';
+import { type SqlDialect, compile, compileSql, compileSqlSvg, compileSvg, processMarkdown } from '@dbsketch/core';
 
 export interface CliDeps {
   readFile: (path: string) => string;
@@ -23,6 +23,8 @@ the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
+  --svg                Output SVG instead of plain text
+  --theme=THEME        SVG color theme: light (default) or dark
   --sql                Treat input as SQL DDL (forced for stdin)
   --dialect=NAME       SQL dialect: postgres (default), mysql, mssql, snowflake
   --no-infer-refs      Don't infer relationships from PK-name matches when
@@ -44,6 +46,8 @@ const VALID_DIALECTS: SqlDialect[] = ['postgres', 'mysql', 'mssql', 'snowflake']
 
 export function runCli(args: string[], deps: CliDeps): CliResult {
   let values: {
+    svg?: boolean | undefined;
+    theme?: string | undefined;
     sql?: boolean | undefined;
     dialect?: string | undefined;
     'no-infer-refs'?: boolean | undefined;
@@ -57,6 +61,8 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     const parsed = parseArgs({
       args,
       options: {
+        svg: { type: 'boolean', default: false },
+        theme: { type: 'string' },
         sql: { type: 'boolean', default: false },
         dialect: { type: 'string' },
         'no-infer-refs': { type: 'boolean', default: false },
@@ -106,6 +112,16 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     dialect = values.dialect as SqlDialect;
   }
 
+  const VALID_THEMES = ['light', 'dark'];
+  if (values.theme !== undefined && !VALID_THEMES.includes(values.theme)) {
+    return {
+      stdout: '',
+      stderr: `error: invalid --theme '${values.theme}' (expected: light or dark)\n`,
+      exitCode: 1,
+    };
+  }
+  const theme = (values.theme ?? 'light') as 'light' | 'dark';
+
   const opts = {
     inferRefs: values['no-infer-refs'] ? ('never' as const) : ('auto' as const),
     showTypes: !values['no-types'],
@@ -137,7 +153,9 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
   }
 
   try {
-    const out = isSql ? compileSql(input, dialect, opts) : compile(input, opts);
+    const out = values.svg
+      ? (isSql ? compileSqlSvg(input, dialect, { ...opts, theme }) : compileSvg(input, { ...opts, theme }))
+      : (isSql ? compileSql(input, dialect, opts) : compile(input, opts));
     const padded = out.length > 0 && !out.endsWith('\n') ? `${out}\n` : out;
     return { stdout: padded, stderr: '', exitCode: 0 };
   } catch (e) {

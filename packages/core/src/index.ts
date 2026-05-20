@@ -9,9 +9,16 @@ import {
   parse,
   parseSql,
 } from '@dbsketch/parser';
-import { type RenderOptions, render } from '@dbsketch/render';
+import { type RenderOptions, render, renderSvg } from '@dbsketch/render';
+import type { SvgOptions } from '@dbsketch/render';
 
 export type InferRefsMode = 'auto' | 'never';
+
+export interface SvgCompileOptions extends SvgOptions {
+  inferRefs?: InferRefsMode;
+  showTypes?: boolean;
+  showColumns?: boolean;
+}
 
 export interface CompileOptions extends RenderOptions {
   // 'auto' (default): infer refs only when the parsed IR has zero declared
@@ -87,6 +94,22 @@ export function compileSql(
   ir = withoutTypes(ir, options?.showTypes);
   ir = withoutColumns(ir, options?.showColumns);
   return renderClustered(ir, options);
+}
+
+export function compileSvg(dbml: string, options?: SvgCompileOptions): string {
+  const { theme, ...compileOpts } = options ?? {};
+  const text = compile(dbml, compileOpts);
+  return text ? renderSvg(text, theme ? { theme } : {}) : '';
+}
+
+export function compileSqlSvg(
+  sql: string,
+  dialect: SqlDialect = 'postgres',
+  options?: SvgCompileOptions,
+): string {
+  const { theme, ...compileOpts } = options ?? {};
+  const text = compileSql(sql, dialect, compileOpts);
+  return text ? renderSvg(text, theme ? { theme } : {}) : '';
 }
 
 // When the IR has cluster hints, split it into one sub-IR per cluster and

@@ -151,6 +151,26 @@ describe('runCli', () => {
     });
   });
 
+  it('outputs SVG when --svg is passed', () => {
+    const result = runCli(['--svg', 'users.dbml'], makeDeps('Table users { id int }'));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('<svg');
+    expect(result.stdout).toContain('users');
+    expect(result.stdout).toContain('╭');
+  });
+
+  it('outputs dark SVG when --svg --theme=dark is passed', () => {
+    const result = runCli(['--svg', '--theme=dark', 'users.dbml'], makeDeps('Table users { id int }'));
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('#0d1117');
+  });
+
+  it('rejects an invalid --theme value', () => {
+    const result = runCli(['--svg', '--theme=ocean'], makeDeps('Table users { id int }'));
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("invalid --theme 'ocean'");
+  });
+
   it('infers relationships from PK-name matches by default', () => {
     const dbml = `
       Table dim_user { user_id int [pk] name varchar }
