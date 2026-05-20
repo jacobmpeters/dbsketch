@@ -1056,7 +1056,7 @@ export default function App() {
           onSvgLight={() => downloadSvg('light')}
           onSvgDark={() => downloadSvg('dark')}
         />
-        <Btn onClick={copyLink} title="Copy shareable link">{linkLabel}</Btn>
+        <Btn onClick={copyLink} title="The URL always contains your diagram — bookmark it to save, or share it to collaborate">{linkLabel}</Btn>
 
         <div style={{ width: 1, height: 16, background: BORDER }} />
 
