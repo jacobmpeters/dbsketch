@@ -509,9 +509,9 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-function DownloadMenu({ mode, onSource, onMarkdown, onSvgLight, onSvgDark }: {
+function DownloadMenu({ mode, onSource, onTxt, onMarkdown, onSvgLight, onSvgDark }: {
   mode: Mode;
-  onSource: () => void; onMarkdown: () => void;
+  onSource: () => void; onTxt: () => void; onMarkdown: () => void;
   onSvgLight: () => void; onSvgDark: () => void;
 }) {
   const { BG, BG2, BORDER, FG, FG_DIM } = useContext(ThemeCtx);
@@ -529,6 +529,7 @@ function DownloadMenu({ mode, onSource, onMarkdown, onSvgLight, onSvgDark }: {
 
   const items: { label: string; action: () => void }[] = [
     { label: `.${mode === 'sql' ? 'sql' : 'dbml'}`, action: onSource },
+    { label: '.txt',         action: onTxt },
     { label: 'Markdown',    action: onMarkdown },
     { label: 'SVG · light', action: onSvgLight },
     { label: 'SVG · dark',  action: onSvgDark },
@@ -570,13 +571,8 @@ function DownloadMenu({ mode, onSource, onMarkdown, onSvgLight, onSvgDark }: {
 const FONT_SIZE = 14;
 const PAD = 40;
 
-function DiagramCanvas({
-  diagram, autofit, cliCmd, cmdCopied, onCopyCmd,
-}: {
-  diagram: string; autofit: boolean;
-  cliCmd: string; cmdCopied: boolean; onCopyCmd: () => void;
-}) {
-  const { BG, FG, FG_DIM, GREEN, YELLOW } = useContext(ThemeCtx);
+function DiagramCanvas({ diagram, autofit }: { diagram: string; autofit: boolean }) {
+  const { BG, FG, YELLOW } = useContext(ThemeCtx);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
@@ -647,24 +643,8 @@ function DiagramCanvas({
   }, [diagram, lines, cols, rows, autofit, containerSize, BG, FG, YELLOW]);
 
   return (
-    <div ref={containerRef} style={{ flex: 1, minWidth: 0, background: BG, overflow: autofit ? 'hidden' : 'auto', position: 'relative' }}>
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, background: BG, overflow: autofit ? 'hidden' : 'auto' }}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      <code
-        onClick={onCopyCmd}
-        title="Click to copy CLI command"
-        style={{
-          position: 'absolute', bottom: 14, right: 18,
-          fontFamily: MONO, fontSize: 11,
-          color: cmdCopied ? GREEN : FG_DIM,
-          opacity: cmdCopied ? 1 : 0.55,
-          cursor: 'pointer',
-          userSelect: 'none',
-          transition: 'color 0.15s, opacity 0.15s',
-          pointerEvents: diagram ? 'auto' : 'none',
-        }}
-      >
-        {cmdCopied ? 'copied!' : `$ ${cliCmd}`}
-      </code>
     </div>
   );
 }
@@ -678,7 +658,7 @@ export default function App() {
   const [autofit, setAutofit]     = useState(true);
   const [lightMode, setLightMode] = useState(true);
   const [copyLabel, setCopyLabel]   = useState('Copy');
-  const [linkLabel, setLinkLabel]   = useState('Share');
+  const [linkLabel, setLinkLabel]   = useState('Copy link');
   const [cmdCopied, setCmdCopied]   = useState(false);
   const [splitPct, setSplitPct]   = useState(33);
   const splitDragRef = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
@@ -783,10 +763,14 @@ export default function App() {
     downloadFile(md, 'schema.md');
   }, [mode, diagram, downloadFile]);
 
+  const downloadTxt = useCallback(() => {
+    downloadFile(diagram, 'diagram.txt');
+  }, [diagram, downloadFile]);
+
   const copyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
     setLinkLabel('Copied!');
-    setTimeout(() => setLinkLabel('Share'), 2000);
+    setTimeout(() => setLinkLabel('Copy link'), 2000);
   }, []);
 
   const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -887,6 +871,7 @@ export default function App() {
         <DownloadMenu
           mode={mode}
           onSource={downloadSource}
+          onTxt={downloadTxt}
           onMarkdown={downloadMarkdown}
           onSvgLight={() => downloadSvg('light')}
           onSvgDark={() => downloadSvg('dark')}
@@ -923,23 +908,33 @@ export default function App() {
         </div>
 
         {/* Diagram */}
-        <DiagramCanvas
-          diagram={diagram} autofit={autofit}
-          cliCmd={cliCmd} cmdCopied={cmdCopied} onCopyCmd={copyCmdToClipboard}
-        />
+        <DiagramCanvas diagram={diagram} autofit={autofit} />
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '0 20px', height: 32, flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: BG, display: 'flex', alignItems: 'center', gap: 0, fontSize: 11, color: FG_DIM, fontFamily: SANS }}>
-        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.7 }}>npm install -g @dbsketch/cli</code>
-        <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.7 }}>pip install dbsketch</code>
+      <div style={{ padding: '0 20px', height: 32, flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: BG, display: 'flex', alignItems: 'center', fontSize: 11, color: FG_DIM, fontFamily: SANS }}>
+        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.35 }}>npm install -g @dbsketch/cli</code>
+        <span style={{ margin: '0 7px', opacity: 0.25 }}>·</span>
+        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.35 }}>pip install dbsketch</code>
+        <span style={{ margin: '0 7px', opacity: 0.25 }}>·</span>
+        <code
+          onClick={copyCmdToClipboard}
+          title="Click to copy"
+          style={{
+            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            opacity: cmdCopied ? 0.7 : 0.35,
+            color: cmdCopied ? GREEN : FG_DIM,
+            transition: 'opacity 0.15s, color 0.15s',
+          }}
+        >
+          {cmdCopied ? 'copied!' : `$ ${cliCmd}`}
+        </code>
         <div style={{ flex: 1 }} />
-        <a href="https://github.com/jacobmpeters/dbsketch" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.7 }}>GitHub</a>
-        <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-        <a href="https://www.npmjs.com/package/@dbsketch/cli" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.7 }}>npm</a>
-        <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
-        <a href="https://pypi.org/project/dbsketch/" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.7 }}>PyPI</a>
+        <a href="https://github.com/jacobmpeters/dbsketch" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.4 }}>GitHub</a>
+        <span style={{ margin: '0 8px', opacity: 0.25 }}>·</span>
+        <a href="https://www.npmjs.com/package/@dbsketch/cli" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.4 }}>npm</a>
+        <span style={{ margin: '0 8px', opacity: 0.25 }}>·</span>
+        <a href="https://pypi.org/project/dbsketch/" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.4 }}>PyPI</a>
       </div>
     </div>
     </ThemeCtx.Provider>
