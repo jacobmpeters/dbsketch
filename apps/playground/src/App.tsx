@@ -578,13 +578,14 @@ function DownloadMenu({ mode, onSource, onTxt, onMarkdown, onSvgLight, onSvgDark
 function MobileMoreMenu({
   noTypes, onNoTypes, noColumns, onNoColumns,
   copyLabel, onCopyDiagram,
-  mode, onSource, onTxt, onMarkdown, onSvgLight, onSvgDark,
+  mode, onExample,
+  onSource, onTxt, onMarkdown, onSvgLight, onSvgDark,
   linkLabel, onCopyLink,
 }: {
   noTypes: boolean; onNoTypes: (v: boolean) => void;
   noColumns: boolean; onNoColumns: (v: boolean) => void;
   copyLabel: string; onCopyDiagram: () => void;
-  mode: Mode;
+  mode: Mode; onExample: (label: string) => void;
   onSource: () => void; onTxt: () => void; onMarkdown: () => void;
   onSvgLight: () => void; onSvgDark: () => void;
   linkLabel: string; onCopyLink: () => void;
@@ -627,9 +628,15 @@ function MobileMoreMenu({
         <div style={{
           position: 'fixed', top: 54, right: 12,
           background: BG, border: `1px solid ${BORDER}`, borderRadius: 10,
-          padding: '6px 0', minWidth: 210, zIndex: 100,
+          padding: '6px 0', minWidth: 220, zIndex: 100,
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          maxHeight: 'calc(100vh - 70px)', overflowY: 'auto',
         }}>
+          <div style={{ padding: '4px 16px 2px', fontSize: 11, color: FG_DIM, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: SANS, fontWeight: 600 }}>Examples</div>
+          {EXAMPLES.filter(ex => ex.mode === mode).map(ex =>
+            row(() => onExample(ex.label), ex.label.startsWith('@') ? `@layout: ${ex.label}` : ex.label)
+          )}
+          {sep}
           {row(() => onNoTypes(!noTypes), <><span style={{ display: 'inline-block', width: 20, color: ACCENT }}>{noTypes ? '✓' : ''}</span>no-types</>, true)}
           {row(() => onNoColumns(!noColumns), <><span style={{ display: 'inline-block', width: 20, color: ACCENT }}>{noColumns ? '✓' : ''}</span>no-columns</>, true)}
           {sep}
@@ -904,7 +911,6 @@ export default function App() {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG, fontFamily: SANS }}>
           <div style={{ padding: '0 12px', height: 48, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, background: BG }}>
             <Btn onClick={() => setMobileView('diagram')}>← Done</Btn>
-            <div style={{ width: 1, height: 16, background: BORDER }} />
             <div style={{ display: 'flex', background: BG2, border: `1px solid ${BORDER}`, borderRadius: 7, padding: 2 }}>
               {(['dbml', 'sql'] as Mode[]).map(m => (
                 <button key={m} onClick={() => setMode(m)} style={{
@@ -917,43 +923,16 @@ export default function App() {
                 }}>{m.toUpperCase()}</button>
               ))}
             </div>
-            <select
-              value=""
-              onChange={e => {
-                const ex = EXAMPLES.find(x => x.label === e.target.value);
-                if (ex) { setSource(ex.value); setMode(ex.mode); }
-              }}
-              style={{
-                fontFamily: SANS, fontSize: 12,
-                background: BG, color: FG_DIM,
-                border: `1px solid ${BORDER}`, borderRadius: 6,
-                padding: '3px 8px', cursor: 'pointer', outline: 'none',
-                colorScheme: lightMode ? 'light' : 'dark',
-              }}
-            >
-              <option value="" disabled>Examples</option>
-              <optgroup label="DBML">
-                {EXAMPLES.filter(ex => ex.mode === 'dbml' && !['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
-                  <option key={ex.label} value={ex.label}>{ex.label}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Layout hints">
-                {EXAMPLES.filter(ex => ['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
-                  <option key={ex.label} value={ex.label}>@layout: {ex.label}</option>
-                ))}
-              </optgroup>
-              <optgroup label="SQL">
-                {EXAMPLES.filter(ex => ex.mode === 'sql').map(ex => (
-                  <option key={ex.label} value={ex.label}>{ex.label}</option>
-                ))}
-              </optgroup>
-            </select>
             <div style={{ flex: 1 }} />
             <MobileMoreMenu
               noTypes={noTypes} onNoTypes={setNoTypes}
               noColumns={noColumns} onNoColumns={setNoColumns}
               copyLabel={copyLabel} onCopyDiagram={copyDiagram}
               mode={mode}
+              onExample={label => {
+                const ex = EXAMPLES.find(x => x.label === label);
+                if (ex) { setSource(ex.value); setMode(ex.mode); }
+              }}
               onSource={downloadSource} onTxt={downloadTxt}
               onMarkdown={downloadMarkdown}
               onSvgLight={() => downloadSvg('light')} onSvgDark={() => downloadSvg('dark')}
