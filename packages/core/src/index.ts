@@ -288,3 +288,4 @@ export { ParseError, TokenizerError } from '@dbsketch/parser';
 export type * from '@dbsketch/parser';
 export type * from '@dbsketch/layout';
 export type * from '@dbsketch/render';
+export { renderSvg } from '@dbsketch/render';
