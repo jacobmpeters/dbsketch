@@ -659,7 +659,7 @@ export default function App() {
   const [lightMode, setLightMode] = useState(true);
   const [copyLabel, setCopyLabel]   = useState('Copy');
   const [linkLabel, setLinkLabel]   = useState('Copy link');
-  const [cmdCopied, setCmdCopied]   = useState(false);
+  const [copiedKey, setCopiedKey]   = useState<'npm' | 'pip' | 'cli' | null>(null);
   const [splitPct, setSplitPct]   = useState(33);
   const splitDragRef = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
   const panesRef     = useRef<HTMLDivElement>(null);
@@ -719,11 +719,11 @@ export default function App() {
     return `dbsketch ${[file, ...flags].join(' ')}`;
   }, [mode, noTypes, noColumns]);
 
-  const copyCmdToClipboard = useCallback(async () => {
-    await navigator.clipboard.writeText(cliCmd);
-    setCmdCopied(true);
-    setTimeout(() => setCmdCopied(false), 2000);
-  }, [cliCmd]);
+  const copyToClipboard = useCallback(async (text: string, key: 'npm' | 'pip' | 'cli') => {
+    await navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  }, []);
 
   const copyDiagram = useCallback(async () => {
     await navigator.clipboard.writeText(diagram);
@@ -913,23 +913,41 @@ export default function App() {
 
       {/* Footer */}
       <div style={{ padding: '0 20px', height: 32, flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: BG, display: 'flex', alignItems: 'center', fontSize: 11, color: FG_DIM, fontFamily: SANS }}>
-        <code style={{ fontFamily: MONO, userSelect: 'all', background: BG2, color: FG, borderRadius: 4, padding: '2px 6px' }}>npm install -g @dbsketch/cli</code>
-        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
-        <code style={{ fontFamily: MONO, userSelect: 'all', background: BG2, color: FG, borderRadius: 4, padding: '2px 6px' }}>pip install dbsketch</code>
-        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
         <code
-          onClick={copyCmdToClipboard}
+          onClick={() => copyToClipboard('npm install -g @dbsketch/cli', 'npm')}
           title="Click to copy"
           style={{
             fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
-            background: cmdCopied ? `${GREEN}18` : BG2,
-            color: cmdCopied ? GREEN : FG,
+            background: copiedKey === 'npm' ? `${GREEN}18` : BG2,
+            color: copiedKey === 'npm' ? GREEN : FG,
             borderRadius: 4, padding: '2px 6px',
             transition: 'background 0.15s, color 0.15s',
           }}
-        >
-          {cmdCopied ? 'copied!' : `$ ${cliCmd}`}
-        </code>
+        >{copiedKey === 'npm' ? 'copied!' : 'npm install -g @dbsketch/cli'}</code>
+        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
+        <code
+          onClick={() => copyToClipboard('pip install dbsketch', 'pip')}
+          title="Click to copy"
+          style={{
+            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            background: copiedKey === 'pip' ? `${GREEN}18` : BG2,
+            color: copiedKey === 'pip' ? GREEN : FG,
+            borderRadius: 4, padding: '2px 6px',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+        >{copiedKey === 'pip' ? 'copied!' : 'pip install dbsketch'}</code>
+        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
+        <code
+          onClick={() => copyToClipboard(cliCmd, 'cli')}
+          title="Click to copy"
+          style={{
+            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            background: copiedKey === 'cli' ? `${GREEN}18` : BG2,
+            color: copiedKey === 'cli' ? GREEN : FG,
+            borderRadius: 4, padding: '2px 6px',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+        >{copiedKey === 'cli' ? 'copied!' : `$ ${cliCmd}`}</code>
         <div style={{ flex: 1 }} />
         <a href="https://github.com/jacobmpeters/dbsketch" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none', opacity: 0.4 }}>GitHub</a>
         <span style={{ margin: '0 8px', opacity: 0.25 }}>·</span>
