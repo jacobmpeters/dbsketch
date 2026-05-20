@@ -618,7 +618,7 @@ function MobileMoreMenu({
       <Btn onClick={() => setOpen(v => !v)} active={open}>···</Btn>
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+          position: 'fixed', top: 54, right: 12,
           background: BG, border: `1px solid ${BORDER}`, borderRadius: 10,
           padding: '6px 0', minWidth: 210, zIndex: 100,
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
