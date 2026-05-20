@@ -654,6 +654,86 @@ function MobileMoreMenu({
   );
 }
 
+function NarrowOverflowMenu({
+  mode, onExample,
+  copyLabel, onCopyDiagram,
+  linkLabel, onCopyLink,
+  onSource, onTxt, onMarkdown, onSvgLight, onSvgDark,
+  lightMode, onToggleTheme,
+}: {
+  mode: Mode; onExample: (label: string) => void;
+  copyLabel: string; onCopyDiagram: () => void;
+  linkLabel: string; onCopyLink: () => void;
+  onSource: () => void; onTxt: () => void; onMarkdown: () => void;
+  onSvgLight: () => void; onSvgDark: () => void;
+  lightMode: boolean; onToggleTheme: () => void;
+}) {
+  const { BG, BG2, BORDER, FG, FG_DIM } = useContext(ThemeCtx);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const close = () => setOpen(false);
+
+  const row = (onClick: () => void, children: React.ReactNode) => (
+    <button
+      onClick={() => { onClick(); close(); }}
+      onMouseEnter={e => (e.currentTarget.style.background = BG2)}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      style={{
+        display: 'block', width: '100%', padding: '8px 14px',
+        fontFamily: SANS, fontSize: 13,
+        background: 'transparent', color: FG,
+        border: 'none', cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap',
+      }}
+    >{children}</button>
+  );
+
+  const sep = <div style={{ height: 1, background: BORDER, margin: '4px 0' }} />;
+  const label = (text: string) => (
+    <div style={{ padding: '6px 14px 2px', fontSize: 11, color: FG_DIM, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: SANS, fontWeight: 600 }}>{text}</div>
+  );
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <Btn onClick={() => setOpen(v => !v)} active={open}>···</Btn>
+      {open && (
+        <div style={{
+          position: 'fixed', top: 54, right: 16,
+          background: BG, border: `1px solid ${BORDER}`, borderRadius: 10,
+          padding: '6px 0', minWidth: 200, zIndex: 100,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          maxHeight: 'calc(100vh - 70px)', overflowY: 'auto',
+        }}>
+          {label('Examples')}
+          {EXAMPLES.filter(ex => ex.mode === mode).map(ex =>
+            row(() => onExample(ex.label), ex.label.startsWith('@') ? `@layout: ${ex.label}` : ex.label)
+          )}
+          {sep}
+          {row(onCopyDiagram, copyLabel)}
+          {row(onCopyLink, linkLabel)}
+          {sep}
+          {row(onSource,   <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>{`.${mode === 'sql' ? 'sql' : 'dbml'}`}</>)}
+          {row(onTxt,      <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>.txt</>)}
+          {row(onMarkdown, <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>Markdown</>)}
+          {row(onSvgLight, <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>SVG · light</>)}
+          {row(onSvgDark,  <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>SVG · dark</>)}
+          {sep}
+          {row(onToggleTheme, lightMode ? 'Dark mode' : 'Light mode')}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const FONT_SIZE = 14;
 const PAD = 40;
 
@@ -748,6 +828,7 @@ export default function App() {
   const [copiedKey, setCopiedKey]   = useState<'npm' | 'pip' | 'cli' | null>(null);
   const [splitPct, setSplitPct]   = useState(33);
   const [isMobile, setIsMobile]   = useState(() => window.innerWidth <= 640);
+  const [isNarrow, setIsNarrow]   = useState(() => window.innerWidth <= 960);
   const [mobileView, setMobileView] = useState<'diagram' | 'editor'>('diagram');
   const splitDragRef = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
   const panesRef     = useRef<HTMLDivElement>(null);
@@ -788,6 +869,13 @@ export default function App() {
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 960px)');
+    const handler = (e: MediaQueryListEvent) => setIsNarrow(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
@@ -992,8 +1080,8 @@ export default function App() {
           ))}
         </div>
 
-        {/* Examples */}
-        <select
+        {/* Examples — hidden in narrow mode, moved to ··· */}
+        {!isNarrow && <select
           value=""
           onChange={e => {
             const ex = EXAMPLES.find(x => x.label === e.target.value);
@@ -1023,7 +1111,7 @@ export default function App() {
               <option key={ex.label} value={ex.label}>{ex.label}</option>
             ))}
           </optgroup>
-        </select>
+        </select>}
 
         <div style={{ width: 1, height: 16, background: BORDER }} />
 
@@ -1033,20 +1121,31 @@ export default function App() {
 
         <div style={{ flex: 1 }} />
 
-        <Btn onClick={copyDiagram} title="Copy rendered diagram">{copyLabel}</Btn>
-        <DownloadMenu
-          mode={mode}
-          onSource={downloadSource}
-          onTxt={downloadTxt}
-          onMarkdown={downloadMarkdown}
-          onSvgLight={() => downloadSvg('light')}
-          onSvgDark={() => downloadSvg('dark')}
-        />
-        <Btn onClick={copyLink} title="The URL always contains your diagram — bookmark it to save, or share it to collaborate">{linkLabel}</Btn>
-
-        <div style={{ width: 1, height: 16, background: BORDER }} />
-
-        <Btn onClick={() => setLightMode(v => !v)} title="Toggle theme">{lightMode ? 'Dark' : 'Light'}</Btn>
+        {isNarrow ? (
+          <NarrowOverflowMenu
+            mode={mode}
+            onExample={label => { const ex = EXAMPLES.find(x => x.label === label); if (ex) { setSource(ex.value); setMode(ex.mode); } }}
+            copyLabel={copyLabel} onCopyDiagram={copyDiagram}
+            linkLabel={linkLabel} onCopyLink={copyLink}
+            onSource={downloadSource} onTxt={downloadTxt}
+            onMarkdown={downloadMarkdown}
+            onSvgLight={() => downloadSvg('light')} onSvgDark={() => downloadSvg('dark')}
+            lightMode={lightMode} onToggleTheme={() => setLightMode(v => !v)}
+          />
+        ) : (<>
+          <Btn onClick={copyDiagram} title="Copy rendered diagram">{copyLabel}</Btn>
+          <DownloadMenu
+            mode={mode}
+            onSource={downloadSource}
+            onTxt={downloadTxt}
+            onMarkdown={downloadMarkdown}
+            onSvgLight={() => downloadSvg('light')}
+            onSvgDark={() => downloadSvg('dark')}
+          />
+          <Btn onClick={copyLink} title="The URL always contains your diagram — bookmark it to save, or share it to collaborate">{linkLabel}</Btn>
+          <div style={{ width: 1, height: 16, background: BORDER }} />
+          <Btn onClick={() => setLightMode(v => !v)} title="Toggle theme">{lightMode ? 'Dark' : 'Light'}</Btn>
+        </>)}
       </div>
 
       {/* Panes */}
