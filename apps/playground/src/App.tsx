@@ -395,6 +395,7 @@ Table users {
 const INITIAL_DBML = EXAMPLES.find(e => e.label === 'Data warehouse')!.value;
 
 const MONO = '"JetBrains Mono", monospace';
+const SANS = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 // For the output pane we need a font with guaranteed full box-drawing coverage
 // (including arc variants ╭╮╰╯). System terminal fonts carry this by definition.
 const OUTPUT_MONO = 'ui-monospace, "Cascadia Code", Menlo, "Courier New", monospace';
@@ -426,7 +427,7 @@ const LIGHT: Theme = {
   dark: false,
 };
 
-const ThemeCtx = createContext<Theme>(DARK);
+const ThemeCtx = createContext<Theme>(LIGHT);
 
 function encodeSchema(value: string): string {
   return btoa(unescape(encodeURIComponent(value)));
@@ -452,9 +453,12 @@ function loadFromHash(): { value: string; mode: Mode } | null {
   return { value, mode: modeStr === 'sql' ? 'sql' : 'dbml' };
 }
 
-
-function BoxBtn({ onClick, children, title }: { onClick: () => void; children: React.ReactNode; title?: string }) {
-  const { FG, FG_DIM, BORDER } = useContext(ThemeCtx);
+function Btn({
+  onClick, children, title, active = false,
+}: {
+  onClick: () => void; children: React.ReactNode; title?: string; active?: boolean;
+}) {
+  const { BG2, BORDER, FG, FG_DIM, ACCENT } = useContext(ThemeCtx);
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -463,16 +467,17 @@ function BoxBtn({ onClick, children, title }: { onClick: () => void; children: R
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        fontFamily: MONO,
+        fontFamily: SANS,
         fontSize: 12,
-        background: 'transparent',
-        color: hover ? FG : FG_DIM,
-        border: `1px solid ${hover ? BORDER : 'transparent'}`,
-        borderRadius: 3,
-        padding: '2px 8px',
+        background: active ? `${ACCENT}18` : hover ? BG2 : 'transparent',
+        color: active ? ACCENT : hover ? FG : FG_DIM,
+        border: `1px solid ${hover || active ? BORDER : 'transparent'}`,
+        borderRadius: 6,
+        padding: '4px 10px',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
-        transition: 'color 0.1s, border-color 0.1s',
+        transition: 'color 0.1s, background 0.1s, border-color 0.1s',
+        lineHeight: 1.4,
       }}
     >
       {children}
@@ -480,23 +485,26 @@ function BoxBtn({ onClick, children, title }: { onClick: () => void; children: R
   );
 }
 
-function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  const { BG2, ACCENT, FG_DIM } = useContext(ThemeCtx);
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const { BORDER, FG_DIM, ACCENT } = useContext(ThemeCtx);
   return (
     <button
-      onClick={onClick}
+      onClick={() => onChange(!checked)}
       style={{
-        fontFamily: MONO,
-        fontSize: 12,
-        background: active ? BG2 : 'transparent',
-        color: active ? ACCENT : FG_DIM,
-        border: 'none',
-        padding: '2px 10px',
+        fontFamily: SANS,
+        fontSize: 11,
+        background: checked ? `${ACCENT}12` : 'transparent',
+        color: checked ? ACCENT : FG_DIM,
+        border: `1px solid ${checked ? `${ACCENT}50` : BORDER}`,
+        borderRadius: 20,
+        padding: '3px 9px',
         cursor: 'pointer',
-        fontWeight: active ? 600 : 400,
+        transition: 'all 0.1s',
+        lineHeight: 1.4,
+        userSelect: 'none',
       }}
     >
-      {children}
+      {label}
     </button>
   );
 }
@@ -530,12 +538,10 @@ function DiagramCanvas({ diagram, autofit }: { diagram: string; autofit: boolean
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
 
-    // Measure character width at base font size
     const probe = canvas.getContext('2d')!;
     probe.font = `${FONT_SIZE}px ${OUTPUT_MONO}`;
     const baseCw = probe.measureText('M').width;
 
-    // In autofit mode, compute a cell size that fills the container
     let cw = baseCw;
     let ch = FONT_SIZE;
     let canvasW: number;
@@ -584,35 +590,24 @@ function DiagramCanvas({ diagram, autofit }: { diagram: string; autofit: boolean
   );
 }
 
-function CheckBox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  const { FG, FG_DIM, GREEN } = useContext(ThemeCtx);
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: MONO, fontSize: 12, color: checked ? FG : FG_DIM, userSelect: 'none' }}>
-      <span style={{ color: checked ? GREEN : FG_DIM }}>{checked ? '[x]' : '[ ]'}</span>
-      {label}
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ display: 'none' }} />
-    </label>
-  );
-}
-
 export default function App() {
   const initial = loadFromHash();
-  const [mode, setMode]         = useState<Mode>(initial?.mode ?? 'dbml');
-  const [source, setSource]     = useState(initial?.value ?? INITIAL_DBML);
-  const [noTypes, setNoTypes]   = useState(false);
+  const [mode, setMode]           = useState<Mode>(initial?.mode ?? 'dbml');
+  const [source, setSource]       = useState(initial?.value ?? INITIAL_DBML);
+  const [noTypes, setNoTypes]     = useState(false);
   const [noColumns, setNoColumns] = useState(false);
+  const [autofit, setAutofit]     = useState(true);
   const [lightMode, setLightMode] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches);
-
-  const [autofit, setAutofit]   = useState(true);
-  const [copyLabel, setCopyLabel]   = useState('copy');
-  const [linkLabel, setLinkLabel]   = useState('link');
-  const [splitPct, setSplitPct]     = useState(33);
-  const splitDragRef  = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
-  const panesRef      = useRef<HTMLDivElement>(null);
+  const [copyLabel, setCopyLabel]   = useState('Copy');
+  const [linkLabel, setLinkLabel]   = useState('Share');
+  const [cmdCopied, setCmdCopied]   = useState(false);
+  const [splitPct, setSplitPct]   = useState(33);
+  const splitDragRef = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
+  const panesRef     = useRef<HTMLDivElement>(null);
 
   const theme = lightMode ? LIGHT : DARK;
-  const { BG, BG2, BORDER, FG, FG_DIM, ACCENT, GREEN, YELLOW,
-          ACTIVE_LINE, SELECTION, STRING_COLOR, NUMBER_COLOR } = theme;
+  const { BG, BG2, BORDER, FG, FG_DIM, ACCENT,
+          ACTIVE_LINE, SELECTION, STRING_COLOR, NUMBER_COLOR, GREEN, YELLOW } = theme;
 
   const terminalTheme = useMemo(() => EditorView.theme({
     '&': { background: BG, color: FG, fontFamily: MONO, fontSize: '13px', width: '100%', textAlign: 'left' },
@@ -646,11 +641,7 @@ export default function App() {
   const diagram = useMemo(() => {
     if (!source.trim()) return '';
     try {
-      const opts = {
-        glyphs: 'unicode' as const,
-        showTypes: !noTypes,
-        showColumns: !noColumns,
-      };
+      const opts = { showTypes: !noTypes, showColumns: !noColumns };
       const raw = mode === 'sql'
         ? compileSql(source, 'postgres', opts)
         : compile(source, opts);
@@ -663,10 +654,25 @@ export default function App() {
   const lineCount   = source.split('\n').length;
   const outputLines = diagram ? diagram.split('\n').length : 0;
 
+  const cliCmd = useMemo(() => {
+    const file = mode === 'sql' ? 'schema.sql' : 'schema.dbml';
+    const flags = [
+      noTypes   ? '--no-types'   : null,
+      noColumns ? '--no-columns' : null,
+    ].filter(Boolean);
+    return `dbsketch ${[file, ...flags].join(' ')}`;
+  }, [mode, noTypes, noColumns]);
+
+  const copyCmdToClipboard = useCallback(async () => {
+    await navigator.clipboard.writeText(cliCmd);
+    setCmdCopied(true);
+    setTimeout(() => setCmdCopied(false), 2000);
+  }, [cliCmd]);
+
   const copyDiagram = useCallback(async () => {
     await navigator.clipboard.writeText(diagram);
-    setCopyLabel('copied!');
-    setTimeout(() => setCopyLabel('copy'), 2000);
+    setCopyLabel('Copied!');
+    setTimeout(() => setCopyLabel('Copy'), 2000);
   }, [diagram]);
 
   const downloadFile = useCallback((content: string, filename: string) => {
@@ -703,8 +709,8 @@ export default function App() {
 
   const copyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
-    setLinkLabel('copied!');
-    setTimeout(() => setLinkLabel('link'), 2000);
+    setLinkLabel('Copied!');
+    setTimeout(() => setLinkLabel('Share'), 2000);
   }, []);
 
   const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -728,33 +734,63 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={theme}>
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG, fontFamily: MONO }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG, fontFamily: SANS }}>
 
-      {/* Title bar */}
-      <div style={{ padding: '6px 16px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 12, background: BG2 }}>
+      {/* Header */}
+      <div style={{ padding: '10px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', background: BG }}>
         <a
           href="https://github.com/jacobmpeters/dbsketch"
           target="_blank"
           rel="noreferrer"
-          style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, textDecoration: 'none', color: FG, letterSpacing: '-0.3px' }}
+          style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, textDecoration: 'none', color: FG, letterSpacing: '-0.5px' }}
         >
           dbsketch
         </a>
-        <span style={{ color: BORDER }}>│</span>
-        <span style={{ color: FG_DIM, fontSize: 12 }}>schema → diagram</span>
+        <span style={{ color: FG_DIM, fontSize: 13, marginLeft: 14, letterSpacing: 0 }}>
+          schema → diagram
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <Btn onClick={() => setLightMode(v => !v)} title="Toggle light/dark mode">
+            {lightMode ? 'Dark' : 'Light'}
+          </Btn>
+          <a
+            href="https://github.com/jacobmpeters/dbsketch"
+            target="_blank"
+            rel="noreferrer"
+            style={{ fontFamily: SANS, fontSize: 12, color: FG_DIM, textDecoration: 'none', padding: '4px 10px' }}
+          >
+            GitHub
+          </a>
+        </div>
       </div>
 
       {/* Toolbar */}
-      <div style={{ padding: '4px 12px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: BG }}>
+      <div style={{ padding: '6px 16px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: BG2 }}>
 
-        {/* Mode toggle */}
-        <div style={{ display: 'flex', border: `1px solid ${BORDER}`, borderRadius: 4, overflow: 'hidden' }}>
-          <ToggleBtn active={mode === 'dbml'} onClick={() => setMode('dbml')}>DBML</ToggleBtn>
-          <span style={{ width: 1, background: BORDER }} />
-          <ToggleBtn active={mode === 'sql'}  onClick={() => setMode('sql')}>SQL</ToggleBtn>
+        {/* Mode segmented control */}
+        <div style={{ display: 'flex', background: BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 2, gap: 1 }}>
+          {(['dbml', 'sql'] as Mode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              style={{
+                fontFamily: SANS,
+                fontSize: 12,
+                fontWeight: 500,
+                background: mode === m ? BG2 : 'transparent',
+                color: mode === m ? FG : FG_DIM,
+                border: 'none',
+                borderRadius: 6,
+                padding: '3px 12px',
+                cursor: 'pointer',
+                transition: 'all 0.1s',
+                lineHeight: 1.4,
+              }}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
         </div>
-
-        <span style={{ color: BORDER }}>│</span>
 
         {/* Examples */}
         <select
@@ -763,53 +799,78 @@ export default function App() {
             const ex = EXAMPLES.find(x => x.label === e.target.value);
             if (ex) { setSource(ex.value); setMode(ex.mode); }
           }}
-          style={{ fontFamily: MONO, fontSize: 12, background: BG2, color: FG_DIM, border: `1px solid ${BORDER}`, borderRadius: 3, padding: '2px 6px', cursor: 'pointer', outline: 'none', colorScheme: lightMode ? 'light' : 'dark' }}
+          style={{
+            fontFamily: SANS, fontSize: 12,
+            background: BG, color: FG_DIM,
+            border: `1px solid ${BORDER}`, borderRadius: 6,
+            padding: '4px 8px', cursor: 'pointer', outline: 'none',
+            colorScheme: lightMode ? 'light' : 'dark',
+          }}
         >
-          <option value="" disabled>examples</option>
+          <option value="" disabled>Examples</option>
           <optgroup label="DBML">
-            {EXAMPLES.filter(ex => ex.mode === 'dbml' && !['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => <option key={ex.label} value={ex.label}>{ex.label}</option>)}
+            {EXAMPLES.filter(ex => ex.mode === 'dbml' && !['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
+              <option key={ex.label} value={ex.label}>{ex.label}</option>
+            ))}
           </optgroup>
           <optgroup label="Layout hints">
-            {EXAMPLES.filter(ex => ['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => <option key={ex.label} value={ex.label}>@layout: {ex.label}</option>)}
+            {EXAMPLES.filter(ex => ['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
+              <option key={ex.label} value={ex.label}>@layout: {ex.label}</option>
+            ))}
           </optgroup>
           <optgroup label="SQL">
-            {EXAMPLES.filter(ex => ex.mode === 'sql').map(ex => <option key={ex.label} value={ex.label}>{ex.label}</option>)}
+            {EXAMPLES.filter(ex => ex.mode === 'sql').map(ex => (
+              <option key={ex.label} value={ex.label}>{ex.label}</option>
+            ))}
           </optgroup>
         </select>
 
-        <span style={{ color: BORDER }}>│</span>
+        <div style={{ width: 1, height: 18, background: BORDER, marginInline: 2 }} />
 
-        <CheckBox label="no-types"   checked={noTypes}   onChange={setNoTypes} />
-        <CheckBox label="no-columns" checked={noColumns} onChange={setNoColumns} />
+        {/* Option toggles */}
+        <Toggle label="no-types"   checked={noTypes}   onChange={setNoTypes} />
+        <Toggle label="no-columns" checked={noColumns} onChange={setNoColumns} />
+        <Toggle label="autofit"    checked={autofit}   onChange={setAutofit} />
 
-        <CheckBox label="autofit"    checked={autofit}   onChange={setAutofit} />
-
+        {/* Action buttons */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
-          <BoxBtn onClick={() => setLightMode(v => !v)} title="Toggle light/dark mode">[{lightMode ? 'dark' : 'light'}]</BoxBtn>
-          <BoxBtn onClick={copyDiagram}    title="Copy rendered diagram">[{copyLabel}]</BoxBtn>
-          <BoxBtn onClick={downloadSource} title={`Download .${mode === 'sql' ? 'sql' : 'dbml'} file`}>[↓ {mode.toUpperCase()}]</BoxBtn>
-          <BoxBtn onClick={downloadMarkdown} title="Download as .md with rendered block">[↓ .md]</BoxBtn>
-          <BoxBtn onClick={() => downloadSvg('light')} title="Download SVG (light theme)">[↓ .svg]</BoxBtn>
-          <BoxBtn onClick={() => downloadSvg('dark')}  title="Download SVG (dark theme)">[↓ .svg dark]</BoxBtn>
-          <BoxBtn onClick={copyLink}       title="Copy shareable link">[{linkLabel}]</BoxBtn>
+          <Btn onClick={copyDiagram}    title="Copy rendered diagram">{copyLabel}</Btn>
+          <Btn onClick={downloadSource} title={`Download .${mode === 'sql' ? 'sql' : 'dbml'} file`}>↓ {mode.toUpperCase()}</Btn>
+          <Btn onClick={downloadMarkdown} title="Download as Markdown with rendered block">↓ Markdown</Btn>
+          <Btn onClick={() => downloadSvg('light')} title="Download SVG (light)">↓ SVG</Btn>
+          <Btn onClick={() => downloadSvg('dark')}  title="Download SVG (dark)">↓ SVG dark</Btn>
+          <Btn onClick={copyLink} title="Copy shareable link">{linkLabel}</Btn>
         </div>
       </div>
 
-      {/* Pane label row */}
-      <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: MONO }}>
-        <div style={{ width: `${splitPct}%`, flexShrink: 0, padding: '3px 16px' }}>
-          ── source ({lineCount} lines)
+      {/* Pane labels */}
+      <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: SANS }}>
+        <div style={{ width: `${splitPct}%`, flexShrink: 0, padding: '4px 18px' }}>
+          source · {lineCount} lines
         </div>
-        <div style={{ width: 5, flexShrink: 0 }} />
-        <div style={{ flex: 1, padding: '3px 16px' }}>
-          ── diagram ({outputLines} lines)
+        <div style={{ width: 9, flexShrink: 0 }} />
+        <div style={{ flex: 1, padding: '4px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>diagram · {outputLines} lines</span>
+          <code
+            onClick={copyCmdToClipboard}
+            title="Click to copy"
+            style={{
+              fontFamily: MONO, fontSize: 11,
+              color: cmdCopied ? GREEN : ACCENT,
+              cursor: 'pointer', userSelect: 'all',
+              opacity: 0.85,
+              transition: 'color 0.15s',
+            }}
+          >
+            {cmdCopied ? 'copied!' : `$ ${cliCmd}`}
+          </code>
         </div>
       </div>
 
       {/* Panes */}
       <div ref={panesRef} style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-        {/* Editor — CodeMirror manages its own scroll */}
+        {/* Editor */}
         <div style={{ width: `${splitPct}%`, flexShrink: 0, minWidth: 0, overflow: 'hidden', background: BG }}>
           <CodeMirror
             value={source}
@@ -822,30 +883,29 @@ export default function App() {
           />
         </div>
 
-        {/* Drag handle */}
+        {/* Drag handle — 9px grab area around a 1px visible line */}
         <div
           onMouseDown={onDividerMouseDown}
-          style={{ width: 5, flexShrink: 0, background: BORDER, cursor: 'col-resize', zIndex: 1 }}
-        />
+          style={{ width: 9, flexShrink: 0, cursor: 'col-resize', zIndex: 1, display: 'flex', justifyContent: 'center', background: 'transparent' }}
+        >
+          <div style={{ width: 1, background: BORDER, height: '100%' }} />
+        </div>
 
-        {/* Output — canvas renderer for pixel-perfect monospace alignment */}
+        {/* Output */}
         <DiagramCanvas diagram={diagram} autofit={autofit} />
       </div>
 
       {/* Status bar */}
-      <div style={{ padding: '2px 16px', borderTop: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: MONO, display: 'flex', gap: 16, alignItems: 'center' }}>
-        <span style={{ color: FG_DIM }}>
+      <div style={{ padding: '5px 20px', borderTop: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: SANS, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <span>
           install:{' '}
-          <span style={{ color: FG, userSelect: 'all' }}>npm install -g @dbsketch/cli</span>
-          {'  '}·{'  '}
-          <span style={{ color: FG, userSelect: 'all' }}>pip install dbsketch</span>
+          <code style={{ fontFamily: MONO, color: FG, userSelect: 'all' }}>npm install -g @dbsketch/cli</code>
+          {'  ·  '}
+          <code style={{ fontFamily: MONO, color: FG, userSelect: 'all' }}>pip install dbsketch</code>
         </span>
-        <span style={{ marginLeft: 'auto' }}>
-          <a href="https://github.com/jacobmpeters/dbsketch" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>github</a>
-          {'  '}·{'  '}
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
           <a href="https://www.npmjs.com/package/@dbsketch/cli" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>npm</a>
-          {'  '}·{'  '}
-          <a href="https://pypi.org/project/dbsketch/" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>pypi</a>
+          <a href="https://pypi.org/project/dbsketch/" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>PyPI</a>
         </span>
       </div>
     </div>
