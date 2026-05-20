@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dbsketch"
+version = "0.1.0"
+description = "Schema-to-diagram compiler for DBML and SQL — ASCII/Unicode ERDs from the command line"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Jacob Peters", email = "jcbptrs@gmail.com" }]
+keywords = ["dbml", "erd", "sql", "diagram", "ascii", "unicode", "database", "schema"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Database",
+  "Topic :: Software Development :: Documentation",
+  "Environment :: Console",
+]
+
+[project.scripts]
+dbsketch = "dbsketch._runner:main"
+
+[project.urls]
+Homepage = "https://dbsketch.dev"
+Repository = "https://github.com/jacobmpeters/dbsketch"
+
+[tool.hatch.build.targets.wheel]
+packages = ["dbsketch"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["dbsketch/_bin/cli.js"]

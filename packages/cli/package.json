@@ -36,6 +36,7 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc --build",
+    "bundle": "esbuild src/bin.ts --bundle --platform=node --target=node20 --format=cjs --minify --outfile=../../packages/pypi/dbsketch/_bin/cli.cjs",
     "dev": "tsx src/bin.ts",
     "prepublishOnly": "tsc --build"
   },
@@ -44,5 +45,8 @@
   },
   "dependencies": {
     "@dbsketch/core": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
   }
 }

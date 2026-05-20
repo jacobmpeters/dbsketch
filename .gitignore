@@ -9,3 +9,5 @@ CLAUDE.md
 coverage/
 .env
 .env.local
+packages/pypi/dbsketch/_bin/cli.cjs
+packages/pypi/dist/
