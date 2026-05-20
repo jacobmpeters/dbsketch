@@ -661,6 +661,8 @@ export default function App() {
   const [linkLabel, setLinkLabel]   = useState('Copy link');
   const [copiedKey, setCopiedKey]   = useState<'npm' | 'pip' | 'cli' | null>(null);
   const [splitPct, setSplitPct]   = useState(33);
+  const [isMobile, setIsMobile]   = useState(() => window.innerWidth <= 640);
+  const [mobileView, setMobileView] = useState<'diagram' | 'editor'>('diagram');
   const splitDragRef = useRef<{ startX: number; startPct: number; containerW: number } | null>(null);
   const panesRef     = useRef<HTMLDivElement>(null);
 
@@ -696,6 +698,13 @@ export default function App() {
     const encoded = encodeSchema(source);
     window.history.replaceState(null, '', `#${mode}:${encoded}`);
   }, [source, mode]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const diagram = useMemo(() => {
     if (!source.trim()) return '';
@@ -791,6 +800,90 @@ export default function App() {
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }, [splitPct]);
+
+  // ── Mobile: diagram view ────────────────────────────────────────────────────
+  if (isMobile && mobileView === 'diagram') {
+    return (
+      <ThemeCtx.Provider value={theme}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG }}>
+          <div style={{ padding: '0 16px', height: 44, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', background: BG }}>
+            <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: FG, letterSpacing: '-0.5px' }}>dbsketch</span>
+            <div style={{ flex: 1 }} />
+            <Btn onClick={() => setMobileView('editor')}>Edit</Btn>
+          </div>
+          <DiagramCanvas diagram={diagram} autofit />
+        </div>
+      </ThemeCtx.Provider>
+    );
+  }
+
+  // ── Mobile: editor view ──────────────────────────────────────────────────────
+  if (isMobile && mobileView === 'editor') {
+    return (
+      <ThemeCtx.Provider value={theme}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG, fontFamily: SANS }}>
+          <div style={{ padding: '0 12px', height: 48, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, background: BG }}>
+            <Btn onClick={() => setMobileView('diagram')}>← Done</Btn>
+            <div style={{ width: 1, height: 16, background: BORDER }} />
+            <div style={{ display: 'flex', background: BG2, border: `1px solid ${BORDER}`, borderRadius: 7, padding: 2 }}>
+              {(['dbml', 'sql'] as Mode[]).map(m => (
+                <button key={m} onClick={() => setMode(m)} style={{
+                  fontFamily: SANS, fontSize: 11, fontWeight: 500,
+                  background: mode === m ? BG : 'transparent',
+                  color: mode === m ? FG : FG_DIM,
+                  border: 'none', borderRadius: 5,
+                  padding: '2px 10px', cursor: 'pointer',
+                  transition: 'all 0.1s', lineHeight: 1.5,
+                }}>{m.toUpperCase()}</button>
+              ))}
+            </div>
+            <select
+              value=""
+              onChange={e => {
+                const ex = EXAMPLES.find(x => x.label === e.target.value);
+                if (ex) { setSource(ex.value); setMode(ex.mode); }
+              }}
+              style={{
+                fontFamily: SANS, fontSize: 12,
+                background: BG, color: FG_DIM,
+                border: `1px solid ${BORDER}`, borderRadius: 6,
+                padding: '3px 8px', cursor: 'pointer', outline: 'none',
+                colorScheme: lightMode ? 'light' : 'dark',
+              }}
+            >
+              <option value="" disabled>Examples</option>
+              <optgroup label="DBML">
+                {EXAMPLES.filter(ex => ex.mode === 'dbml' && !['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
+                  <option key={ex.label} value={ex.label}>{ex.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Layout hints">
+                {EXAMPLES.filter(ex => ['pin', 'center', 'preserve_order'].includes(ex.label)).map(ex => (
+                  <option key={ex.label} value={ex.label}>@layout: {ex.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="SQL">
+                {EXAMPLES.filter(ex => ex.mode === 'sql').map(ex => (
+                  <option key={ex.label} value={ex.label}>{ex.label}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <CodeMirror
+              value={source}
+              height="100%"
+              theme="none"
+              extensions={[sql(), terminalTheme, syntaxTheme]}
+              onChange={setSource}
+              style={{ height: '100%' }}
+              basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: true }}
+            />
+          </div>
+        </div>
+      </ThemeCtx.Provider>
+    );
+  }
 
   return (
     <ThemeCtx.Provider value={theme}>
