@@ -825,12 +825,19 @@ export default function App() {
       </div>
 
       {/* Status bar */}
-      <div style={{ padding: '2px 16px', borderTop: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: MONO, display: 'flex', gap: 16 }}>
-        <span>dbsketch.dev</span>
+      <div style={{ padding: '2px 16px', borderTop: `1px solid ${BORDER}`, background: BG2, fontSize: 11, color: FG_DIM, fontFamily: MONO, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <span style={{ color: FG_DIM }}>
+          install:{' '}
+          <span style={{ color: FG, userSelect: 'all' }}>npm install -g @dbsketch/cli</span>
+          {'  '}·{'  '}
+          <span style={{ color: FG, userSelect: 'all' }}>pip install dbsketch</span>
+        </span>
         <span style={{ marginLeft: 'auto' }}>
           <a href="https://github.com/jacobmpeters/dbsketch" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>github</a>
           {'  '}·{'  '}
-          <a href="https://www.npmjs.com/package/@dbsketch/core" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>npm</a>
+          <a href="https://www.npmjs.com/package/@dbsketch/cli" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>npm</a>
+          {'  '}·{'  '}
+          <a href="https://pypi.org/project/dbsketch/" target="_blank" rel="noreferrer" style={{ color: FG_DIM, textDecoration: 'none' }}>pypi</a>
         </span>
       </div>
     </div>

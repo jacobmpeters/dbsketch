@@ -68,7 +68,11 @@ dbsketch designs for the integer character grid from cell zero. Output is the al
 ## Quick start
 
 ```sh
+# Node / npm
 npm install -g @dbsketch/cli
+
+# Python / pip
+pip install dbsketch
 ```
 
 Given a DBML file:
