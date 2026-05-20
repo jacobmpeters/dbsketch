@@ -568,6 +568,78 @@ function DownloadMenu({ mode, onSource, onTxt, onMarkdown, onSvgLight, onSvgDark
   );
 }
 
+function MobileMoreMenu({
+  noTypes, onNoTypes, noColumns, onNoColumns,
+  copyLabel, onCopyDiagram,
+  mode, onSource, onTxt, onMarkdown, onSvgLight, onSvgDark,
+  linkLabel, onCopyLink,
+}: {
+  noTypes: boolean; onNoTypes: (v: boolean) => void;
+  noColumns: boolean; onNoColumns: (v: boolean) => void;
+  copyLabel: string; onCopyDiagram: () => void;
+  mode: Mode;
+  onSource: () => void; onTxt: () => void; onMarkdown: () => void;
+  onSvgLight: () => void; onSvgDark: () => void;
+  linkLabel: string; onCopyLink: () => void;
+}) {
+  const { BG, BG2, BORDER, FG, FG_DIM, ACCENT } = useContext(ThemeCtx);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const close = () => setOpen(false);
+
+  const row = (onClick: () => void, children: React.ReactNode, keepOpen = false) => (
+    <button
+      onClick={() => { onClick(); if (!keepOpen) close(); }}
+      onMouseEnter={e => (e.currentTarget.style.background = BG2)}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      style={{
+        display: 'block', width: '100%', padding: '11px 16px',
+        fontFamily: SANS, fontSize: 14,
+        background: 'transparent', color: FG,
+        border: 'none', cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap',
+      }}
+    >{children}</button>
+  );
+
+  const sep = <div style={{ height: 1, background: BORDER, margin: '4px 0' }} />;
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <Btn onClick={() => setOpen(v => !v)} active={open}>···</Btn>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+          background: BG, border: `1px solid ${BORDER}`, borderRadius: 10,
+          padding: '6px 0', minWidth: 210, zIndex: 100,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+        }}>
+          {row(() => onNoTypes(!noTypes), <><span style={{ display: 'inline-block', width: 20, color: ACCENT }}>{noTypes ? '✓' : ''}</span>no-types</>, true)}
+          {row(() => onNoColumns(!noColumns), <><span style={{ display: 'inline-block', width: 20, color: ACCENT }}>{noColumns ? '✓' : ''}</span>no-columns</>, true)}
+          {sep}
+          {row(() => { onCopyDiagram(); close(); }, copyLabel)}
+          {row(onCopyLink, linkLabel)}
+          {sep}
+          {row(onSource,   <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>{`.${mode === 'sql' ? 'sql' : 'dbml'}`}</>)}
+          {row(onTxt,      <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>.txt</>)}
+          {row(onMarkdown, <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>Markdown</>)}
+          {row(onSvgLight, <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>SVG · light</>)}
+          {row(onSvgDark,  <><span style={{ color: FG_DIM, marginRight: 8 }}>↓</span>SVG · dark</>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const FONT_SIZE = 14;
 const PAD = 40;
 
@@ -868,6 +940,17 @@ export default function App() {
                 ))}
               </optgroup>
             </select>
+            <div style={{ flex: 1 }} />
+            <MobileMoreMenu
+              noTypes={noTypes} onNoTypes={setNoTypes}
+              noColumns={noColumns} onNoColumns={setNoColumns}
+              copyLabel={copyLabel} onCopyDiagram={copyDiagram}
+              mode={mode}
+              onSource={downloadSource} onTxt={downloadTxt}
+              onMarkdown={downloadMarkdown}
+              onSvgLight={() => downloadSvg('light')} onSvgDark={() => downloadSvg('dark')}
+              linkLabel={linkLabel} onCopyLink={copyLink}
+            />
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <CodeMirror
