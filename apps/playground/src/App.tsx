@@ -917,7 +917,7 @@ export default function App() {
           onClick={() => copyToClipboard('npm install -g @dbsketch/cli', 'npm')}
           title="Click to copy"
           style={{
-            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            fontFamily: MONO, fontSize: 'inherit', cursor: 'pointer', userSelect: 'none',
             background: copiedKey === 'npm' ? `${GREEN}18` : BG2,
             color: copiedKey === 'npm' ? GREEN : FG,
             borderRadius: 4, padding: '2px 6px',
@@ -929,7 +929,7 @@ export default function App() {
           onClick={() => copyToClipboard('pip install dbsketch', 'pip')}
           title="Click to copy"
           style={{
-            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            fontFamily: MONO, fontSize: 'inherit', cursor: 'pointer', userSelect: 'none',
             background: copiedKey === 'pip' ? `${GREEN}18` : BG2,
             color: copiedKey === 'pip' ? GREEN : FG,
             borderRadius: 4, padding: '2px 6px',
@@ -941,7 +941,7 @@ export default function App() {
           onClick={() => copyToClipboard(cliCmd, 'cli')}
           title="Click to copy"
           style={{
-            fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
+            fontFamily: MONO, fontSize: 'inherit', cursor: 'pointer', userSelect: 'none',
             background: copiedKey === 'cli' ? `${GREEN}18` : BG2,
             color: copiedKey === 'cli' ? GREEN : FG,
             borderRadius: 4, padding: '2px 6px',
