@@ -42,15 +42,21 @@ jobs:
 
       - name: Set version from tag
         run: |
-          VERSION=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('{0}', github.ref_name) }}
-          VERSION=${VERSION#v}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
           python3 -c "
-          import re, pathlib
+          import re, pathlib, os
+          VERSION = os.environ['VERSION']
           p = pathlib.Path('packages/pypi/pyproject.toml')
           p.write_text(re.sub(r'(?m)^version = \"[^\"]+\"', f'version = \"{VERSION}\"', p.read_text(), count=1))
           p2 = pathlib.Path('packages/pypi/dbsketch/__init__.py')
           p2.write_text(re.sub(r'__version__ = \"[^\"]+\"', f'__version__ = \"{VERSION}\"', p2.read_text()))
           "
+        env:
+          VERSION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
 
       - name: Build wheel
         run: |
