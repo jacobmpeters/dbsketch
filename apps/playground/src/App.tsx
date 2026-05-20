@@ -913,18 +913,19 @@ export default function App() {
 
       {/* Footer */}
       <div style={{ padding: '0 20px', height: 32, flexShrink: 0, borderTop: `1px solid ${BORDER}`, background: BG, display: 'flex', alignItems: 'center', fontSize: 11, color: FG_DIM, fontFamily: SANS }}>
-        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.35 }}>npm install -g @dbsketch/cli</code>
-        <span style={{ margin: '0 7px', opacity: 0.25 }}>·</span>
-        <code style={{ fontFamily: MONO, userSelect: 'all', opacity: 0.35 }}>pip install dbsketch</code>
-        <span style={{ margin: '0 7px', opacity: 0.25 }}>·</span>
+        <code style={{ fontFamily: MONO, userSelect: 'all', background: BG2, color: FG, borderRadius: 4, padding: '2px 6px' }}>npm install -g @dbsketch/cli</code>
+        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
+        <code style={{ fontFamily: MONO, userSelect: 'all', background: BG2, color: FG, borderRadius: 4, padding: '2px 6px' }}>pip install dbsketch</code>
+        <span style={{ margin: '0 7px', opacity: 0.3 }}>·</span>
         <code
           onClick={copyCmdToClipboard}
           title="Click to copy"
           style={{
             fontFamily: MONO, cursor: 'pointer', userSelect: 'none',
-            opacity: cmdCopied ? 0.7 : 0.35,
-            color: cmdCopied ? GREEN : FG_DIM,
-            transition: 'opacity 0.15s, color 0.15s',
+            background: cmdCopied ? `${GREEN}18` : BG2,
+            color: cmdCopied ? GREEN : FG,
+            borderRadius: 4, padding: '2px 6px',
+            transition: 'background 0.15s, color 0.15s',
           }}
         >
           {cmdCopied ? 'copied!' : `$ ${cliCmd}`}
