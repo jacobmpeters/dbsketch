@@ -1,3 +1,4 @@
+import LZString from 'lz-string';
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
 import { compile, compileSql, renderSvg } from '@dbsketch/core';
@@ -429,17 +430,15 @@ const LIGHT: Theme = {
 const ThemeCtx = createContext<Theme>(LIGHT);
 
 function encodeSchema(value: string): string {
-  // URL-safe base64: replace +→- /→_ and strip = padding so the hash
-  // survives LinkedIn, SMS, and other platforms that mangle those chars.
-  return btoa(unescape(encodeURIComponent(value)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return LZString.compressToEncodedURIComponent(value);
 }
 
 function decodeSchema(encoded: string): string {
   try {
-    // Accept both URL-safe (-_) and standard (+/) base64 for old links.
+    // Try LZ first (links generated after this change).
+    const lz = LZString.decompressFromEncodedURIComponent(encoded);
+    if (lz) return lz;
+    // Fall back to old base64url encoding for previously shared links.
     const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
     return decodeURIComponent(escape(atob(padded)));
