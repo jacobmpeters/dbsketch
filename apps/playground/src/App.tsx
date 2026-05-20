@@ -878,8 +878,9 @@ export default function App() {
     return (
       <ThemeCtx.Provider value={theme}>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: FG }}>
-          <div style={{ padding: '0 16px', height: 44, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', background: BG }}>
+          <div style={{ padding: '0 16px', height: 44, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, background: BG }}>
             <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, color: FG, letterSpacing: '-0.5px' }}>dbsketch</span>
+            <a href="./reference.html" target="_blank" rel="noreferrer" style={{ fontFamily: SANS, fontSize: 12, color: FG_DIM, textDecoration: 'none', opacity: 0.7 }}>Docs</a>
             <div style={{ flex: 1 }} />
             <Btn onClick={() => setMobileView('editor')}>Edit</Btn>
           </div>
@@ -976,12 +977,15 @@ export default function App() {
       <div style={{ padding: '0 16px', height: 48, flexShrink: 0, borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 8, background: BG }}>
 
         {/* Wordmark */}
-        <a
-          href="https://github.com/jacobmpeters/dbsketch"
-          target="_blank" rel="noreferrer"
-          style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, textDecoration: 'none', color: FG, letterSpacing: '-0.5px', marginRight: 4 }}
-        >
+        <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: FG, letterSpacing: '-0.5px', marginRight: 4 }}>
           dbsketch
+        </span>
+        <a
+          href="./reference.html"
+          target="_blank" rel="noreferrer"
+          style={{ fontFamily: SANS, fontSize: 12, color: FG_DIM, textDecoration: 'none', padding: '2px 6px', opacity: 0.7 }}
+        >
+          Docs
         </a>
 
         <div style={{ width: 1, height: 16, background: BORDER }} />

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Syntax reference — dbsketch</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #ffffff;
+      --bg2:    #f6f8fa;
+      --border: #e5e7eb;
+      --fg:     #1f2328;
+      --fg-dim: #656d76;
+      --accent: #0969da;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: ui-monospace, "Cascadia Code", Menlo, "Courier New", monospace;
+    }
+
+    html { font-size: 15px; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+    /* Top bar */
+    .topbar {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .topbar-wordmark {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--fg);
+      text-decoration: none;
+    }
+    .topbar-back {
+      margin-left: auto;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--fg-dim);
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      transition: color 0.1s, border-color 0.1s, background 0.1s;
+    }
+    .topbar-back:hover { color: var(--fg); border-color: var(--border); background: var(--bg2); }
+
+    /* Content */
+    .content { max-width: 740px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .subtitle { color: var(--fg-dim); margin-bottom: 48px; }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 44px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 12px;
+      font-weight: 600;
+      margin: 24px 0 8px;
+      color: var(--fg-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    p { margin: 10px 0; }
+
+    /* Code */
+    code {
+      font-family: var(--mono);
+      font-size: 0.875em;
+      background: var(--bg2);
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
+    pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    pre code { font-size: 13px; background: none; padding: 0; line-height: 1.7; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 14px 0; }
+    th {
+      text-align: left;
+      font-weight: 600;
+      padding: 8px 12px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--fg-dim);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    td { padding: 9px 12px; border: 1px solid var(--border); vertical-align: top; }
+    tr:nth-child(even) td { background: var(--bg2); }
+    td:first-child code { white-space: nowrap; }
+    .dim { color: var(--fg-dim); font-size: 13px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      html { font-size: 14px; }
+      .content { padding: 32px 16px 60px; }
+      h1 { font-size: 22px; }
+      .topbar { padding: 0 16px; }
+      table { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a href="./" class="topbar-wordmark">dbsketch</a>
+  <a href="./" class="topbar-back">← Playground</a>
+</nav>
+
+<main class="content">
+  <h1>Syntax reference</h1>
+  <p class="subtitle">DBML input format, <code>@layout</code> hints, and CLI options.</p>
+
+  <!-- ── Tables ─────────────────────────────────────────────────────────── -->
+  <h2>Tables</h2>
+  <pre><code>Table users {
+  id         int       [pk]
+  email      varchar   [not null, unique]
+  role       varchar   [default: 'member']
+  created_at timestamp
+}</code></pre>
+  <p>Table names are case-sensitive. Column types are free-form strings — dbsketch displays them as written and does not validate them.</p>
+
+  <!-- ── Column attributes ─────────────────────────────────────────────── -->
+  <h2>Column attributes</h2>
+  <p>Attributes appear in square brackets after the column type, comma-separated.</p>
+  <table>
+    <thead><tr><th>Attribute</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>[pk]</code></td><td>Primary key.</td></tr>
+      <tr><td><code>[not null]</code></td><td>Not-null constraint (display only).</td></tr>
+      <tr><td><code>[unique]</code></td><td>Unique constraint (display only).</td></tr>
+      <tr><td><code>[increment]</code></td><td>Auto-increment / serial (display only).</td></tr>
+      <tr><td><code>[default: value]</code></td><td>Default value — quoted string or bare literal.</td></tr>
+      <tr><td><code>[ref: &gt; table.col]</code></td><td>Inline foreign key — see <a href="#refs">References</a>.</td></tr>
+      <tr><td><code>[note: 'text']</code></td><td>Column annotation (ignored by the layout).</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ── References ────────────────────────────────────────────────────── -->
+  <h2 id="refs">References</h2>
+  <p>Relationships can be declared inline or as standalone <code>Ref</code> blocks. The arrow sets the cardinality.</p>
+  <pre><code>// Standalone declarations
+Ref: posts.user_id  &gt;  users.id       // many-to-one  (FK → PK)
+Ref: users.id       &lt;  posts.user_id  // one-to-many  (PK ← FK)
+Ref: users.id       -  profiles.id    // one-to-one
+
+// Inline, inside a Table block
+Table posts {
+  user_id int [ref: &gt; users.id]
+}</code></pre>
+  <p>Schema-qualified names (<code>public.users</code>) are supported and rendered with the schema prefix stripped.</p>
+
+  <!-- ── Layout hints ──────────────────────────────────────────────────── -->
+  <h2>Layout hints</h2>
+  <p>The optional <code>@layout</code> block fine-tunes placement without changing the schema. Each hint affects exactly one pipeline stage.</p>
+
+  <h3>pin</h3>
+  <p>Fix an entity to a specific grid column (and optionally row).</p>
+  <pre><code>@layout {
+  pin regions   at col 0
+  pin stores    at col 1
+  pin employees at col 2
+  pin shifts    at col 3
+}</code></pre>
+
+  <h3>center</h3>
+  <p>Place a high-degree hub at the center with FK neighbors fanned to each side. Edges flow both left and right.</p>
+  <pre><code>@layout {
+  // explicit side assignment
+  center sales { left: date_dim, customer_dim  right: product_dim, store_dim }
+
+  // auto-distribute neighbors
+  center sales_fact
+}</code></pre>
+
+  <h3>preserve_order</h3>
+  <p>Skip the column-reorder optimizer for specific entities, or for all entities.</p>
+  <pre><code>@layout {
+  preserve_order events, users  // named entities only
+  preserve_order                // all entities
+}</code></pre>
+
+  <h3>cluster</h3>
+  <p>Split a large schema into labelled sub-diagrams. Cross-cluster foreign keys become inline annotations instead of edges.</p>
+  <pre><code>@layout {
+  cluster Auth    { users, sessions, tokens }
+  cluster Billing { plans, subscriptions, invoices }
+  cluster Content { posts, comments, tags }
+}</code></pre>
+
+  <!-- ── SQL input ─────────────────────────────────────────────────────── -->
+  <h2>SQL input</h2>
+  <p>Pass a <code>.sql</code> file to the CLI or select SQL mode in the playground. Supported dialects: <code>postgres</code> (default — also handles SQLite), <code>mysql</code>, <code>mssql</code>, <code>snowflake</code>.</p>
+  <pre><code>CREATE TABLE users (
+  id    SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE posts (
+  id      SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id),
+  title   TEXT NOT NULL
+);</code></pre>
+  <p>Foreign keys from <code>REFERENCES</code> or <code>FOREIGN KEY … REFERENCES</code> are extracted automatically. When none are present, dbsketch infers relationships from matching column names (<code>user_id</code> → <code>users.id</code>).</p>
+
+  <!-- ── CLI ───────────────────────────────────────────────────────────── -->
+  <h2>CLI</h2>
+  <pre><code># Install
+npm install -g @dbsketch/cli
+pip install dbsketch            # Python wrapper, bundles Node
+
+# Basic usage
+dbsketch schema.dbml            # DBML file → stdout
+dbsketch schema.sql             # SQL file (auto-detected by extension)
+cat schema.sql | dbsketch --sql --dialect=mysql
+
+# Display options
+dbsketch schema.dbml --no-types     # hide column types
+dbsketch schema.dbml --no-columns   # name-only boxes (relationship overview)
+
+# SVG output
+dbsketch schema.dbml --svg
+dbsketch schema.dbml --svg --theme=dark
+
+# Markdown pipeline — renders dbsketch comments in-place
+dbsketch --render-markdown README.md</code></pre>
+
+  <!-- ── Library API ───────────────────────────────────────────────────── -->
+  <h2>Library API</h2>
+  <pre><code>import { compile, compileSql, compileSvg, compileSqlSvg } from '@dbsketch/core';
+
+// DBML → diagram string
+const diagram = compile(dbml, { showTypes: true, showColumns: true });
+
+// SQL → diagram string
+const diagram = compileSql(sql, 'postgres', { showTypes: true });
+
+// DBML → SVG string
+const svg = compileSvg(dbml, { theme: 'light' });   // or 'dark'
+
+// SQL → SVG string
+const svg = compileSqlSvg(sql, 'postgres', { theme: 'dark' });</code></pre>
+
+</main>
+</body>
+</html>
