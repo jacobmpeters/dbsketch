@@ -16,18 +16,6 @@ describe('render', () => {
     `);
   });
 
-  it('renders a single table in ascii', () => {
-    const out = render(layout(parse('Table users { id int email varchar }')), { glyphs: 'ascii' });
-    expect(out).toMatchInlineSnapshot(`
-      "+---------------+
-      |     users     |
-      +---------------+
-      | id        int |
-      | email varchar |
-      +---------------+"
-    `);
-  });
-
   it('renders a chained schema across rank-based columns', () => {
     const out = render(
       layout(

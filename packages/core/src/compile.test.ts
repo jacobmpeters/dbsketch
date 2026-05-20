@@ -9,13 +9,6 @@ describe('compile', () => {
     expect(out).toContain('id int');
   });
 
-  it('honors the glyphs: ascii option', () => {
-    const out = compile('Table users { id int }', { glyphs: 'ascii' });
-    expect(out).toContain('+');
-    expect(out).toContain('|');
-    expect(out).not.toContain('╭');
-  });
-
   it('returns an empty string for empty input', () => {
     expect(compile('')).toBe('');
   });

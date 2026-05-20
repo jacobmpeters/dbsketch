@@ -2,14 +2,13 @@ import type { Layout } from '@dbsketch/layout';
 import { drawEntity } from './box.js';
 import { Canvas } from './canvas.js';
 import { drawEdge } from './edges.js';
-import { ASCII, type Glyphs, UNICODE } from './glyphs.js';
+import { type Glyphs, UNICODE } from './glyphs.js';
 
 export interface RenderOptions {
-  glyphs?: 'ascii' | 'unicode';
 }
 
 export function render(layout: Layout, options: RenderOptions = {}): string {
-  const glyphs: Glyphs = options.glyphs === 'ascii' ? ASCII : UNICODE;
+  const glyphs: Glyphs = UNICODE;
   const { ir, entityPositions } = layout;
 
   // Canvas dimensions: the rightmost cell + 1 in each axis, derived from

@@ -49,10 +49,9 @@ describe('processMarkdown', () => {
     const result = processMarkdown(source);
     expect(result.split('```dbsketch-rendered').length - 1).toBe(2);
     expect(result).toContain('Middle text');
-    // Each block renders the entity name; use ASCII to avoid encoding issues.
-    const resultAscii = processMarkdown(source, { glyphs: 'ascii' });
-    expect(resultAscii).toContain('|   a');
-    expect(resultAscii).toContain('|   b');
+    const blocks = result.split('```dbsketch-rendered');
+    expect(blocks[1]).toContain('a');
+    expect(blocks[2]).toContain('b');
   });
 
   it('skips a src reference when no resolveFile callback is provided', () => {

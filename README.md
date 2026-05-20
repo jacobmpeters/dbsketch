@@ -123,8 +123,8 @@ Library API:
 ```ts
 import { compile, compileSql } from '@dbsketch/core';
 
-const ascii = compile(dbmlSource);
-const ascii = compileSql(sqlSource, 'postgres');
+const diagram = compile(dbmlSource);
+const diagram = compileSql(sqlSource, 'postgres');
 ```
 
 ## What it's for
@@ -350,10 +350,6 @@ Collapse every entity to a 3-row name-only box. Edges still route correctly — 
 
 When a SQL schema declares no `FOREIGN KEY`s (common in warehouses), dbsketch infers relationships from PK-name matches: a non-PK column named `respondent_id` in one table that matches a PK column named `respondent_id` in another becomes a one-to-many ref. Pass `--no-infer-refs` to skip this and render only declared relationships.
 
-### `--ascii` (7-bit ASCII glyphs)
-
-Falls back to `+`, `-`, `|` and `*` for environments where Unicode box-drawing doesn't render cleanly.
-
 ### `--sql` and `--dialect=NAME`
 
 SQL DDL input. Dialect defaults to `postgres` (which also reads SQLite cleanly). Other supported dialects: `mysql`, `mssql`, `snowflake`.
@@ -436,7 +432,7 @@ Table posts { id int [pk] user_id int [ref: > users.id] title varchar }
 
 On GitHub, the `<!-- dbsketch -->` comment is invisible — readers see only the diagram. Re-running `--render-markdown` updates the rendered block in place; it's idempotent.
 
-All render flags work: `--ascii`, `--no-types`, `--no-columns`, `--dialect`, etc.
+All render flags work: `--no-types`, `--no-columns`, `--dialect`, etc.
 
 **Reference an external file instead of inline DBML:**
 
@@ -491,7 +487,6 @@ the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
-  --ascii              Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
   --sql                Treat input as SQL DDL (forced for stdin)
   --dialect=NAME       SQL dialect: postgres (default), mysql, mssql, snowflake
   --no-infer-refs      Don't infer relationships from PK-name matches when
@@ -517,7 +512,6 @@ compileSql(sqlSource, dialect?, options?)
 
 // Options:
 // {
-//   glyphs?:      'unicode' | 'ascii'   // default 'unicode'
 //   inferRefs?:   'auto' | 'never'      // default 'auto'
 //   showTypes?:   boolean               // default true
 //   showColumns?: boolean               // default true; false → name-only boxes

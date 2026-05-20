@@ -23,7 +23,6 @@ the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
-  --ascii              Use 7-bit ASCII glyphs (+, -, |) instead of Unicode
   --sql                Treat input as SQL DDL (forced for stdin)
   --dialect=NAME       SQL dialect: postgres (default), mysql, mssql, snowflake
   --no-infer-refs      Don't infer relationships from PK-name matches when
@@ -45,7 +44,6 @@ const VALID_DIALECTS: SqlDialect[] = ['postgres', 'mysql', 'mssql', 'snowflake']
 
 export function runCli(args: string[], deps: CliDeps): CliResult {
   let values: {
-    ascii?: boolean | undefined;
     sql?: boolean | undefined;
     dialect?: string | undefined;
     'no-infer-refs'?: boolean | undefined;
@@ -59,7 +57,6 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     const parsed = parseArgs({
       args,
       options: {
-        ascii: { type: 'boolean', default: false },
         sql: { type: 'boolean', default: false },
         dialect: { type: 'string' },
         'no-infer-refs': { type: 'boolean', default: false },
@@ -110,7 +107,6 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
   }
 
   const opts = {
-    glyphs: values.ascii ? ('ascii' as const) : ('unicode' as const),
     inferRefs: values['no-infer-refs'] ? ('never' as const) : ('auto' as const),
     showTypes: !values['no-types'],
     showColumns: !values['no-columns'],
