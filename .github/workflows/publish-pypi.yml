@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
 
 permissions:
   id-token: write  # required for Trusted Publishing
@@ -36,7 +42,8 @@ jobs:
 
       - name: Set version from tag
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          VERSION=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('{0}', github.ref_name) }}
+          VERSION=${VERSION#v}
           python3 -c "
           import re, pathlib
           p = pathlib.Path('packages/pypi/pyproject.toml')
