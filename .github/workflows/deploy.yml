@@ -32,6 +32,8 @@ jobs:
 
       - run: pnpm build
 
+      - run: pnpm --filter playground build
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/playground/dist
