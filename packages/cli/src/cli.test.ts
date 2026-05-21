@@ -10,9 +10,12 @@ function makeDeps(
   readStdin: () => string;
   stdinIsTty: boolean;
   writeFile: (path: string, content: string) => void;
+  openUrl: (url: string) => void;
   written: Map<string, string>;
+  openedUrl: () => string | undefined;
 } {
   const written = new Map<string, string>();
+  let lastUrl: string | undefined;
   return {
     readFile: (path: string) => {
       if (path in files) return files[path]!;
@@ -20,10 +23,10 @@ function makeDeps(
     },
     readStdin: () => input,
     stdinIsTty: isTty,
-    writeFile: (path: string, content: string) => {
-      written.set(path, content);
-    },
+    writeFile: (path: string, content: string) => { written.set(path, content); },
+    openUrl: (url: string) => { lastUrl = url; },
     written,
+    openedUrl: () => lastUrl,
   };
 }
 
@@ -183,5 +186,49 @@ describe('runCli', () => {
     // With inference the layout connects the two entities, producing more
     // characters and a wider diagram than two independent boxes.
     expect(inferred.stdout.length).toBeGreaterThan(notInferred.stdout.length);
+  });
+
+  describe('--ui', () => {
+    const dbml = 'Table users { id int [pk] email varchar }';
+
+    it('opens the blank playground when no schema is given (TTY)', () => {
+      const deps = makeDeps('', true);
+      const result = runCli(['--ui'], deps);
+      expect(result.exitCode).toBe(0);
+      expect(deps.openedUrl()).toBe('https://dbsketch.dev');
+      expect(result.stdout.trim()).toBe('https://dbsketch.dev');
+    });
+
+    it('opens the playground with DBML schema from a file', () => {
+      const deps = makeDeps(dbml);
+      const result = runCli(['--ui', 'schema.dbml'], deps);
+      expect(result.exitCode).toBe(0);
+      const url = deps.openedUrl()!;
+      expect(url).toMatch(/^https:\/\/dbsketch\.dev\/#dbml:/);
+      expect(result.stdout.trim()).toBe(url);
+    });
+
+    it('opens the playground with SQL schema when file ends in .sql', () => {
+      const deps = makeDeps('CREATE TABLE users (id INT PRIMARY KEY);');
+      const result = runCli(['--ui', 'schema.sql'], deps);
+      expect(result.exitCode).toBe(0);
+      expect(deps.openedUrl()).toMatch(/^https:\/\/dbsketch\.dev\/#sql:/);
+    });
+
+    it('opens with SQL mode when --sql flag is set', () => {
+      const deps = makeDeps('CREATE TABLE users (id INT PRIMARY KEY);');
+      const result = runCli(['--ui', '--sql'], deps);
+      expect(result.exitCode).toBe(0);
+      expect(deps.openedUrl()).toMatch(/^https:\/\/dbsketch\.dev\/#sql:/);
+    });
+
+    it('URL decodes back to the original schema', async () => {
+      const { decompressFromEncodedURIComponent } = await import('lz-string');
+      const deps = makeDeps(dbml);
+      runCli(['--ui', 'schema.dbml'], deps);
+      const url = deps.openedUrl()!;
+      const encoded = url.split('#dbml:')[1]!;
+      expect(decompressFromEncodedURIComponent(encoded)).toBe(dbml);
+    });
   });
 });

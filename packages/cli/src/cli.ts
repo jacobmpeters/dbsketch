@@ -1,12 +1,21 @@
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import LZString from 'lz-string';
 import { type SqlDialect, compile, compileSql, compileSqlSvg, compileSvg, processMarkdown } from '@dbsketch/core';
+
+const PLAYGROUND_URL = 'https://dbsketch.dev';
+
+function buildPlaygroundUrl(schema: string, mode: 'dbml' | 'sql'): string {
+  const encoded = LZString.compressToEncodedURIComponent(schema);
+  return `${PLAYGROUND_URL}/#${mode}:${encoded}`;
+}
 
 export interface CliDeps {
   readFile: (path: string) => string;
   readStdin: () => string;
   stdinIsTty: boolean;
   writeFile: (path: string, content: string) => void;
+  openUrl: (url: string) => void;
 }
 
 export interface CliResult {
@@ -17,12 +26,16 @@ export interface CliResult {
 
 export const USAGE = `Usage: dbsketch [options] [file.dbml|file.sql]
        dbsketch --render-markdown <file.md>
+       dbsketch --ui [file.dbml|file.sql]
 
 Reads DBML or SQL DDL from a file (or stdin if omitted) and writes
 the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
+  --ui                 Open the schema in the dbsketch.dev playground.
+                       Prints the URL to stdout (useful if the browser
+                       doesn't open automatically)
   --svg                Output SVG instead of plain text
   --theme=THEME        SVG color theme: light (default) or dark
   --sql                Treat input as SQL DDL (forced for stdin)
@@ -46,6 +59,7 @@ const VALID_DIALECTS: SqlDialect[] = ['postgres', 'mysql', 'mssql', 'snowflake']
 
 export function runCli(args: string[], deps: CliDeps): CliResult {
   let values: {
+    ui?: boolean | undefined;
     svg?: boolean | undefined;
     theme?: string | undefined;
     sql?: boolean | undefined;
@@ -61,6 +75,7 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
     const parsed = parseArgs({
       args,
       options: {
+        ui: { type: 'boolean', default: false },
         svg: { type: 'boolean', default: false },
         theme: { type: 'string' },
         sql: { type: 'boolean', default: false },
@@ -81,6 +96,27 @@ export function runCli(args: string[], deps: CliDeps): CliResult {
 
   if (values.help) {
     return { stdout: USAGE, stderr: '', exitCode: 0 };
+  }
+
+  if (values.ui) {
+    // No schema supplied — open the blank playground.
+    if (positionals.length === 0 && deps.stdinIsTty) {
+      deps.openUrl(PLAYGROUND_URL);
+      return { stdout: `${PLAYGROUND_URL}\n`, stderr: '', exitCode: 0 };
+    }
+    let schema: string;
+    let schemaPath: string | undefined;
+    if (positionals.length > 0) {
+      schemaPath = positionals[0]!;
+      try { schema = deps.readFile(schemaPath); }
+      catch (e) { return { stdout: '', stderr: `error: ${(e as Error).message}\n`, exitCode: 1 }; }
+    } else {
+      schema = deps.readStdin();
+    }
+    const isSqlInput = values.sql === true || (schemaPath !== undefined && /\.sql$/i.test(schemaPath));
+    const url = buildPlaygroundUrl(schema, isSqlInput ? 'sql' : 'dbml');
+    deps.openUrl(url);
+    return { stdout: `${url}\n`, stderr: '', exitCode: 0 };
   }
 
   let input: string;

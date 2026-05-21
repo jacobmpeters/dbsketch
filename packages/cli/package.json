@@ -33,7 +33,9 @@
   "bin": {
     "dbsketch": "./dist/bin.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --build",
     "bundle": "esbuild src/bin.ts --bundle --platform=node --target=node20 --format=cjs --minify --outfile=../../packages/pypi/dbsketch/_bin/cli.cjs",
@@ -44,7 +46,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@dbsketch/core": "workspace:*"
+    "@dbsketch/core": "workspace:*",
+    "lz-string": "^1.5.0",
+    "open": "^11.0.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.0"
