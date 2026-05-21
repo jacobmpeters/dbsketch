@@ -232,14 +232,26 @@ const COMMENT_RE =
   /<!--\s*dbsketch(?:[ \t]+src="([^"]+)"[^-]*|[ \t]*\n([\s\S]*?)\n)-->/g;
 // After a comment: optional blank lines then an existing rendered block.
 const RENDERED_RE = new RegExp(`^(\\n+)(${FENCE}dbsketch-rendered\\n[\\s\\S]*?${FENCE})`);
+// Matches fenced code blocks so we can skip comments that appear inside them.
+const FENCE_RE = /^```[^\n]*\n[\s\S]*?^```/gm;
+
+function fencedRanges(source: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  for (const m of source.matchAll(FENCE_RE)) {
+    ranges.push([m.index!, m.index! + m[0].length]);
+  }
+  return ranges;
+}
 
 export function processMarkdown(source: string, options?: ProcessMarkdownOptions): string {
   const { resolveFile, dialect = 'postgres', ...compileOpts } = options ?? {};
 
+  const fenced = fencedRanges(source);
   let result = '';
   let cursor = 0;
 
   for (const match of source.matchAll(COMMENT_RE)) {
+    if (fenced.some(([s, e]) => match.index! >= s && match.index! < e)) continue;
     const srcPath = match[1];
     const inlineDbml = match[2];
     const commentEnd = match.index! + match[0].length;

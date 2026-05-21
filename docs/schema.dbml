@@ -1,0 +1,41 @@
+Table sales_fact {
+  id int [pk]
+  date_id int [ref: > date_dim.id]
+  product_id int [ref: > product_dim.id]
+  customer_id int [ref: > customer_dim.id]
+  store_id int [ref: > store_dim.id]
+  quantity int
+  revenue decimal
+}
+
+Table date_dim {
+  id int [pk]
+  date date
+  year int
+  quarter int
+  month int
+}
+
+Table product_dim {
+  id int [pk]
+  name varchar
+  category varchar
+  brand varchar
+  price decimal
+}
+
+Table customer_dim {
+  id int [pk]
+  name varchar
+  email varchar
+  region varchar
+  segment varchar
+}
+
+Table store_dim {
+  id int [pk]
+  name varchar
+  city varchar
+  country varchar
+  region varchar
+}

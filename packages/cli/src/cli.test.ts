@@ -147,6 +147,33 @@ describe('runCli', () => {
       expect(deps.written.get('README.md')).toContain('products');
     });
 
+    it('ignores dbsketch comments inside fenced code blocks', () => {
+      const md = [
+        '# Docs',
+        '',
+        '```markdown',
+        '<!-- dbsketch',
+        'Table example { id int }',
+        '-->',
+        '```',
+        '',
+        '<!-- dbsketch',
+        'Table real { id int }',
+        '-->',
+      ].join('\n');
+      const deps = makeDeps('', false);
+      deps.readFile = (_p) => md;
+      const result = runCli(['--render-markdown', 'README.md'], deps);
+      expect(result.exitCode).toBe(0);
+      const written = deps.written.get('README.md')!;
+      // Only one rendered block — the fenced comment is skipped
+      expect(written.match(/dbsketch-rendered/g)?.length).toBe(1);
+      // The rendered block contains 'real', not 'example'
+      const renderedBlock = written.split('```dbsketch-rendered\n')[1]!.split('```')[0]!;
+      expect(renderedBlock).toContain('real');
+      expect(renderedBlock).not.toContain('example');
+    });
+
     it('requires a file path', () => {
       const result = runCli(['--render-markdown'], makeDeps(''));
       expect(result.exitCode).toBe(1);

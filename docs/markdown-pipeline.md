@@ -107,6 +107,42 @@ automatically — no manual `Ref:` declarations needed.
 
 ---
 
+## External file reference
+
+Rather than inlining the schema, point to a separate file with `src="..."`.
+The path is resolved relative to the Markdown file — useful when the schema
+already lives in its own `.dbml` or `.sql` file.
+
+<!-- dbsketch src="schema.dbml" -->
+
+```dbsketch-rendered
+                                           ╭─────────────────╮
+╭──────────────────╮                       │    date_dim     │
+│   product_dim    │                       ├─────────────────┤
+├──────────────────┤  ╭─────────────────╮╭─┤·id          int │
+│·id           int ├╮ │   sales_fact    ││ │ date       date │
+│ name     varchar ││ ├─────────────────┤│ │ year        int │
+│ category varchar ││ │·id          int ││ │ quarter     int │
+│ brand    varchar ││ │ date_id     int ├╯ │ month       int │
+│ price    decimal │╰─┤ product_id  int │  ╰─────────────────╯
+╰──────────────────╯╭─┤ customer_id int │
+                    │ │ store_id    int ├╮ ╭─────────────────╮
+╭──────────────────╮│ │ quantity    int ││ │    store_dim    │
+│   customer_dim   ││ │ revenue decimal ││ ├─────────────────┤
+├──────────────────┤│ ╰─────────────────╯╰─┤·id          int │
+│·id           int ├╯                      │ name    varchar │
+│ name     varchar │                       │ city    varchar │
+│ email    varchar │                       │ country varchar │
+│ region   varchar │                       │ region  varchar │
+│ segment  varchar │                       ╰─────────────────╯
+╰──────────────────╯
+```
+
+The source file (`docs/schema.dbml` in this repo) is unchanged; only this
+document gets the rendered block inserted.
+
+---
+
 ## How it works
 
 1. Write your schema inside a `<!-- dbsketch ... -->` HTML comment anywhere in
@@ -120,14 +156,6 @@ automatically — no manual `Ref:` declarations needed.
 **The rendered block must sit immediately after the closing `-->`.** Prose
 that belongs between the comment and the diagram should go after the rendered
 block instead.
-
-**Reference an external schema file** rather than inlining DBML:
-
-```markdown
-<!-- dbsketch src="schema.dbml" -->
-```
-
-The path is resolved relative to the Markdown file.
 
 **Automate with a pre-commit hook** so the diagram always stays in sync:
 
