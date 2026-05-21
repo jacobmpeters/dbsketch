@@ -56,6 +56,57 @@ GitHub — only the diagram below is visible to readers.
 
 ---
 
+## SQL input
+
+SQL DDL works the same way. Add `--sql` to the comment tag and dbsketch will
+parse it as SQL instead of DBML. The dialect defaults to `postgres`; pass
+`--dialect=mysql` (or `mssql`, `snowflake`) to override.
+
+<!-- dbsketch --sql
+CREATE TABLE date_dim (
+  id    SERIAL PRIMARY KEY,
+  date  DATE,
+  year  INT,
+  quarter INT,
+  month INT
+);
+CREATE TABLE product_dim (
+  id       SERIAL PRIMARY KEY,
+  name     VARCHAR,
+  category VARCHAR,
+  brand    VARCHAR,
+  price    DECIMAL
+);
+CREATE TABLE customer_dim (
+  id      SERIAL PRIMARY KEY,
+  name    VARCHAR,
+  email   VARCHAR,
+  region  VARCHAR,
+  segment VARCHAR
+);
+CREATE TABLE store_dim (
+  id      SERIAL PRIMARY KEY,
+  name    VARCHAR,
+  city    VARCHAR,
+  country VARCHAR,
+  region  VARCHAR
+);
+CREATE TABLE sales_fact (
+  id          SERIAL PRIMARY KEY,
+  date_id     INT REFERENCES date_dim(id),
+  product_id  INT REFERENCES product_dim(id),
+  customer_id INT REFERENCES customer_dim(id),
+  store_id    INT REFERENCES store_dim(id),
+  quantity    INT,
+  revenue     DECIMAL
+);
+-->
+
+Same schema, SQL dialect. Foreign keys from `REFERENCES` are extracted
+automatically — no manual `Ref:` declarations needed.
+
+---
+
 ## How it works
 
 1. Write your schema inside a `<!-- dbsketch ... -->` HTML comment anywhere in
@@ -79,6 +130,8 @@ block instead.
 The path is resolved relative to the Markdown file.
 
 **Automate with a pre-commit hook** so the diagram always stays in sync:
+
+> **Note:** Rendered diagrams require `line-height: 1` to display correctly. Most terminals and code editors do this by default; some docs sites (MkDocs, Docusaurus) need a small CSS override. See the [Viewing section](../README.md#viewing) in the README.
 
 ```sh
 # .husky/pre-commit
