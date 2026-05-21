@@ -249,6 +249,11 @@ dbsketch schema.dbml --no-columns   # name-only boxes (relationship overview)
 dbsketch schema.dbml --svg
 dbsketch schema.dbml --svg --theme=dark
 
+# Open in playground (browser)
+dbsketch --ui schema.dbml           # pre-load DBML schema
+dbsketch --ui schema.sql            # pre-load SQL schema
+dbsketch --ui                       # open blank playground
+
 # Markdown pipeline — renders dbsketch comments in-place
 dbsketch --render-markdown README.md</code></pre>
 

@@ -350,6 +350,19 @@ Collapse every entity to a 3-row name-only box. Edges still route correctly — 
 
 When a SQL schema declares no `FOREIGN KEY`s (common in warehouses), dbsketch infers relationships from PK-name matches: a non-PK column named `respondent_id` in one table that matches a PK column named `respondent_id` in another becomes a one-to-many ref. Pass `--no-infer-refs` to skip this and render only declared relationships.
 
+### `--ui` (open in the web playground)
+
+Opens [dbsketch.dev](https://dbsketch.dev) in your browser with the schema pre-loaded, so you can explore it interactively or share a URL with teammates.
+
+```sh
+dbsketch --ui schema.dbml          # open DBML schema in playground
+dbsketch --ui schema.sql           # open SQL schema (auto-detected)
+cat schema.sql | dbsketch --ui --sql   # force SQL mode for stdin
+dbsketch --ui                      # open blank playground
+```
+
+The URL is also printed to stdout, which is handy when the browser doesn't open automatically (e.g. SSH sessions).
+
 ### `--svg` (vector output for documents and presentations)
 
 Outputs an SVG file instead of plain text. The SVG embeds a monospace font and sizes itself to the diagram, so it renders correctly in Keynote, Pages, Google Slides, and any image viewer — no line-height or font worries.
@@ -492,12 +505,16 @@ echo "git add -u" >> .husky/pre-commit
 ```
 Usage: dbsketch [options] [file.dbml|file.sql]
        dbsketch --render-markdown <file.md>
+       dbsketch --ui [file.dbml|file.sql]
 
 Reads DBML or SQL DDL from a file (or stdin if omitted) and writes
 the rendered ERD to stdout. SQL inputs are detected by the .sql
 extension; for stdin, use --sql to force SQL mode.
 
 Options:
+  --ui                 Open the schema in the dbsketch.dev playground.
+                       Prints the URL to stdout (useful if the browser
+                       doesn't open automatically)
   --svg                Output SVG instead of plain text
   --theme=THEME        SVG color theme: light (default) or dark
   --sql                Treat input as SQL DDL (forced for stdin)
