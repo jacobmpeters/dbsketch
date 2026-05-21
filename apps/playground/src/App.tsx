@@ -284,6 +284,46 @@ Table store_dim {
 `,
   },
   {
+    label: 'Markdown embed',
+    mode: 'dbml',
+    value: `// Paste your schema inside a <!-- dbsketch --> comment in any
+// Markdown file, then run:
+//
+//   dbsketch --render-markdown README.md
+//
+// A rendered diagram block is inserted (or updated) after each
+// comment automatically. The comment is invisible on GitHub —
+// readers see only the diagram.
+//
+// Example in README.md:
+//
+//   <!-- dbsketch
+//   Table users { id int [pk]  email varchar }
+//   Table posts { id int [pk]  user_id int [ref: > users.id] }
+//   -->
+
+Table users {
+  id int [pk]
+  email varchar
+  created_at timestamp
+}
+
+Table posts {
+  id int [pk]
+  user_id int [ref: > users.id]
+  title varchar
+  body text
+  published_at timestamp
+}
+
+Table comments {
+  id int [pk]
+  post_id int [ref: > posts.id]
+  user_id int [ref: > users.id]
+  body text
+}`,
+  },
+  {
     label: 'pin',
     mode: 'dbml',
     value: `Table regions {
