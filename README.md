@@ -500,6 +500,8 @@ echo "git add -u" >> .husky/pre-commit
 
 > **Note:** The hook must re-stage files after rendering (`git add -u`) so the updated diagram is included in the commit, not just the source edit.
 
+See [docs/markdown-pipeline.md](docs/markdown-pipeline.md) for a complete end-to-end demo with a rendered example.
+
 ## CLI reference
 
 ```
