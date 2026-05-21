@@ -1,6 +1,6 @@
 {
   "name": "@dbsketch/render",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Text rendering for dbsketch ERD layouts; ASCII and Unicode box-drawing glyph tables.",
   "keywords": [
     "erd",
@@ -33,7 +33,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --build",
     "prepublishOnly": "tsc --build"

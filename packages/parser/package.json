@@ -1,6 +1,6 @@
 {
   "name": "@dbsketch/parser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DBML and SQL DDL parser used by dbsketch; produces a normalized IR.",
   "keywords": ["dbml", "sql", "ddl", "parser", "database", "schema", "erd", "data-modeling"],
   "license": "MIT",

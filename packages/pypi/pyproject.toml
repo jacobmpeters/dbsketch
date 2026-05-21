@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dbsketch"
-version = "0.1.0"
+version = "0.2.0"
 description = "Schema-to-diagram compiler for DBML and SQL — ASCII/Unicode ERDs from the command line"
 readme = "README.md"
 requires-python = ">=3.8"
