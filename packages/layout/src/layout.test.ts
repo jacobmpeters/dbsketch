@@ -63,13 +63,25 @@ describe('layout', () => {
     expect([aRow, cRow].sort()).toEqual([0, 1]);
   });
 
-  it('rejects a col pin that places a child at or before its parent', () => {
+  it('rejects a col pin that places a child before its parent', () => {
     const ir = parse(`
       Table parent { id int }
       Table child { id int p_id int [ref: > parent.id] }
-      @layout { pin child at col 0 }
+      @layout { pin child at col 0 pin parent at col 1 }
     `);
     expect(() => layout(ir)).toThrow(HintConflictError);
+  });
+
+  it('allows same-col pins when parent and child are deliberately stacked', () => {
+    const ir = parse(`
+      Table parent { id int [pk] }
+      Table child { id int p_id int [ref: > parent.id] }
+      @layout {
+        pin parent at col 0, row 0
+        pin child at col 0, row 1
+      }
+    `);
+    expect(() => layout(ir)).not.toThrow();
   });
 
   it('rejects two pins at the same fully-specified position', () => {

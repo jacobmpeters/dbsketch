@@ -397,9 +397,14 @@ class Parser {
       // `Note: 'string'` attribute).
       if (this.at('ident')) {
         const kw = this.peek().value.toLowerCase();
-        if (kw === 'indexes' || kw === 'checks') {
+        if (kw === 'checks') {
           this.advance();
           if (this.at('lbrace')) this.skipBalancedBraces();
+          continue;
+        }
+        if (kw === 'indexes') {
+          this.advance();
+          if (this.at('lbrace')) this.parseIndexesBlock(columns);
           continue;
         }
         if (kw === 'note') {
@@ -421,6 +426,38 @@ class Parser {
     }
     this.consume('rbrace');
     this.entities.push({ name, columns });
+  }
+
+  // Parse an Indexes { ... } block and mark pk:true on any columns named in
+  // a composite or single-column index with [pk]. Other index attributes are
+  // ignored — we only care about PK promotion here.
+  private parseIndexesBlock(columns: Column[]): void {
+    const colByName = new Map(columns.map((c) => [c.name, c]));
+    this.consume('lbrace');
+    while (!this.at('rbrace') && !this.at('eof')) {
+      const names: string[] = [];
+      if (this.at('lparen')) {
+        this.consume('lparen');
+        while (!this.at('rparen') && !this.at('eof')) {
+          if (this.at('ident')) names.push(this.consumeName());
+          if (this.at('comma')) this.consume('comma');
+        }
+        this.consume('rparen');
+      } else if (this.at('ident')) {
+        names.push(this.consumeName());
+      } else {
+        this.advance();
+        continue;
+      }
+      const isPk = this.at('lbracket') && this.parseAttributeBracket().pk;
+      if (isPk) {
+        for (const n of names) {
+          const col = colByName.get(n);
+          if (col) (col as { pk: boolean }).pk = true;
+        }
+      }
+    }
+    this.consume('rbrace');
   }
 
   private parseColumn(tableName: string): { column: Column; ref?: Ref } {

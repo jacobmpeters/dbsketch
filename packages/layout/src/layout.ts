@@ -21,7 +21,7 @@ export function layout(ir: IR): Layout {
   // re-running the inner pipeline for each candidate and picking whichever
   // produces lower crossings (tie-break: lower totalVLength). The search
   // calls layoutCore directly to avoid recursion.
-  const optimizedIr = optimizeColumns(ir, (candidate) => routeStats(layoutCore(candidate)));
+  const optimizedIr = optimizeColumns(ir, layoutCore);
   return layoutCore(optimizedIr);
 }
 
@@ -111,9 +111,9 @@ function validateColPins(ranks: Map<string, number>, ir: IR): void {
     const parentCol = ranks.get(ref.parent.entity);
     const childCol = ranks.get(ref.child.entity);
     if (parentCol === undefined || childCol === undefined) continue;
-    if (parentCol >= childCol) {
+    if (parentCol > childCol) {
       throw new HintConflictError(
-        `pin places ${ref.child.entity} (col ${childCol}) at or before its parent ${ref.parent.entity} (col ${parentCol})`,
+        `pin places ${ref.child.entity} (col ${childCol}) before its parent ${ref.parent.entity} (col ${parentCol})`,
       );
     }
   }
