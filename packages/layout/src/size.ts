@@ -48,9 +48,10 @@ export function size(
   }
 
   // Each routing track is one cell wide. Channel = max(visual floor, tracks).
-  const channelColWidths = Array.from({ length: Math.max(0, numColStrips - 1) }, (_, i) =>
-    Math.max(MIN_COL_CHANNEL, channelTrackCounts.get(i) ?? 0),
-  );
+  const channelColWidths = Array.from({ length: Math.max(0, numColStrips - 1) }, (_, i) => {
+    const tracks = channelTrackCounts.get(i) ?? 0;
+    return Math.max(MIN_COL_CHANNEL, tracks > 0 ? tracks + 1 : 0);
+  });
 
   return {
     colStripWidths,

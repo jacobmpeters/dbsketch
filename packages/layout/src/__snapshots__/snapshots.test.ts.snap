@@ -516,7 +516,7 @@ exports[`layout snapshots > diamond 1`] = `
     {
       "childPort": {
         "side": "left",
-        "x": 26,
+        "x": 27,
         "y": 4,
       },
       "parentPort": {
@@ -567,7 +567,7 @@ exports[`layout snapshots > diamond 1`] = `
         {
           "kind": "horizontal",
           "x1": 24,
-          "x2": 26,
+          "x2": 27,
           "y1": 4,
           "y2": 4,
         },
@@ -576,7 +576,7 @@ exports[`layout snapshots > diamond 1`] = `
     {
       "childPort": {
         "side": "left",
-        "x": 26,
+        "x": 27,
         "y": 5,
       },
       "parentPort": {
@@ -613,7 +613,7 @@ exports[`layout snapshots > diamond 1`] = `
         {
           "kind": "horizontal",
           "x1": 25,
-          "x2": 26,
+          "x2": 27,
           "y1": 5,
           "y2": 5,
         },
@@ -636,7 +636,7 @@ exports[`layout snapshots > diamond 1`] = `
     "c" => {
       "height": 7,
       "width": 12,
-      "x": 26,
+      "x": 27,
       "y": 0,
     },
   },
@@ -754,7 +754,7 @@ exports[`layout snapshots > diamond 1`] = `
   "sizing": {
     "channelColWidths": [
       2,
-      2,
+      3,
     ],
     "channelRowHeights": [],
     "colStripWidths": [

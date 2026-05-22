@@ -69,7 +69,6 @@ export function optimizeColumns(ir: IR, evaluate: (ir: IR) => Layout): IR {
   // Barycenter pass for entities with 2+ contiguous FK columns — not covered
   // by the scattered-FK loop above but still benefit from port-row alignment.
   for (const entity of barycentreCandidates) {
-    if (bestStats.crossings === 0) break;
     if (candidates.includes(entity)) continue; // already handled above
 
     const barycentreCols = barycentreFkOrdering(entity, bestIr, bestLayout);

@@ -353,6 +353,6 @@ describe('layout integration', () => {
       }
     `);
     const result = layout(ir);
-    expect(result.sizing.channelColWidths[0]).toBe(2);
+    expect(result.sizing.channelColWidths[0]).toBe(3);
   });
 });

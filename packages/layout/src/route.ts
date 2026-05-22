@@ -1,5 +1,6 @@
 import type { Entity, IR, Ref } from '@dbsketch/parser';
 import { type EntityPositions, entityYBase, relativeEntityYs } from './positions.js';
+import { entityHeight } from './size.js';
 import type { EdgeRoute, EdgeSegment, Placement, Port, Side, StripSizing } from './types.js';
 
 interface BasePlannedEdge {
@@ -119,7 +120,7 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   // (entityYs) so it runs before margin sizing — packing then splits by
   // side. Has to come before packRowChannels so each side packs its own
   // tracks independently.
-  assignDetourSides(planned, entityYs);
+  assignDetourSides(planned, entityYs, ir);
   // Opportunistically replace margin routing with a local spine row close
   // to the parent entity when an empty row exists across the bundle's H2
   // x-range. Bundles that can't find a clear spine keep their assigned
@@ -290,6 +291,7 @@ function findSpineY(
   colRange: { min: number; max: number },
   occupancy: Map<number, Set<number>>,
   claimedRanges: Map<number, Array<{ xMin: number; xMax: number }>>,
+  bbox: { minY: number; maxY: number },
 ): number | null {
   const isClearOfEntities = (y: number): boolean => {
     if (y < 0) return false;
@@ -310,13 +312,16 @@ function findSpineY(
   // parent's bottom port), then just above, then expanding by one each
   // direction. Below-first prefers the visual "branches descend" idiom
   // that maps well to a column-strip hub layout.
+  // Only consider rows within the vertical bounding box of the parent and
+  // child entities — a spine outside that box forces V segments to extend
+  // past their endpoint, creating a visually large detour rectangle.
   const yBelow = parentY + parentHeight;
   const yAbove = parentY - 1;
   for (let d = 0; d < SPINE_SEARCH_RADIUS; d++) {
     const below = yBelow + d;
-    if (isClearOfEntities(below) && isClearOfOtherTrunks(below)) return below;
+    if (below <= bbox.maxY && isClearOfEntities(below) && isClearOfOtherTrunks(below)) return below;
     const above = yAbove - d;
-    if (isClearOfEntities(above) && isClearOfOtherTrunks(above)) return above;
+    if (above >= bbox.minY && isClearOfEntities(above) && isClearOfOtherTrunks(above)) return above;
   }
   return null;
 }
@@ -390,7 +395,7 @@ function assignLocalSpines(
       unclaimed.push(...members);
       continue;
     }
-    const parentHeight = parentEntity.columns.length === 0 ? 3 : 4 + parentEntity.columns.length;
+    const parentHeight = entityHeight(parentEntity);
 
     // H2 spans col-strips from leftmost to rightmost across all members.
     let minCol = first.parentColStrip;
@@ -400,12 +405,26 @@ function assignLocalSpines(
       maxCol = Math.max(maxCol, m.parentColStrip, m.childColStrip);
     }
 
+    // Bounding box: spine must fall within the vertical extent of the parent
+    // and all child entities so V segments don't extend past their endpoints.
+    let bboxMinY = parentY;
+    let bboxMaxY = parentY + parentHeight - 1;
+    for (const m of members) {
+      const childY = entityYs.get(m.ref.child.entity);
+      const childEntity = entitiesByName.get(m.ref.child.entity);
+      if (childY !== undefined && childEntity) {
+        bboxMinY = Math.min(bboxMinY, childY);
+        bboxMaxY = Math.max(bboxMaxY, childY + entityHeight(childEntity) - 1);
+      }
+    }
+
     const spineY = findSpineY(
       parentY,
       parentHeight,
       { min: minCol, max: maxCol },
       occupancy,
       claimedRanges,
+      { minY: bboxMinY, maxY: bboxMaxY },
     );
     if (spineY === null) {
       unclaimed.push(...members);
@@ -425,30 +444,47 @@ function assignLocalSpines(
     if (!parentEntity) continue;
     const parentY = entityYs.get(edge.ref.parent.entity);
     if (parentY === undefined) continue;
-    const parentHeight = parentEntity.columns.length === 0 ? 3 : 4 + parentEntity.columns.length;
+    const parentHeight = entityHeight(parentEntity);
     const minCol = Math.min(edge.parentColStrip, edge.childColStrip);
     const maxCol = Math.max(edge.parentColStrip, edge.childColStrip);
+    const childY = entityYs.get(edge.ref.child.entity);
+    const childEntity = entitiesByName.get(edge.ref.child.entity);
+    const childHeight = childEntity ? entityHeight(childEntity) : 0;
+    const bboxMinY = Math.min(parentY, childY ?? parentY);
+    const bboxMaxY = Math.max(parentY + parentHeight - 1, (childY ?? parentY) + childHeight - 1);
     const spineY = findSpineY(
       parentY,
       parentHeight,
       { min: minCol, max: maxCol },
       occupancy,
       claimedRanges,
+      { minY: bboxMinY, maxY: bboxMaxY },
     );
     if (spineY === null) continue;
     claim(spineY, { xMin: minCol, xMax: maxCol }, [edge]);
   }
 }
 
-function assignDetourSides(planned: PlannedEdge[], entityYs: Map<string, number>): void {
-  let maxY = 0;
-  for (const y of entityYs.values()) maxY = Math.max(maxY, y);
-  const diagramMid = maxY / 2;
+function assignDetourSides(planned: PlannedEdge[], entityYs: Map<string, number>, ir: IR): void {
+  const entityByName = new Map(ir.entities.map((e) => [e.name, e]));
+  const centerY = (name: string): number => {
+    const top = entityYs.get(name) ?? 0;
+    const entity = entityByName.get(name);
+    return top + (entity ? entityHeight(entity) / 2 : 0);
+  };
+  // Diagram midpoint = center of the tallest entity stack. Using entity
+  // centers (not tops) gives a stable midpoint regardless of entity sizes,
+  // and produces more accurate bottom vs top routing decisions when a large
+  // entity sits near the top of the diagram.
+  let maxBottom = 0;
+  for (const [name, top] of entityYs) {
+    const entity = entityByName.get(name);
+    maxBottom = Math.max(maxBottom, top + (entity ? entityHeight(entity) : 0));
+  }
+  const diagramMid = maxBottom / 2;
   for (const edge of planned) {
     if (edge.kind !== 'multi') continue;
-    const parentY = entityYs.get(edge.ref.parent.entity) ?? 0;
-    const childY = entityYs.get(edge.ref.child.entity) ?? 0;
-    const edgeMid = (parentY + childY) / 2;
+    const edgeMid = (centerY(edge.ref.parent.entity) + centerY(edge.ref.child.entity)) / 2;
     if (edgeMid > diagramMid) {
       edge.detourSide = 'bottom';
       edge.detourRowChannel = -2;
