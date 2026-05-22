@@ -86,10 +86,26 @@ export function planRoutes(ir: IR, placements: Placement[]): RoutePlan {
   // edge routes around (right by default, left when no channel exists right).
   const maxColStrip = placements.reduce((m, p) => Math.max(m, p.colStrip), 0);
 
+  // Count cross-col edges through each channel so same-col edges can be
+  // steered toward the less-congested adjacent side. Same-col refs contribute
+  // nothing here (lo === hi, loop body never runs), so the counts reflect
+  // only the cross-col load competing for each channel's tracks.
+  const channelLoad = new Map<number, number>();
+  for (const ref of ir.refs) {
+    const pp = placementByEntity.get(ref.parent.entity);
+    const cp = placementByEntity.get(ref.child.entity);
+    if (!pp || !cp) continue;
+    const lo = Math.min(pp.colStrip, cp.colStrip);
+    const hi = Math.max(pp.colStrip, cp.colStrip);
+    for (let ch = lo; ch < hi; ch++) {
+      channelLoad.set(ch, (channelLoad.get(ch) ?? 0) + 1);
+    }
+  }
+
   const planned: PlannedEdge[] = [];
   const skippedRefs: Ref[] = [];
   for (const ref of ir.refs) {
-    const fit = tryPlan(ref, placementByEntity, entityByName, maxColStrip);
+    const fit = tryPlan(ref, placementByEntity, entityByName, maxColStrip, channelLoad);
     if (fit) planned.push(fit);
     else skippedRefs.push(ref);
   }
@@ -132,6 +148,7 @@ function tryPlan(
   placementByEntity: Map<string, Placement>,
   entityByName: Map<string, Entity>,
   maxColStrip: number,
+  channelLoad: Map<number, number>,
 ): PlannedEdge | null {
   if (ref.cardinality === 'many-to-many') return null;
 
@@ -173,10 +190,14 @@ function tryPlan(
     if (parentP.rowStrip === childP.rowStrip && parentRowOffset === childRowOffset) {
       return null;
     }
-    // Prefer routing through the channel to the right of this col. The
-    // rightmost col has no channel to its right, so fall back to the left.
-    const side: 'left' | 'right' = parentP.colStrip < maxColStrip ? 'right' : 'left';
-    const channelIndex = side === 'right' ? parentP.colStrip : parentP.colStrip - 1;
+    // Route through whichever adjacent channel has fewer cross-col edges
+    // already assigned, keeping same-col edges off the busy side. Fall back
+    // to left when no right channel exists, and to right when no left channel.
+    const col = parentP.colStrip;
+    const leftLoad = col > 0 ? (channelLoad.get(col - 1) ?? 0) : Infinity;
+    const rightLoad = col < maxColStrip ? (channelLoad.get(col) ?? 0) : Infinity;
+    const side: 'left' | 'right' = leftLoad <= rightLoad ? 'left' : 'right';
+    const channelIndex = side === 'right' ? col : col - 1;
     if (channelIndex < 0) return null; // single-col diagram: nowhere to route
     return {
       kind: 'same-col',
