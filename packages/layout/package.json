@@ -1,6 +1,6 @@
 {
   "name": "@dbsketch/layout",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Grid-native deterministic layout algorithm used by dbsketch.",
   "keywords": [
     "erd",

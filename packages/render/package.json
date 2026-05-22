@@ -1,6 +1,6 @@
 {
   "name": "@dbsketch/render",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Text rendering for dbsketch ERD layouts; ASCII and Unicode box-drawing glyph tables.",
   "keywords": [
     "erd",

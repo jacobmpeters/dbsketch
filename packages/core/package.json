@@ -1,6 +1,6 @@
 {
   "name": "@dbsketch/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Compile DBML or SQL DDL into clean ASCII/Unicode ERD diagrams. Library entry point for dbsketch.",
   "keywords": [
     "erd",
